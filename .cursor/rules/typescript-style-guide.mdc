@@ -1,0 +1,22 @@
+---
+description: 
+globs: *.ts
+alwaysApply: false
+---
+# TypeScript style guide
+
+## Variable names
+
+Variable names should be all camelCased, where when a variable name contains an abbreviation in its second or later words, the abbreviation must be all upper case.
+
+Incorrect:
+```typescript
+const vpcId = "...";
+const resourceArn = "...";
+```
+
+Correct:
+```typescript
+const vpcID = "...";
+const resourceARN = "...";
+```

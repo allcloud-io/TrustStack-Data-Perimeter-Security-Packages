@@ -1,0 +1,74 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EnforceSecureTransportForS3Operations",
+      "Effect": "Deny",
+      "Action": [
+        "s3:PutBucketPolicy",
+        "s3:PutBucketAcl",
+        "s3:PutObjectAcl"
+      ],
+      "Resource": "arn:aws:s3:::*",
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      }
+    },
+    {
+      "Sid": "DenyDisablingAnyBucketPublicAccessSettings",
+      "Effect": "Deny",
+      "Action": "s3:PutPublicAccessBlock",
+      "Resource": "arn:aws:s3:::*",
+      "Condition": {
+        "StringLike": {
+          "s3:PublicAccessBlockConfiguration": [
+            "*BlockPublicAcls\":false*",
+            "*IgnorePublicAcls\":false*",
+            "*BlockPublicPolicy\":false*",
+            "*RestrictPublicBuckets\":false*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "DenySettingPublicBucketPolicies",
+      "Effect": "Deny",
+      "Action": "s3:PutBucketPolicy",
+      "Resource": "arn:aws:s3:::*",
+      "Condition": {
+        "StringLike": {
+          "s3:PolicyStatus": "*IsPublic\":true*"
+        }
+      }
+    },
+    {
+      "Sid": "DenyDisablingAccountLevelPublicAccessBlock",
+      "Effect": "Deny",
+      "Action": "s3:PutAccountPublicAccessBlock",
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "s3:PublicAccessBlockConfiguration": [
+            "*BlockPublicAcls\":false*",
+            "*IgnorePublicAcls\":false*",
+            "*BlockPublicPolicy\":false*",
+            "*RestrictPublicBuckets\":false*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "DenyBucketCreationWithoutPublicAccessBlock",
+      "Effect": "Deny",
+      "Action": "s3:CreateBucket",
+      "Resource": "arn:aws:s3:::*",
+      "Condition": {
+        "StringNotEquals": {
+          "s3:x-amz-public-access-block": "true"
+        }
+      }
+    }
+  ]
+}

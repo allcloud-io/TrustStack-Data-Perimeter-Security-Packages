@@ -1,0 +1,4 @@
+# AWS credentials and configuration
+# Required by all components
+export AWS_PROFILE=
+export AWS_REGION=

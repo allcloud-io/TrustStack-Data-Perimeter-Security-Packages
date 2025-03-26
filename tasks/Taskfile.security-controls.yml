@@ -1,0 +1,15 @@
+version: "3"
+
+tasks:
+  build:
+    desc: "Build the security controls"
+    dir: "apps/security-controls"
+    cmds:
+      - pnpm cdk synth {{ .CLI_ARGS }}
+      - pnpm package-solution
+
+  deploy:
+    desc: "Deploy the security controls"
+    dir: "apps/security-controls"
+    cmds:
+      - pnpm cdk deploy {{ .CLI_ARGS }}

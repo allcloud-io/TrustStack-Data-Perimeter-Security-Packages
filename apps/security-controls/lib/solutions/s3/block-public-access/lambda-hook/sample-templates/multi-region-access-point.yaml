@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Sample template with Multi-Region Access Points"
+
+Resources:
+  CompliantMultiRegionAccessPoint:
+    Type: AWS::S3::MultiRegionAccessPoint
+    Properties:
+      Name: compliant-mrap
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      Regions:
+        - Bucket: existing-bucket-us-east-1
+        - Bucket: existing-bucket-us-west-2
+
+  NonCompliantMultiRegionAccessPoint:
+    Type: AWS::S3::MultiRegionAccessPoint
+    Properties:
+      Name: non-compliant-mrap
+      # Missing PublicAccessBlockConfiguration
+      Regions:
+        - Bucket: existing-bucket-us-east-1
+        - Bucket: existing-bucket-us-west-2
+
+  PartiallyCompliantMultiRegionAccessPoint:
+    Type: AWS::S3::MultiRegionAccessPoint
+    Properties:
+      Name: partially-compliant-mrap
+      PublicAccessBlockConfiguration:
+        # Only some settings are enabled, not all
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        # Missing BlockPublicPolicy and RestrictPublicBuckets
+      Regions:
+        - Bucket: existing-bucket-us-east-1
+        - Bucket: existing-bucket-us-west-2
+
+Outputs:
+  CompliantMRAPName:
+    Description: Name of the compliant Multi-Region Access Point
+    Value: !GetAtt CompliantMultiRegionAccessPoint.Name
+  NonCompliantMRAPName:
+    Description: Name of the non-compliant Multi-Region Access Point
+    Value: !GetAtt NonCompliantMultiRegionAccessPoint.Name
+  PartiallyCompliantMRAPName:
+    Description: Name of the partially compliant Multi-Region Access Point
+    Value: !GetAtt PartiallyCompliantMultiRegionAccessPoint.Name

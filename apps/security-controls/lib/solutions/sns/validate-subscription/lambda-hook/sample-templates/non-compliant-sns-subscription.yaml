@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Sample template with non-compliant SNS subscriptions that use untrusted endpoints"
+
+Resources:
+  MySnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "my-topic-${AWS::AccountId}-${AWS::Region}"
+      Tags:
+        - Key: Environment
+          Value: Test
+        - Key: Purpose
+          Value: SecurityCompliance
+
+  # Non-compliant email subscription with untrusted domain
+  UntrustedEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: user@untrusted-domain.com
+      TopicArn: !Ref MySnsTopic
+
+  # Non-compliant HTTPS subscription with untrusted domain
+  UntrustedHttpsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: https
+      Endpoint: https://api.untrusted-domain.com/sns-subscription-confirmation
+      TopicArn: !Ref MySnsTopic
+      RawMessageDelivery: true
+
+  # Non-compliant subscription with missing Endpoint
+  MissingEndpointSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      # Missing Endpoint
+      TopicArn: !Ref MySnsTopic
+
+  # Non-compliant subscription with invalid email format
+  InvalidEmailFormatSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: invalid-email-format
+      TopicArn: !Ref MySnsTopic
+
+  # Non-compliant subscription with invalid URL format
+  InvalidUrlFormatSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: https
+      Endpoint: invalid-url-format
+      TopicArn: !Ref MySnsTopic
+
+Outputs:
+  TopicName:
+    Description: Name of the SNS topic
+    Value: !GetAtt MySnsTopic.TopicName
+  TopicArn:
+    Description: ARN of the SNS topic
+    Value: !Ref MySnsTopic

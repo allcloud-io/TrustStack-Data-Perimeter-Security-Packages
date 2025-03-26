@@ -1,0 +1,225 @@
+---
+description: TypeScript Types Generation for CloudFormation Resources
+globs: 
+alwaysApply: false
+---
+# TypeScript Types Generation for CloudFormation Resources
+
+This rule provides guidance on how to generate TypeScript type definitions from CloudFormation resource schema files.
+
+## Introduction
+
+CloudFormation resource schemas define the structure and properties of AWS resources in JSON format. Converting these schemas to TypeScript types provides type safety and better IDE support when working with CloudFormation resources in TypeScript projects.
+
+## Schema to TypeScript Type Conversion Rules
+
+Follow these rules when converting CloudFormation schema files to TypeScript types:
+
+### Basic Structure
+
+The generated TypeScript file should:
+1. Include a namespace named after the resource type. Replace any occurrence of "::" with an underscore(i.e., "_").
+2. Define types for all properties and nested definitions.
+3. Include JSDoc comments with descriptions from the schema.
+4. Handle all property types appropriately.
+5. Include metadata for read-only and create-only properties.
+6. Document default values when present.
+
+### Type Naming Conventions
+
+- The main resource type should be named after the last part of the resource type with "ResourceType" suffix (e.g., `RoleResourceType` for `AWS::IAM::Role`)
+- Nested types should use the definition name with "Type" suffix (e.g., `PolicyType`)
+- Properties should maintain their original casing
+- Suffixes for the main resource type and the nested types are required to avoid conflicts with JavaScript keywords
+
+### Type Mapping
+
+Map JSON Schema types to TypeScript types as follows:
+
+| JSON Schema Type | TypeScript Type |
+|------------------|----------------|
+| `string`         | `string`       |
+| `integer`/`number` | `number`     |
+| `boolean`        | `boolean`      |
+| `array`          | Array types (e.g., `string[]`) |
+| `object`         | Type alias |
+| `null`           | `null`         |
+| Union types      | Union types (e.g., `string \| object`) |
+
+### Handling Special Cases
+
+- For properties that can be either a string or an object (like policy documents), use union types: `string | Record<string, any>`
+- For array items with `$ref` references, resolve the reference and use the appropriate type
+- For required properties, do not mark as optional
+- For optional properties, use the `?` operator
+- For unknown or unspecified types, default to `any`
+- Include comments for default values, read-only properties, and create-only properties
+- Format description strings to convert markdown-style formatting to plain text
+
+### Type Definition Generation
+
+The generation process:
+1. Creates a file header with resource type information
+2. Generates the namespace based on the resource type
+3. Processes nested type definitions first
+4. Generates the main resource type with all properties
+5. Adds JSDoc comments with descriptions and metadata
+
+## Output Format
+
+```typescript
+/**
+ * TypeScript definitions for [ResourceType]
+ * Generated from CloudFormation Resource Schema
+ */
+
+/**
+ * [Resource description from schema]
+ */
+export namespace [Namespace] {
+  // Nested type definitions
+  /**
+   * [Definition description]
+   */
+  export type [DefinitionName]Type = {
+    /**
+     * [Property description]
+     */
+    [PropertyName][isRequired ? "" : "?"]: [PropertyType];
+    // ... other properties
+  };
+
+  // Main resource type
+  /**
+   * [Resource description]
+   */
+  export type [ResourceName]ResourceType = {
+    /**
+     * [Property description]
+     * [Default value if present]
+     * [Read-only or Create-only if applicable]
+     */
+    [PropertyName][isRequired ? "" : "?"]: [PropertyType];
+    // ... other properties
+  };
+}
+```
+
+## Example Generated Output
+
+```typescript
+/**
+ * TypeScript definitions for AWS::IAM::Role
+ * Generated from CloudFormation Resource Schema
+ */
+
+/**
+ * Creates a new role for your AWS-account.
+ * For more information about roles, see IAM roles in the IAM User Guide.
+ */
+export namespace AWS_IAM_Role {
+  /**
+   * Contains information about an attached policy.
+   * An attached policy is a managed policy that has been attached to a user, group, or role.
+   */
+  export type PolicyType = {
+    /**
+     * The entire contents of the policy that defines permissions.
+     */
+    PolicyDocument: string | Record<string, any>;
+
+    /**
+     * The friendly name (not ARN) identifying the policy.
+     */
+    PolicyName: string;
+  };
+
+  /**
+   * Creates a new role for your AWS-account.
+   */
+  export type RoleResourceType = {
+    /**
+     * The Amazon Resource Name (ARN) of the role.
+     * Read-only property
+     */
+    Arn?: string;
+
+    /**
+     * The trust policy that is associated with this role.
+     */
+    AssumeRolePolicyDocument: string | Record<string, any>;
+
+    /**
+     * A description of the role that you provide.
+     */
+    Description?: string;
+
+    /**
+     * A list of Amazon Resource Names (ARNs) of the IAM managed policies that you want to attach to the role.
+     */
+    ManagedPolicyArns?: string[];
+
+    /**
+     * The maximum session duration (in seconds) that you want to set for the specified role.
+     */
+    MaxSessionDuration?: number;
+
+    /**
+     * The path to the role.
+     * Default: "/"
+     */
+    Path?: string;
+
+    /**
+     * The ARN of the policy used to set the permissions boundary for the role.
+     */
+    PermissionsBoundary?: string;
+
+    /**
+     * Adds or updates an inline policy document that is embedded in the specified IAM role.
+     */
+    Policies?: PolicyType[];
+
+    /**
+     * The stable and unique string identifying the role.
+     * Read-only property
+     */
+    RoleId?: string;
+
+    /**
+     * A name for the IAM role, up to 64 characters in length.
+     * Create-only property
+     */
+    RoleName?: string;
+
+    /**
+     * A list of tags that are attached to the role.
+     */
+    Tags?: TagType[];
+  };
+}
+```
+
+## Implementation Process
+
+The script performs these steps:
+
+1. **Read Schema Files**: Scans a directory for CloudFormation schema JSON files
+2. **Convert Each Schema Into a TypeScript Type Definitions File**: Converts each schema to a TypeScript type definition file, the conversion process consists of the following steps:
+    a. **Parse the Schema**: Read and parse the CloudFormation schema JSON file
+    b. **Extract Resource Information**: Get the resource type name, description, and properties
+    c. **Process Definitions**: Convert nested type definitions to TypeScript types
+    d. **Process Properties**: Convert resource properties to TypeScript property definitions
+    e. **Generate TypeScript File**: Combine all types into a well-structured TypeScript file
+3. **Output Generation**: Writes each TypeScript type definitions file to a corresponding output file
+4. **File Organization**: Creates appropriate directory structure for the output files
+
+This process ensures consistent type generation across all CloudFormation resource types.
+
+## Best Practices
+
+1. **Maintain Documentation**: Transfer all descriptions from the schema to JSDoc comments
+2. **Handle Type Variations**: Properly handle properties that can be multiple types
+3. **Preserve Required Properties**: Don't mark required properties as optional
+4. **Include Metadata**: Add comments about read-only and create-only properties
+5. **Add Source Information**: Include a reference to the original schema source

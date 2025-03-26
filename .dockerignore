@@ -1,0 +1,51 @@
+# Version control
+.git
+.gitignore
+
+# Python cache files
+**/__pycache__
+**/*.py[cod]
+**/*.so
+**/*.egg-info
+
+# Development environment files
+.env
+.envrc
+.envrc.example
+.venv
+venv/
+.idea/
+.vscode/
+
+# Build artifacts
+dist/
+
+# Auto-generated dependencies files for the web application
+dependencies.json
+
+# Documentation
+docs/
+**/*.md
+LICENSE
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Development tools
+.python-version
+.sqlfluff
+pyrightconfig.json
+pytest.ini
+.editorconfig
+Taskfile.yml
+
+# Temporary files
+*.bak
+*.tmp
+*.temp
+.DS_Store
+
+# Pants
+.pants.d/

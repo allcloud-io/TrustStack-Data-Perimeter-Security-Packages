@@ -1,0 +1,6 @@
+# Add files here to ignore them from prettier formatting
+/dist
+/coverage
+cdk.out
+pnpm-lock.yaml
+types/cfn-resources/*.d.ts

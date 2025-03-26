@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "trust-stack"
+version = "0.0.0"
+description = ""
+authors = ["Elran <elran.kadosh@allcloud.io>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.13"
+diagrams = "^0.24.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[virtualenvs]
+in-project = true
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+exclude = ["test_*.py"]
+
+[tool.black]
+line-length = 88
+
+[tool.pydocstyle]
+ignore = ["D200"]

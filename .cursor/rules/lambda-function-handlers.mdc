@@ -1,0 +1,37 @@
+---
+description: 
+globs: *.handler.ts
+alwaysApply: false
+---
+# Generating Lambda functions using TypeScript
+
+Don't use a `const` variable for the handler function.
+
+Bad:
+```typescript
+import type { APIGatewayProxyHandler } from "aws-lambda";
+
+export const handler: APIGatewayProxyHandler = async (event) => {
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: "SNS subscription confirmation received" }),
+  };
+};
+```
+
+Good:
+```typescript
+import type {
+  APIGatewayProxyEventV2,
+  APIGatewayProxyResultV2,
+} from "aws-lambda";
+
+export async function handler(
+  event: APIGatewayProxyEventV2,
+): Promise<APIGatewayProxyResultV2> {
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: "SNS subscription confirmation received" }),
+  };
+}
+```

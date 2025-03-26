@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Sample template with compliant SNS subscriptions that use trusted endpoints"
+
+Resources:
+  MySnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "my-topic-${AWS::AccountId}-${AWS::Region}"
+      Tags:
+        - Key: Environment
+          Value: Test
+        - Key: Purpose
+          Value: SecurityCompliance
+
+  # Compliant email subscription with trusted domain
+  EmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: user@example.com
+      TopicArn: !Ref MySnsTopic
+
+  # Compliant HTTPS subscription with trusted domain
+  HttpsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: https
+      Endpoint: https://api.example.com/sns-subscription-confirmation
+      TopicArn: !Ref MySnsTopic
+      RawMessageDelivery: true
+
+  # Compliant SQS subscription (AWS service protocol)
+  SqsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      Endpoint: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:my-queue"
+      TopicArn: !Ref MySnsTopic
+
+  # Compliant Lambda subscription (AWS service protocol)
+  LambdaSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: lambda
+      Endpoint: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:my-function"
+      TopicArn: !Ref MySnsTopic
+
+Outputs:
+  TopicName:
+    Description: Name of the SNS topic
+    Value: !GetAtt MySnsTopic.TopicName
+  TopicArn:
+    Description: ARN of the SNS topic
+    Value: !Ref MySnsTopic

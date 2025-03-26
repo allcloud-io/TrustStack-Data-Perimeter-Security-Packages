@@ -1,0 +1,24 @@
+version: "3"
+
+tasks:
+  "lint:scripts":
+    desc: "Lint all TypeScript files in the `scripts` directory"
+    dir: "scripts"
+    cmds:
+      - pnpm lint
+
+  "generate:cfn-schema-to-ts":
+    desc: "Generate TypeScript types from the CloudFormation schema file in the `CloudformationSchema` directory"
+    cmds:
+      - rm -rf types/cfn-resources
+      - pnpm run cfn-schema-to-ts
+
+  "git:local:fast-forward":
+    desc: "Fast-forward a local branch to another local branch"
+    cmd: "git fetch . {{index (splitArgs .CLI_ARGS) 0}}:{{index (splitArgs .CLI_ARGS) 1}}"
+    silent: true
+
+  "git:remote:fast-forward":
+    desc: "Fast-forward a remote branch to another remote branch"
+    cmd: "git push origin origin/{{index (splitArgs .CLI_ARGS) 0}}:refs/heads/{{index (splitArgs .CLI_ARGS) 1}}"
+    silent: true

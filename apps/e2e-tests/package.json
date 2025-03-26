@@ -1,0 +1,39 @@
+{
+  "name": "e2e-tests",
+  "private": true,
+  "version": "0.0.0",
+  "bin": {
+    "cfn-hooks": "bin/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk",
+    "lint": "eslint .",
+    "format": "eslint --fix && prettier --write \"**/*.{ts,js,json,yml,yaml}\""
+  },
+  "dependencies": {
+    "aws-cdk-lib": "catalog:",
+    "constructs": "catalog:"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:",
+    "@swc/core": "catalog:",
+    "@swc/jest": "catalog:",
+    "@types/aws-lambda": "catalog:",
+    "@types/jest": "catalog:",
+    "@types/node": "catalog:",
+    "aws-cdk": "catalog:",
+    "dotenv": "catalog:",
+    "esbuild": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "jest": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:"
+  }
+}

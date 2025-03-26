@@ -1,0 +1,10 @@
+version: "3"
+
+includes:
+  dev:
+    taskfile: ./tasks/Taskfile.dev.yml
+    flatten: true
+  security-controls:
+    taskfile: ./tasks/Taskfile.security-controls.yml
+    aliases:
+      - "sc"

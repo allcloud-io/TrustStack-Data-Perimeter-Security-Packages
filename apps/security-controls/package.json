@@ -1,0 +1,52 @@
+{
+  "name": "cfn-hooks",
+  "private": true,
+  "version": "0.0.0",
+  "bin": {
+    "cfn-hooks": "bin/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk",
+    "lint": "eslint .",
+    "format": "eslint --fix && prettier --write \"**/*.{ts,js,json,yml,yaml}\"",
+    "package-solution": "pnpm tsx scripts/package-solution.ts"
+  },
+  "dependencies": {
+    "@trust-stack/schema": "workspace:*",
+    "@aws-sdk/client-cloudformation": "catalog:",
+    "@aws-sdk/client-iam": "catalog:",
+    "@aws-sdk/client-s3": "catalog:",
+    "@aws-sdk/client-securityhub": "catalog:",
+    "@aws-sdk/client-ssm": "catalog:",
+    "@inquirer/prompts": "catalog:",
+    "aws-cdk-lib": "catalog:",
+    "cfn-response": "^1.0.1",
+    "constructs": "catalog:",
+    "ipaddr.js": "^2.2.0",
+    "yargs": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:",
+    "@swc/core": "catalog:",
+    "@swc/jest": "catalog:",
+    "@types/aws-lambda": "catalog:",
+    "@types/jest": "catalog:",
+    "@types/node": "catalog:",
+    "@types/yargs": "catalog:",
+    "aws-cdk": "catalog:",
+    "dotenv": "catalog:",
+    "esbuild": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "jest": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:"
+  }
+}
