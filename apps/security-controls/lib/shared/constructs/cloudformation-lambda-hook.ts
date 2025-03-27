@@ -3,30 +3,31 @@ import * as cloudformation from "aws-cdk-lib/aws-cloudformation";
 import type * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
-import * as path from "node:path";
 import type {
   HookFailureMode,
   HookTargetOperation,
   LambdaHookSchema,
   LambdaHookTypeConfiguration,
-} from "../types";
+} from "../cfn-lambda-hooks";
 import { createNodejsLambdaFunction } from "./nodejs-lambda-function";
+
 type CloudFormationLambdaHookProps = Readonly<{
   securityControlName: string;
   description: string;
   hookExecutionRole: iam.IRole;
-  // assetsBucket: s3.Bucket;
-  solutionsDir: string;
-  securityControlDir: string;
   targetOperations: HookTargetOperation[];
   targetNames: string[];
   failureMode: HookFailureMode;
+  code: lambda.Code;
+  initialPolicy?: iam.PolicyStatement[];
 }>;
 
 /**
  * A construct that creates a CloudFormation hook for a security control.
  */
 export class CloudFormationLambdaHook extends Construct {
+  readonly lambdaFunction: lambda.Function;
+
   private readonly props: CloudFormationLambdaHookProps;
   private readonly currentStack: cdk.Stack;
 
@@ -43,25 +44,21 @@ export class CloudFormationLambdaHook extends Construct {
 
     const {
       securityControlName,
-      securityControlDir,
       hookExecutionRole,
-      solutionsDir,
       targetOperations,
       targetNames,
       failureMode,
+      code,
     } = props;
 
-    const hookHandler = this.createHookHandler({
-      solutionsDir,
-      securityControlDir,
-    });
+    this.lambdaFunction = this.createHookHandler(code);
 
     // TODO: Figure out how to get the hook version to work. Not sure if it is required to upload the schema to S3.
     // const hookSchemaS3ObjectURL = this.uploadHookSchema();
 
     const hook = new cloudformation.CfnLambdaHook(this, "Hook", {
       alias: `AllCloud::TrustStack::${securityControlName}`,
-      lambdaFunction: hookHandler.functionArn,
+      lambdaFunction: this.lambdaFunction.functionArn,
       hookStatus: "ENABLED",
       targetOperations,
       targetFilters: {
@@ -93,7 +90,7 @@ export class CloudFormationLambdaHook extends Construct {
               TargetOperations: targetOperations,
               FailureMode: failureMode,
               Properties: {
-                LambdaFunction: hookHandler.functionArn,
+                LambdaFunction: this.lambdaFunction.functionArn,
               },
             },
           },
@@ -122,38 +119,27 @@ export class CloudFormationLambdaHook extends Construct {
     // Output the Lambda function ARN
     new cdk.CfnOutput(this, "LambdaARN", {
       key: `${securityControlName}LambdaARN`,
-      value: hookHandler.functionArn,
+      value: this.lambdaFunction.functionArn,
       description: `ARN of the Lambda function for the "${hook.alias}" CloudFormation hook`,
     });
   }
 
-  private createHookHandler({
-    solutionsDir,
-    securityControlDir,
-  }: Readonly<{
-    solutionsDir: string;
-    securityControlDir: string;
-  }>): lambda.Function {
-    const handlerFilePath = path.join(
-      solutionsDir,
-      securityControlDir,
-      "lambda-hook",
-      "handler.ts",
-    );
-
-    const { securityControlName, description, hookExecutionRole } = this.props;
+  private createHookHandler(code: lambda.Code): lambda.Function {
+    const {
+      securityControlName,
+      description,
+      hookExecutionRole,
+      initialPolicy,
+    } = this.props;
 
     // Create the Lambda function for the CloudFormation hook
-    const hookHandler = createNodejsLambdaFunction(
-      this,
-      `${securityControlName}-HookHandler`,
-      {
-        functionName: `${securityControlName}-HookHandler`,
-        description,
-        entry: handlerFilePath,
-        timeout: cdk.Duration.seconds(30),
-      },
-    );
+    const hookHandler = createNodejsLambdaFunction(this, "HookHandler", {
+      functionName: `${securityControlName}-HookHandler`,
+      description,
+      code,
+      timeout: cdk.Duration.seconds(30),
+      initialPolicy,
+    });
 
     // Grant the hook execution role permission to invoke the Lambda function
     hookHandler.grantInvoke(hookExecutionRole);

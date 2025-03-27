@@ -8,9 +8,10 @@ onlyBuiltDependencies:
 catalog:
   "@aws-sdk/client-cloudformation": "3.758.0"
   "@aws-sdk/client-iam": "3.758.0"
-  "@aws-sdk/client-s3": "3.758.0"
   "@aws-sdk/client-securityhub": "3.758.0"
   "@aws-sdk/client-ssm": "3.758.0"
+  "@aws-sdk/client-sts": "3.758.0"
+  "@aws-sdk/client-s3": "3.758.0"
   "@eslint/js": "^9.22.0"
   "@inquirer/prompts": "^7.4.0"
   "@swc/core": "^1.11.8"

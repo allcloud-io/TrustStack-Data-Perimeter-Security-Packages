@@ -1,0 +1,23 @@
+{
+  "name": "@trust-stack/utils",
+  "private": true,
+  "version": "0.0.0",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sts": "catalog:"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "catalog:",
+    "@swc/core": "catalog:",
+    "@swc/jest": "catalog:",
+    "@types/jest": "catalog:",
+    "@types/node": "catalog:",
+    "jest": "catalog:",
+    "typescript": "catalog:"
+  }
+}

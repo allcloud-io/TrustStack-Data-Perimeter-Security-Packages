@@ -5,7 +5,6 @@ TrustStack provides a comprehensive suite of security controls designed to prote
 **Table of Contents:**
 
 - [TrustStack Security Controls](#truststack-security-controls)
-  - [Table of Contents](#table-of-contents)
   - [Security Benefits](#security-benefits)
   - [Solutions](#solutions)
     - [S3 Block Public Access Security Solution](#s3-block-public-access-security-solution)
@@ -42,14 +41,14 @@ For detailed implementation details, see the [S3 Block Public Access Security So
 
 [Subscribe](https://docs.aws.amazon.com/sns/latest/api/API_Subscribe.html) allows to specify [an HTTP/HTTPs endpoint, emails, SMS](https://docs.aws.amazon.com/sns/latest/dg/sns-create-subscribe-endpoint-to-topic.html) as the value for the Endpoint and Protocol parameter. Since the subsequent requests against the endpoints are not governed by IAM, they are not restricted with `aws:ResourceOrgID` implemented in an SCP. This creates a potential data exfiltration risk where sensitive data could be sent to unauthorized external endpoints.
 
-The [SNS Subscription Security Solution](lib/solutions/sns/validate-subscription-endpoints/README.md) addresses this risk by implementing a comprehensive set of controls:
+The [SNS Subscription Security Solution](lib/solutions/sns/subscription-security/README.md) addresses this risk by implementing a comprehensive set of controls:
 
 1. **Preventative Controls**: Service Control Policies (SCPs) that restrict SNS subscriptions to trusted endpoints and protocols
 2. **Proactive Controls**: CloudFormation hooks that validate subscription endpoints during deployment
 3. **Detective Controls**: CloudTrail monitoring to detect non-compliant subscriptions
 4. **Responsive Controls**: Automated remediation to remove unauthorized subscriptions
 
-For detailed implementation details, see the [SNS Subscription Security Solution documentation](lib/solutions/sns/validate-subscription-endpoints/README.md).
+For detailed implementation details, see the [SNS Subscription Security Solution documentation](lib/solutions/sns/subscription-security/README.md).
 
 ### ECR Image Layer Access Security Solution
 

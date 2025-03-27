@@ -1,15 +1,46 @@
 version: "3"
 
 tasks:
-  build:
-    desc: "Build the security controls"
+  "cdk:deploy":
+    desc: "Deploy the security controls(except for organization policies)"
     dir: "apps/security-controls"
     cmds:
+      - pnpm package-solution
+      - pnpm cdk deploy {{ .CLI_ARGS }}
+
+  "cdk:destroy":
+    desc: "Remove the security controls from the environment(except for organization policies)"
+    dir: "apps/security-controls"
+    cmds:
+      - pnpm package-solution
+      - pnpm cdk destroy {{ .CLI_ARGS }}
+
+  "cdk:diff":
+    desc: "Present a diff of the security controls code against the deployed stack(except for organization policies)"
+    dir: "apps/security-controls"
+    cmds:
+      - pnpm package-solution
+      - pnpm cdk diff {{ .CLI_ARGS }}
+
+  "cdk:synth":
+    desc: "Synthesize deployment artifacts for the security controls(except for organization policies)"
+    dir: "apps/security-controls"
+    cmds:
+      - pnpm package-solution
       - pnpm cdk synth {{ .CLI_ARGS }}
+
+  package:
+    desc: "Generate deployment artifacts for the security controls"
+    dir: "apps/security-controls"
+    cmds:
       - pnpm package-solution
 
-  deploy:
-    desc: "Deploy the security controls"
+  upload-to-s3:
+    desc: "Upload the generated deployment artifacts to the assets bucket"
     dir: "apps/security-controls"
     cmds:
-      - pnpm cdk deploy {{ .CLI_ARGS }}
+      - rm -rf dist cdk.out
+      - pnpm package-solution
+      - >
+        ASSETS_BUCKET_NAME=$(aws ssm get-parameter --name "/trust-stack/security-controls/assets-bucket/name" --query "Parameter.Value" --output text) &&
+        aws s3 sync dist s3://$ASSETS_BUCKET_NAME --delete

@@ -1,11 +1,8 @@
 import { SSM } from "@aws-sdk/client-ssm";
 import { SNSSubscriptionSecuritySolutionConfig } from "@trust-stack/schema";
+import type { SharedSSMParameterName } from "@trust-stack/utils";
 
 const ssm = new SSM();
-
-export type SharedSSMParameterName =
-  | "/trust-stack/cloudformation-hook-execution-role-arn"
-  | "/trust-stack/sns/validate-subscription/config";
 
 /**
  * Retrieves and validates the SNS subscription security configuration from SSM Parameter Store
@@ -15,7 +12,7 @@ export type SharedSSMParameterName =
  */
 export async function getValidatedConfig(): Promise<SNSSubscriptionSecuritySolutionConfig> {
   const getParameterResult = await ssm.getParameter({
-    Name: "/trust-stack/sns/validate-subscription/config" satisfies SharedSSMParameterName,
+    Name: "/trust-stack/sns/subscription-security/config" satisfies SharedSSMParameterName,
   });
 
   if (!getParameterResult.Parameter?.Value) {

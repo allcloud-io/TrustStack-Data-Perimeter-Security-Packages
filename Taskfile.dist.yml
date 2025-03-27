@@ -4,6 +4,12 @@ includes:
   dev:
     taskfile: ./tasks/Taskfile.dev.yml
     flatten: true
+
+  engine:
+    taskfile: ./tasks/Taskfile.engine.yml
+    aliases:
+      - "e"
+
   security-controls:
     taskfile: ./tasks/Taskfile.security-controls.yml
     aliases:

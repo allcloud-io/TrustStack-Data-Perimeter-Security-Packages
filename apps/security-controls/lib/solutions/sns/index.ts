@@ -1,1 +1,1 @@
-export * from "./validate-subscription";
+export * from "./subscription-security";

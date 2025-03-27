@@ -1,0 +1,26 @@
+version: "3"
+
+tasks:
+  "cdk:deploy":
+    desc: "Deploy the TrustStack engine"
+    dir: "apps/engine"
+    cmds:
+      - pnpm cdk deploy {{ .CLI_ARGS }}
+
+  "cdk:destroy":
+    desc: "Remove the TrustStack engine from the environment"
+    dir: "apps/engine"
+    cmds:
+      - pnpm cdk destroy {{ .CLI_ARGS }}
+
+  "cdk:diff":
+    desc: "Present a diff of the TrustStack engine code against the deployed stack"
+    dir: "apps/engine"
+    cmds:
+      - pnpm cdk diff {{ .CLI_ARGS }}
+
+  "cdk:synth":
+    desc: "Synthesize deployment artifacts for the TrustStack engine"
+    dir: "apps/engine"
+    cmds:
+      - pnpm cdk synth {{ .CLI_ARGS }}

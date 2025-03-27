@@ -1,11 +1,9 @@
-import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
-import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 
 export type CreateNodejsLambdaFunctionProps = Omit<
-  lambdaNodejs.NodejsFunctionProps,
-  "runtime" | "memorySize"
+  lambda.FunctionProps,
+  "runtime" | "memorySize" | "handler"
 >;
 
 export function createNodejsLambdaFunction(
@@ -13,7 +11,7 @@ export function createNodejsLambdaFunction(
   id: string,
   props: CreateNodejsLambdaFunctionProps,
 ) {
-  return new lambdaNodejs.NodejsFunction(scope, id, {
+  return new lambda.Function(scope, id, {
     ...props,
     runtime: lambda.Runtime.NODEJS_22_X,
     memorySize: 128,
@@ -21,10 +19,6 @@ export function createNodejsLambdaFunction(
       ...props.environment,
       NODE_OPTIONS: "--enable-source-maps",
     },
-    bundling: {
-      ...props.bundling,
-      minify: true,
-      sourceMap: true,
-    },
+    handler: "handler.handler",
   });
 }
