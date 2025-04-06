@@ -1,16 +1,23 @@
+import { Logger } from "@aws-lambda-powertools/logger";
+import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import {
   AwsSecurityFinding,
-  BatchImportFindingsCommand,
   ComplianceStatus,
   Partition,
   RecordState,
-  SecurityHubClient,
+  SecurityHub,
   SeverityLabel,
   WorkflowStatus,
 } from "@aws-sdk/client-securityhub";
-import { SupportedProtocols } from "@trust-stack/schema";
+import middy from "@middy/core";
+import { SNSSupportedProtocols } from "@trust-stack/schema";
+import { getValidatedSolutionConfig } from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
-import { getValidatedConfig, validateSnsSubscriptionEndpoint } from "../shared";
+import { validateSnsSubscriptionEndpoint } from "../shared";
+
+const logger = new Logger({
+  serviceName: "SNSSubscriptionSecurityDetectiveControlHandler",
+});
 
 /**
  * CloudTrail event detail for SNS subscription creation
@@ -42,6 +49,8 @@ type SnsSubscribeEventDetail = {
   recipientAccountId: string;
 };
 
+export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
+
 /**
  * Lambda handler for processing CloudTrail events for SNS subscription creation.
  *
@@ -52,47 +61,65 @@ type SnsSubscribeEventDetail = {
  * @param _context - The Lambda context (unused)
  * @returns A promise that resolves when processing is complete
  */
-export async function handler(
+async function lambdaHandler(
   event: EventBridgeEvent<
     "AWS API Call via CloudTrail",
     SnsSubscribeEventDetail
   >,
   _context: Context,
 ): Promise<void> {
-  console.log("Event:", JSON.stringify(event, null, 2));
+  logger.info(`Event: ${JSON.stringify(event, null, 2)}`);
 
   // Check if this is an SNS subscribe API call
   if (
     event.detail.eventSource !== "sns.amazonaws.com" ||
     event.detail.eventName !== "Subscribe"
   ) {
-    console.log("Not an SNS Subscribe event, skipping");
+    logger.info("Not an SNS Subscribe event, skipping");
     return;
   }
 
   const { protocol, endpoint } = event.detail.requestParameters;
   const accountId = event.detail.recipientAccountId;
   const region = event.detail.awsRegion;
+  const subscriptionArn = event.detail.responseElements.subscriptionArn;
 
-  console.log(
-    `Validating SNS subscription with protocol: ${protocol}, endpoint: ${endpoint}`,
-  );
+  logger.appendKeys({
+    protocol,
+    endpoint,
+    accountId,
+    region,
+    subscriptionArn,
+  });
 
-  const config = await getValidatedConfig();
+  logger.info("Validating SNS subscription");
+
+  const config = await getValidatedSolutionConfig("sns-subscription-security");
+
+  if (
+    (["email", "email-json"] satisfies SNSSupportedProtocols[]).includes(
+      protocol as any,
+    )
+  ) {
+    logger.info("Skipping validation for email and email-json protocols");
+    return;
+  }
 
   // Validate the subscription endpoint
   const validationResult = validateSnsSubscriptionEndpoint(
-    protocol as SupportedProtocols,
+    protocol as SNSSupportedProtocols,
     endpoint,
     config,
   );
 
   // If the validation fails, create a Security Hub finding
   if (!validationResult.isValid && validationResult.reason) {
-    console.log(`Validation failed: ${validationResult.reason}`);
+    logger.error("SNS subscription validation failed", {
+      reason: validationResult.reason,
+    });
 
     // Create a Security Hub client
-    const securityHubClient = new SecurityHubClient({ region });
+    const securityHub = new SecurityHub({ region });
 
     // Create a Security Hub finding
     const finding = createSecurityHubFinding(
@@ -104,18 +131,20 @@ export async function handler(
 
     // Import the finding into Security Hub
     try {
-      const command = new BatchImportFindingsCommand({
+      const response = await securityHub.batchImportFindings({
         Findings: [finding],
       });
 
-      const response = await securityHubClient.send(command);
-      console.log("Security Hub finding created:", response);
+      logger.info("Security Hub finding created", { response });
     } catch (error) {
-      console.error("Error creating Security Hub finding:", error);
+      logger.error("Error creating Security Hub finding:", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+
       throw error;
     }
   } else {
-    console.log("SNS subscription validated successfully");
+    logger.info("SNS subscription validated successfully");
   }
 }
 
@@ -124,14 +153,14 @@ export async function handler(
  *
  * @param event - The CloudTrail event
  * @param reason - The reason for non-compliance
- * @param accountId - The AWS account ID
+ * @param accountID - The AWS account ID
  * @param region - The AWS region
  * @returns The Security Hub finding
  */
 function createSecurityHubFinding(
   event: SnsSubscribeEventDetail,
   reason: string,
-  accountId: string,
+  accountID: string,
   region: string,
 ): AwsSecurityFinding {
   const timestamp = new Date().toISOString();
@@ -148,9 +177,9 @@ function createSecurityHubFinding(
   return {
     SchemaVersion: "2018-10-08",
     Id: id,
-    ProductArn: `arn:aws:securityhub:${region}:${accountId}:product/${accountId}/default`,
+    ProductArn: `arn:aws:securityhub:${region}:${accountID}:product/${accountID}/default`,
     GeneratorId: "SNSSubscriptionEndpointValidator",
-    AwsAccountId: accountId,
+    AwsAccountId: accountID,
     Types: ["Software and Configuration Checks/AWS Security Best Practices"],
     FirstObservedAt: timestamp,
     CreatedAt: timestamp,

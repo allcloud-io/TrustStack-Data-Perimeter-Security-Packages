@@ -8,7 +8,13 @@ import {
 
 const env = validateEnvironmentVariables(["SHARED_SERVICES_ACCOUNT_ID"]);
 
-const app = new cdk.App();
+const app = new cdk.App({
+  analyticsReporting: false,
+  treeMetadata: false,
+  stackTraces: false,
+  // Use the BootstraplessSynthesizer to exclude AWS-specific metadata (such as "aws:cdk:path") from the synthesized templates.
+  defaultStackSynthesizer: new cdk.BootstraplessSynthesizer(),
+});
 
 new AssetsBucketStack(app, "AssetsBucket", {
   env: {

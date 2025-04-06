@@ -1,6 +1,6 @@
 import type {
   SNSSubscriptionSecuritySolutionConfig,
-  SupportedProtocols,
+  SNSSupportedProtocols,
 } from "@trust-stack/schema";
 
 /**
@@ -12,7 +12,7 @@ import type {
  * @returns An object with validation result and failure reason if applicable
  */
 export function validateSnsSubscriptionEndpoint(
-  protocol: SupportedProtocols,
+  protocol: SNSSupportedProtocols,
   endpoint: string | undefined,
   config: SNSSubscriptionSecuritySolutionConfig,
 ): { isValid: boolean; reason?: string } {

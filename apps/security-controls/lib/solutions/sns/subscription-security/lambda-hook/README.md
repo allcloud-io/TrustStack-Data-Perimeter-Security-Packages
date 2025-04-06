@@ -1,10 +1,10 @@
-# SNS Subscription Endpoint Validation CloudFormation Hook
+# CloudFormation Hook for SNS Subscription Security
 
 This CloudFormation hook validates that all SNS subscriptions defined in a CloudFormation template have trusted endpoints. This helps enforce security best practices and prevent data exfiltration through untrusted SNS subscription endpoints.
 
 **Table of Contents:**
 
-- [SNS Subscription Endpoint Validation CloudFormation Hook](#sns-subscription-endpoint-validation-cloudformation-hook)
+- [CloudFormation Hook for SNS Subscription Security](#cloudformation-hook-for-sns-subscription-security)
   - [Security Benefits](#security-benefits)
   - [How It Works](#how-it-works)
   - [Usage](#usage)

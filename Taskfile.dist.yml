@@ -14,3 +14,6 @@ includes:
     taskfile: ./tasks/Taskfile.security-controls.yml
     aliases:
       - "sc"
+
+  ci:
+    taskfile: ./tasks/Taskfile.ci.yml

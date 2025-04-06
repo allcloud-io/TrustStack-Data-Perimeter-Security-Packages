@@ -8,10 +8,12 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import { Construct } from "constructs";
+import { BUILD_HASH } from "../../../shared/build-configuration";
 import {
   CloudFormationLambdaHook,
   createNodejsLambdaFunction,
 } from "../../../shared/constructs";
+import { SECURITY_SOLUTION_NAME, SECURITY_SOLUTION_SLUG } from "./shared";
 
 export type SNS_SubscriptionSecurityStackProps = cdk.StackProps &
   Readonly<{
@@ -25,7 +27,6 @@ export type SNS_SubscriptionSecurityStackProps = cdk.StackProps &
 export class SNS_SubscriptionSecurityStack extends cdk.Stack {
   private readonly props: SNS_SubscriptionSecurityStackProps;
 
-  private readonly securityControlName = "SNSSubscriptionSecurity";
   private readonly hookExecutionRole: iam.IRole;
   private readonly assetsBucket: s3.IBucket;
   private readonly solutionConfigSSMParameter: ssm.StringParameter;
@@ -46,7 +47,7 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
 
     const assetsBucketName = ssm.StringParameter.valueForStringParameter(
       this,
-      "/trust-stack/security-controls/assets-bucket/name" satisfies SharedSSMParameterName,
+      "/trust-stack/assets-bucket/name" satisfies SharedSSMParameterName,
     );
 
     this.hookExecutionRole = iam.Role.fromRoleArn(
@@ -73,11 +74,12 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
 
     this.createProactiveControl();
     this.createDetectiveControl();
+    this.createResponsiveControl();
   }
 
   private createProactiveControl() {
     return new CloudFormationLambdaHook(this, "ProactiveControl", {
-      securityControlName: this.securityControlName,
+      securitySolutionName: SECURITY_SOLUTION_NAME,
       description:
         "CloudFormation hook handler to validate SNS subscription endpoints and protocols",
       hookExecutionRole: this.hookExecutionRole,
@@ -86,10 +88,11 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
       failureMode: "FAIL",
       code: lambda.Code.fromBucketV2(
         this.assetsBucket,
-        "sns-subscription-security/lambda-hook/lambda.zip",
+        `${BUILD_HASH}/solutions/${SECURITY_SOLUTION_SLUG}/lambda-hook/lambda.zip`,
       ),
       initialPolicy: [
         new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
           actions: ["ssm:GetParameter"],
           resources: [this.solutionConfigSSMParameter.parameterArn],
         }),
@@ -98,18 +101,30 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
   }
 
   private createDetectiveControl() {
-    const snsSubscriptionValidationLambda = createNodejsLambdaFunction(
+    const lambdaHandler = createNodejsLambdaFunction(
       this,
       "DetectiveControlHandler",
       {
-        functionName: `${this.securityControlName}-MonitorSNSAPI`,
+        functionName: `${SECURITY_SOLUTION_NAME}-MonitorSNSAPI`,
         description:
           "Monitor CloudTrail events for SNS subscription creation and validate " +
           "SNS subscription endpoints and protocols",
         code: lambda.Code.fromBucketV2(
           this.assetsBucket,
-          "sns-subscription-security/detective-control/lambda.zip",
+          `${BUILD_HASH}/solutions/${SECURITY_SOLUTION_SLUG}/detective-control/lambda.zip`,
         ),
+        initialPolicy: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: ["ssm:GetParameter"],
+            resources: [this.solutionConfigSSMParameter.parameterArn],
+          }),
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: ["securityhub:BatchImportFindings"],
+            resources: ["*"],
+          }),
+        ],
       },
     );
 
@@ -122,9 +137,56 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
           eventName: ["Subscribe"],
         },
       },
-      targets: [
-        new eventsTargets.LambdaFunction(snsSubscriptionValidationLambda),
-      ],
+      targets: [new eventsTargets.LambdaFunction(lambdaHandler)],
+    });
+  }
+
+  private createResponsiveControl() {
+    const lambdaHandler = createNodejsLambdaFunction(
+      this,
+      "ResponsiveControlHandler",
+      {
+        functionName: `${SECURITY_SOLUTION_NAME}-CancelUnauthorizedSNS`,
+        description:
+          "Cancel any subscriptions that bypass preventative and detective controls",
+        code: lambda.Code.fromBucketV2(
+          this.assetsBucket,
+          `${BUILD_HASH}/solutions/${SECURITY_SOLUTION_SLUG}/responsive-control/lambda.zip`,
+        ),
+        timeout: cdk.Duration.minutes(1),
+        initialPolicy: [
+          new iam.PolicyStatement({
+            sid: "AllowGetSNSSubscriptionAttributesAndUnsubscribe",
+            effect: iam.Effect.ALLOW,
+            actions: ["sns:GetSubscriptionAttributes", "sns:Unsubscribe"],
+            resources: ["*"],
+          }),
+          new iam.PolicyStatement({
+            sid: "AllowUpdateSecurityHubFindings",
+            effect: iam.Effect.ALLOW,
+            actions: ["securityhub:BatchUpdateFindings"],
+            resources: ["*"],
+          }),
+        ],
+      },
+    );
+
+    // Create an EventBridge rule to trigger the responsive control Lambda
+    // when Security Hub findings for unauthorized SNS subscriptions are created
+    new events.Rule(this, "SNSUnauthorizedSubscriptionRule", {
+      eventPattern: {
+        source: ["aws.securityhub"],
+        detailType: ["Security Hub Findings - Imported"],
+        detail: {
+          findings: {
+            GeneratorId: ["SNSSubscriptionEndpointValidator"],
+            Workflow: {
+              Status: ["NEW"],
+            },
+          },
+        },
+      },
+      targets: [new eventsTargets.LambdaFunction(lambdaHandler)],
     });
   }
 }

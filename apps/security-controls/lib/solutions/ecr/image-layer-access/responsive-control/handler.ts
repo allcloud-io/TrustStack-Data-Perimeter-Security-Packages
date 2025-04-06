@@ -1,15 +1,35 @@
+import { Logger } from "@aws-lambda-powertools/logger";
+import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { IAM } from "@aws-sdk/client-iam";
+import middy from "@middy/core";
+import type { SecurityHubFindingsImportedEvent } from "../../../../../../../types/aws-security-hub-events";
+
+const logger = new Logger({
+  serviceName: "ECRImageLayerAccessResponsiveControl",
+});
 
 const iam = new IAM({});
 
-export async function handler(event: any, context: any) {
-  console.log("Received event:", JSON.stringify(event, null, 2));
+export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
+
+/**
+ * Responsive Control Handler for the ECR Image Layer Access solution.
+ *
+ * This Lambda function implements a responsive control mechanism that
+ * automatically remediates unauthorized access attempts to ECR image layers
+ * through the `GetDownloadUrlForLayer` API. Upon receiving AWS Security Hub findings,
+ * the function analyzes the event context to determine if the access attempt is unauthorized.
+ *
+ * Remediation actions include:
+ *  - Revoking IAM permissions by attaching a deny-all policy for affected users.
+ *  - Notifying security teams of the detected incident.
+ */
+async function lambdaHandler(event: SecurityHubFindingsImportedEvent) {
+  logger.info("Event:", JSON.stringify(event, null, 2));
 
   // TODO: Implement the responsive control
   // Take remediation actions
-  const eventDetail = event.detail;
-
-  const userIdentity = eventDetail.userIdentity || {};
+  const userIdentity = event.detail.userIdentity || {};
 
   // Revoke permissions if possible
   await revokePermissions(userIdentity);
@@ -56,18 +76,22 @@ async function revokePermissions(userIdentity: {
           PolicyDocument: JSON.stringify(policyDocument),
         });
 
-        console.log(`Applied emergency deny policy to user ${username}`);
+        logger.info("Applied emergency deny policy", {
+          username,
+        });
       }
     } else if (identityType === "AssumedRole") {
       // For assumed roles, we can't easily revoke permissions
       // We would need to modify the role policy, which might affect other legitimate users
       // Instead, we log the incident for manual review
-      console.warn(
-        `Manual review required for assumed role: ${userIdentity.arn}`,
-      );
+      logger.warn("Manual review required", {
+        arn: userIdentity.arn,
+      });
     }
     // Additional identity types could be handled here
   } catch (error) {
-    console.error(`Error revoking permissions: ${error}`);
+    logger.error("Error revoking permissions", {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }

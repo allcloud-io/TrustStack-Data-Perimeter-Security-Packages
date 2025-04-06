@@ -9,7 +9,10 @@
     "test": "jest"
   },
   "dependencies": {
-    "@aws-sdk/client-sts": "catalog:"
+    "@trust-stack/schema": "workspace:*",
+    "@aws-sdk/client-ssm": "catalog:",
+    "@aws-sdk/client-sts": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/aws-lambda": "catalog:",

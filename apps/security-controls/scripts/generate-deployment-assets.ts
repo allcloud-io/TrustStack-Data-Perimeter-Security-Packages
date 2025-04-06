@@ -1,27 +1,55 @@
+/**
+ * Script for generating deployment assets for TrustStack security solutions.
+ *
+ * This script synthesizes the CDK application and produces deployment artifacts for
+ * enabled security solutions defined in the trust-stack.yml manifest file.
+ *
+ * Output artifacts:
+ * - CloudFormation templates: Generated as cloudformation-template.json in each solution's
+ *   directory within the dist folder.
+ * - Lambda handler archives: Packaged as lambda.zip files in their respective directories
+ *   after being bundled with esbuild.
+ * - Hook schema packages: Generated as hook-schema.zip in the lambda-hook directory for
+ *   solutions that implement CloudFormation hooks.
+ * - Service Control Policies: Generated as service-control-policy.json in the solution's
+ *   directory for solutions that implement SCPs.
+ *
+ * File naming conventions and constraints:
+ * - Lambda handlers must be named either handler.ts or end with .handler.ts
+ * - Lambda handlers can have up to 2 levels of directory nesting within their solution's directory
+ * - All output artifacts are organized in the dist directory by solution slug(e.g. dist/sns-subscription-security)
+ */
+
 import {
   ConfigurationSchema,
   parseManifestFile,
   SecuritySolutionSlug,
 } from "@trust-stack/schema";
-import * as childProcess from "child_process";
 import * as esbuild from "esbuild";
+import * as yaml from "js-yaml";
+import * as childProcess from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import {
   buildConfiguration,
   distDirectory,
+  lzaOrganizationConfigFileName,
   manifestFilePath,
   projectDirectory,
 } from "../lib/shared/build-configuration";
+import { generateSCP as generateECRImageLayerAccessSCP } from "../lib/solutions/ecr/image-layer-access/scp-policy/generate-scp";
 import { generateSCP as generateSNSSubscriptionSecuritySCP } from "../lib/solutions/sns/subscription-security/scp-policy/generate-scp";
 
 function synthesizeCDKApplication() {
   console.log("Synthesizing CDK application");
 
-  childProcess.execSync("pnpm cdk synth", {
-    cwd: projectDirectory,
-    stdio: "inherit",
-  });
+  childProcess.execSync(
+    "pnpm cdk synth --version-reporting=false --path-metadata=false --asset-metadata=false --ci",
+    {
+      cwd: projectDirectory,
+      stdio: "inherit",
+    },
+  );
 
   console.log("CDK application synthesized");
 }
@@ -272,6 +300,45 @@ async function buildLambdaHandlerArchives(
   return archiveFilePaths;
 }
 
+type ServiceControlPolicyConfig = {
+  description: string;
+  name: string;
+  policy: string;
+  strategy?: "deny-list" | "allow-list";
+  type: "awsManaged" | "customerManaged";
+};
+
+async function generateLZAOrganizationConfigFile(
+  solution: SecuritySolutionSlug,
+  scpDescription: string,
+) {
+  const organizationConfigFilePath = path.join(
+    distDirectory,
+    solution,
+    lzaOrganizationConfigFileName,
+  );
+
+  const solutionDistDir = path.join(distDirectory, solution);
+
+  await fs.mkdir(solutionDistDir, { recursive: true });
+
+  const organizationConfig = {
+    serviceControlPolicies: [
+      {
+        name: `trust-stack-${solution}`,
+        description: scpDescription,
+        policy: "./service-control-policy.json",
+        strategy: "deny-list",
+        type: "customerManaged",
+      },
+    ] satisfies ServiceControlPolicyConfig[],
+  };
+
+  await fs.writeFile(organizationConfigFilePath, yaml.dump(organizationConfig));
+
+  return organizationConfigFilePath;
+}
+
 async function main() {
   synthesizeCDKApplication();
 
@@ -282,12 +349,62 @@ async function main() {
 
   const generatedFilePaths: string[] = [];
 
-  if (solutions.snsSubscriptionSecurity.enabled) {
+  if (solutions.ecrImageLayerAccess?.enabled) {
+    console.log("ECR Image Layer Access is enabled");
+
+    const solutionSlug = "ecr-image-layer-access";
+
+    const cloudformationTemplateFilePath =
+      await addCloudFormationTemplate(solutionSlug);
+
+    generatedFilePaths.push(
+      path.relative(projectDirectory, cloudformationTemplateFilePath),
+    );
+
+    const config = solutions.ecrImageLayerAccess.configuration;
+    const scp = generateECRImageLayerAccessSCP(config);
+
+    const scpFilePath = path.join(
+      distDirectory,
+      solutionSlug,
+      "service-control-policy.json",
+    );
+
+    await fs.mkdir(path.dirname(scpFilePath), { recursive: true });
+    await fs.writeFile(scpFilePath, JSON.stringify(scp, null, 2));
+
+    generatedFilePaths.push(path.relative(projectDirectory, scpFilePath));
+
+    const organizationConfigFilePath = await generateLZAOrganizationConfigFile(
+      solutionSlug,
+      "Deny ECR image layer access to untrusted roles and networks",
+    );
+
+    generatedFilePaths.push(
+      path.relative(projectDirectory, organizationConfigFilePath),
+    );
+
+    const lambdaHandlerArchiveFilePaths =
+      await buildLambdaHandlerArchives(solutionSlug);
+
+    const relativeFilePaths = [
+      scpFilePath,
+      organizationConfigFilePath,
+      ...lambdaHandlerArchiveFilePaths,
+    ].map((filePath) => path.relative(projectDirectory, filePath));
+
+    generatedFilePaths.push(...relativeFilePaths);
+  } else {
+    console.log("ECR Image Layer Access is disabled.");
+  }
+
+  if (solutions.snsSubscriptionSecurity?.enabled) {
     console.log("SNS Subscription Security is enabled");
 
-    const cloudformationTemplateFilePath = await addCloudFormationTemplate(
-      "sns-subscription-security",
-    );
+    const solutionSlug = "sns-subscription-security";
+
+    const cloudformationTemplateFilePath =
+      await addCloudFormationTemplate(solutionSlug);
 
     generatedFilePaths.push(
       path.relative(projectDirectory, cloudformationTemplateFilePath),
@@ -298,19 +415,24 @@ async function main() {
 
     const scpFilePath = path.join(
       distDirectory,
-      "sns-subscription-security",
+      solutionSlug,
       "service-control-policy.json",
     );
 
     await fs.mkdir(path.dirname(scpFilePath), { recursive: true });
     await fs.writeFile(scpFilePath, JSON.stringify(scp, null, 2));
 
-    const lambdaHandlerArchiveFilePaths = await buildLambdaHandlerArchives(
-      "sns-subscription-security",
+    const organizationConfigFilePath = await generateLZAOrganizationConfigFile(
+      solutionSlug,
+      "Deny SNS subscriptions to untrusted endpoints and protocols",
     );
+
+    const lambdaHandlerArchiveFilePaths =
+      await buildLambdaHandlerArchives(solutionSlug);
 
     const relativeFilePaths = [
       scpFilePath,
+      organizationConfigFilePath,
       ...lambdaHandlerArchiveFilePaths,
     ].map((filePath) => path.relative(projectDirectory, filePath));
 

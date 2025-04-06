@@ -11,7 +11,8 @@
     "test": "jest",
     "cdk": "cdk",
     "lint": "eslint .",
-    "format": "eslint --fix && prettier --write \"**/*.{ts,js,json,yml,yaml}\""
+    "format": "eslint --fix && prettier --write \"**/*.{ts,js,json,yml,yaml}\"",
+    "generate-deployment-assets": "tsx scripts/generate-deployment-assets.ts"
   },
   "dependencies": {
     "@trust-stack/utils": "workspace:*",

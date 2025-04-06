@@ -23,4 +23,20 @@ tasks:
     desc: "Synthesize deployment artifacts for the TrustStack engine"
     dir: "apps/engine"
     cmds:
-      - pnpm cdk synth {{ .CLI_ARGS }}
+      - pnpm cdk synth --version-reporting=false --path-metadata=false --asset-metadata=false --ci {{ .CLI_ARGS }}
+
+  package:
+    desc: "Generate deployment artifacts for the TrustStack engine"
+    dir: "apps/engine"
+    cmds:
+      - pnpm generate-deployment-assets
+
+  upload-to-s3:
+    desc: "Upload the generated deployment artifacts to the assets bucket"
+    dir: "apps/engine"
+    cmds:
+      - rm -rf dist cdk.out
+      - pnpm generate-deployment-assets
+      - >
+        ASSETS_BUCKET_NAME=$(aws ssm get-parameter --name "/trust-stack/assets-bucket/name" --query "Parameter.Value" --output text) &&
+        aws s3 sync dist s3://$ASSETS_BUCKET_NAME/$BUILD_HASH/engine --delete

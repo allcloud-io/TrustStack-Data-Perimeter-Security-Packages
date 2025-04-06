@@ -1,7 +1,7 @@
 export type LambdaHookTypeConfiguration = {
   CloudFormationConfiguration: {
     HookConfiguration: {
-      HookInvocationStatus: "ENABLED";
+      HookInvocationStatus: "ENABLED" | "DISABLED";
       TargetOperations: HookTargetOperation[];
       FailureMode: HookFailureMode;
       Properties: Record<string, unknown>;

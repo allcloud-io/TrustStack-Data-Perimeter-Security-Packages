@@ -2,7 +2,10 @@
 import { ConfigurationSchema, parseManifestFile } from "@trust-stack/schema";
 import * as cdk from "aws-cdk-lib";
 import * as path from "node:path";
-import { SNS_SubscriptionSecurityStack } from "../lib";
+import {
+  ECR_ImageLayerAccessStack,
+  SNS_SubscriptionSecurityStack,
+} from "../lib";
 
 const app = new cdk.App({
   analyticsReporting: false,
@@ -21,10 +24,17 @@ const {
   path.join(__dirname, "..", "..", "..", "trust-stack.yml"),
 );
 
-if (solutions.snsSubscriptionSecurity.enabled) {
+if (solutions.snsSubscriptionSecurity?.enabled) {
   new SNS_SubscriptionSecurityStack(app, "SNSSubscriptionSecurity", {
     solutionsDir,
     config: solutions.snsSubscriptionSecurity.configuration,
+  });
+}
+
+if (solutions.ecrImageLayerAccess?.enabled) {
+  new ECR_ImageLayerAccessStack(app, "ECRImageLayerAccess", {
+    solutionsDir,
+    config: solutions.ecrImageLayerAccess.configuration,
   });
 }
 

@@ -1,4 +1,5 @@
 import type { SecuritySolutionSlug } from "@trust-stack/schema";
+import { validateEnvironmentVariables } from "@trust-stack/utils";
 import * as path from "node:path";
 
 export const manifestFilePath = path.join(
@@ -18,6 +19,8 @@ export const distDirectory = "dist";
 
 export const cdkOutDirectory = "cdk.out";
 
+export const lzaOrganizationConfigFileName = "organization-config.yaml";
+
 export const buildConfiguration = {
   ["ecr-image-layer-access" satisfies SecuritySolutionSlug]: {
     solutionDirectoryPath: path.join(
@@ -25,8 +28,10 @@ export const buildConfiguration = {
       "ecr",
       "image-layer-access",
     ),
-    // TODO: Add the path to the generated CloudFormation template
-    generatedCloudFormationTemplateFilePath: "",
+    generatedCloudFormationTemplateFilePath: path.join(
+      cdkOutDirectory,
+      "ECRImageLayerAccess.template.json",
+    ),
   },
   ["sns-subscription-security" satisfies SecuritySolutionSlug]: {
     solutionDirectoryPath: path.join(
@@ -46,3 +51,5 @@ export const buildConfiguration = {
     generatedCloudFormationTemplateFilePath: string;
   }
 >;
+
+export const { BUILD_HASH } = validateEnvironmentVariables(["BUILD_HASH"]);

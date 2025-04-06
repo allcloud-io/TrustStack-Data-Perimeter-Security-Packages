@@ -5,7 +5,6 @@ This document outlines a comprehensive approach to securing SNS subscriptions us
 **Table of Contents:**
 
 - [SNS Subscription Security Solution](#sns-subscription-security-solution)
-  - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Controls](#controls)
     - [Preventative Control: Service Control Policy](#preventative-control-service-control-policy)
@@ -14,16 +13,12 @@ This document outlines a comprehensive approach to securing SNS subscriptions us
       - [Considerations](#considerations)
     - [Proactive Control: CloudFormation Hook](#proactive-control-cloudformation-hook)
     - [Detective Control: CloudTrail Monitoring](#detective-control-cloudtrail-monitoring)
-      - [Key Components](#key-components)
       - [Security Benefits](#security-benefits-1)
     - [Responsive Control: Automated Remediation](#responsive-control-automated-remediation)
-      - [Key Components](#key-components-1)
+      - [Key Components](#key-components)
       - [Security Benefits](#security-benefits-2)
       - [Implementation Considerations](#implementation-considerations)
   - [Implementation Guide](#implementation-guide)
-    - [Step 1: Implement Preventative Controls](#step-1-implement-preventative-controls)
-    - [Step 2: Implement Proactive Controls](#step-2-implement-proactive-controls)
-    - [Step 3: Implement Detective Controls](#step-3-implement-detective-controls)
     - [Step 4: Implement Responsive Controls](#step-4-implement-responsive-controls)
   - [Conclusion](#conclusion)
 
@@ -31,9 +26,9 @@ This document outlines a comprehensive approach to securing SNS subscriptions us
 
 The solution provides a multi-layered approach to securing SNS subscriptions:
 
-1. **Preventative Control**: Service Control Policy (SCP) that restrict the creation of SNS subscriptions to trusted endpoints and protocols.
-2. **Proactive Control**: A CloudFormation hook that prevent deployments that include SNS subscriptions with untrusted endpoints and protocols.
-3. **Detective Control**: CloudTrail monitoring to detect attempts to create SNS subscriptions with untrusted endpoints and protocols. Than, AWS Security Hub findings are created for non-compliant subscriptions.
+1. **Preventative Control**: Service Control Policy (SCP) that restrict the creation of SNS subscriptions to trusted endpoints.
+2. **Proactive Control**: A CloudFormation hook that prevent deployments that include SNS subscriptions with untrusted endpoints.
+3. **Detective Control**: CloudTrail monitoring to detect attempts to create SNS subscriptions with untrusted endpoints. Than, AWS Security Hub findings are created for non-compliant subscriptions.
 4. **Responsive Control**: When a finding is detected, we trigger a Lambda function that:
    - Deletes the non-compliant SNS subscription
    - Updates the Security Hub finding to mark it as resolved
@@ -56,7 +51,7 @@ The Service Control Policy (SCP) in `scp-policy/policy.json` implements preventa
 
 #### Customization
 
-You should customize the trusted endpoints and protocols based on your organization's requirements:
+You should customize the trusted endpoints based on your organization's requirements:
 
 1. **Trusted AWS Service Protocols**: Adjust the ARN patterns for AWS services as needed.
 2. **Trusted Email Domains**: Replace `example.com`, `example.org`, and `amazonaws.com` with your organization's trusted email domains.
@@ -85,8 +80,6 @@ The CloudFormation hook validates SNS subscription endpoints during CloudFormati
 - URL domains for HTTP/HTTPS protocols
 - AWS service protocols (SQS, Lambda, etc.)
 
-The hook is configurable, allowing organizations to define their own lists of trusted domains and protocols.
-
 For detailed information about the CloudFormation hook implementation, including configuration options, compliant and non-compliant examples, and testing procedures, refer to the [SNS Subscription Endpoint Validation CloudFormation Hook README](lambda-hook/README.md).
 
 ### Detective Control: CloudTrail Monitoring
@@ -95,38 +88,28 @@ The detective control uses EventBridge and a Lambda function to monitor for SNS 
 
 The monitoring process works as follows:
 
-1. **CloudTrail logging**: AWS CloudTrail captures all SNS API calls, including subscription creation
-2. **EventBridge rule**: An EventBridge rule filters CloudTrail events for SNS `Subscribe` API calls
-3. **Lambda processing**: When a subscription is created, the Lambda function:
+1. **CloudTrail Logging**: AWS CloudTrail captures all SNS API calls, including subscription creation
+2. **EventBridge Rule**: An EventBridge rule filters CloudTrail events for SNS `Subscribe` API calls
+3. **Lambda Processing**: When a subscription is created, the Lambda function:
    - Extracts the protocol and endpoint from the event
    - Validates the endpoint against the trusted domains configuration
    - Performs appropriate validation based on the protocol type (email, HTTP/HTTPS, AWS services)
-4. **Security Hub integration**: The Lambda creates findings in AWS Security Hub:
+4. **Security Hub Integration**: The Lambda creates findings in AWS Security Hub:
    - Non-compliant subscriptions generate HIGH severity findings
    - Findings include detailed information about the subscription and why it failed validation
    - Remediation guidance is provided for each finding
 
-#### Key Components
-
-The detective control implementation consists of:
-
-1. **Lambda Function**: Processes CloudTrail events and validates subscriptions
-2. **EventBridge Rule**: Triggers the Lambda based on CloudTrail SNS Subscribe events
-3. **Security Hub Integration**: Creates and updates findings for non-compliant subscriptions
-4. **Configurable Validation Rules**: Customizable list of trusted domains and protocols
-5. **IAM Role**: Provides permissions for the Lambda to access SNS and Security Hub
-
 #### Security Benefits
 
-1. **Near real-time detection**: Identifies non-compliant subscriptions immediately after creation
-2. **Centralized visibility**: Creates findings in Security Hub for centralized monitoring
-3. **Custom validation rules**: Supports organization-specific trusted domains and protocols
-4. **Comprehensive logging**: Provides detailed logs of validation results for auditing
-5. **Data exfiltration prevention**: Identifies potential data exfiltration channels via untrusted endpoints
+1. **Near Real-Time Detection**: Identifies non-compliant subscriptions immediately after creation
+2. **Centralized Visibility**: Creates findings in Security Hub for centralized monitoring
+3. **Custom Validation Rules**: Supports organization-specific trusted domains
+4. **Comprehensive Logging**: Provides detailed logs of validation results for auditing
+5. **Data Exfiltration Prevention**: Identifies potential data exfiltration channels via untrusted endpoints
 
 ### Responsive Control: Automated Remediation
 
-To complete the defense-in-depth strategy, we offer automated remediation for unauthorized SNS subscriptions. This responsive control helps ensure that any subscriptions that bypass preventative and detective controls are quickly identified and remediated.
+To complete the defense-in-depth strategy, we offer automated remediation for unauthorized SNS subscriptions. This responsive control helps ensure that any subscriptions that bypass preventative and detective controls are quickly identified and canceled.
 
 #### Key Components
 
@@ -146,37 +129,6 @@ To complete the defense-in-depth strategy, we offer automated remediation for un
 
 ## Implementation Guide
 
-### Step 1: Implement Preventative Controls
-
-1. Customize the trusted domains and protocols.
-2. Implement the SCP in your AWS Organizations.
-
-### Step 2: Implement Proactive Controls
-
-1. Deploy the CloudFormation hook in your AWS accounts.
-2. Customize the trusted domains and protocols in the hook configuration.
-3. Test the hook with the sample templates.
-
-### Step 3: Implement Detective Controls
-
-1. Ensure CloudTrail is enabled and logging SNS API calls.
-2. Deploy the Lambda function (`detective-control/handler.ts`) to process subscription events.
-3. Configure the trusted domains and protocols in the Lambda configuration.
-4. Set up an EventBridge rule to filter CloudTrail events for SNS subscription creation:
-   ```json
-   {
-     "source": ["aws.sns"],
-     "detail-type": ["AWS API Call via CloudTrail"],
-     "detail": {
-       "eventSource": ["sns.amazonaws.com"],
-       "eventName": ["Subscribe"]
-     }
-   }
-   ```
-5. Ensure the Lambda has appropriate IAM permissions to create and update Security Hub findings
-6. Configure Security Hub to receive and display findings from the detective control.
-7. Establish a monitoring process for reviewing and acting on Security Hub findings.
-
 ### Step 4: Implement Responsive Controls
 
 <!-- TODO: Update this section's content once the responsive control is implemented -->
@@ -189,4 +141,4 @@ To complete the defense-in-depth strategy, we offer automated remediation for un
 
 ## Conclusion
 
-By implementing this comprehensive approach to securing SNS subscriptions, you can significantly reduce the risk of data exfiltration through untrusted endpoints. The combination of preventative, proactive, and detective controls provides a robust security posture that aligns with the [Data Perimeter Guidelines](../../../../docs/DATA_PERIMETER_GUIDELINES.md).
+By implementing this comprehensive approach to securing SNS subscriptions, you can significantly reduce the risk of data exfiltration through untrusted endpoints. The combination of preventative, proactive, detective, and responsive controls provides a robust security posture that aligns with the [Data Perimeter Guidelines](../../../../../../docs/DATA_PERIMETER_GUIDELINES.md).

@@ -1,6 +1,32 @@
 import { z } from "zod";
 
-const SupportedProtocols = z.enum([
+/**
+ * Configuration for the ECR image layer access solution
+ */
+export const ECRImageLayerAccessSolutionConfig = z.object({
+  /**
+   * List of allowed role patterns
+   */
+  allowedRolePatterns: z.array(z.string()).optional(),
+
+  /**
+   * List of allowed networks
+   */
+  allowedNetworks: z
+    .array(z.union([z.string().cidr(), z.string().ip()]))
+    .optional(),
+
+  /**
+   * List of allowed VPC endpoints
+   */
+  allowedVPCEndpoints: z.array(z.string()).optional(),
+});
+
+export type ECRImageLayerAccessSolutionConfig = z.infer<
+  typeof ECRImageLayerAccessSolutionConfig
+>;
+
+const SNSSupportedProtocols = z.enum([
   "email",
   "email-json",
   "http",
@@ -11,7 +37,7 @@ const SupportedProtocols = z.enum([
   "application",
 ]);
 
-export type SupportedProtocols = z.infer<typeof SupportedProtocols>;
+export type SNSSupportedProtocols = z.infer<typeof SNSSupportedProtocols>;
 
 /**
  * Configuration for the SNS subscription security solution
@@ -30,7 +56,7 @@ export const SNSSubscriptionSecuritySolutionConfig = z.object({
   /**
    * List of trusted AWS service protocols
    */
-  trustedProtocols: SupportedProtocols.array(),
+  trustedProtocols: SNSSupportedProtocols.array(),
 });
 
 export type SNSSubscriptionSecuritySolutionConfig = z.infer<
@@ -61,15 +87,28 @@ export const ConfigurationSchema = z.object({
     }),
     solutions: z
       .object({
-        snsSubscriptionSecurity: z.union([
-          z.object({
-            enabled: z.literal(true),
-            configuration: SNSSubscriptionSecuritySolutionConfig,
-          }),
-          z.object({
-            enabled: z.literal(false),
-          }),
-        ]),
+        ecrImageLayerAccess: z
+          .union([
+            z.object({
+              enabled: z.literal(true),
+              configuration: ECRImageLayerAccessSolutionConfig,
+            }),
+            z.object({
+              enabled: z.literal(false),
+            }),
+          ])
+          .optional(),
+        snsSubscriptionSecurity: z
+          .union([
+            z.object({
+              enabled: z.literal(true),
+              configuration: SNSSubscriptionSecuritySolutionConfig,
+            }),
+            z.object({
+              enabled: z.literal(false),
+            }),
+          ])
+          .optional(),
       })
       .describe("The solutions to deploy"),
   }),

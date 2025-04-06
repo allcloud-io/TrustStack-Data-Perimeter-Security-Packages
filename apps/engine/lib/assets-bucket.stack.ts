@@ -10,7 +10,6 @@ export class AssetsBucketStack extends cdk.Stack {
 
     const assetsBucket = new s3.Bucket(this, "AssetsBucket", {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       versioned: true,
@@ -18,7 +17,7 @@ export class AssetsBucketStack extends cdk.Stack {
 
     new ssm.StringParameter(this, "AssetsBucketParameter", {
       parameterName:
-        "/trust-stack/security-controls/assets-bucket/name" satisfies SharedSSMParameterName,
+        "/trust-stack/assets-bucket/name" satisfies SharedSSMParameterName,
       stringValue: assetsBucket.bucketName,
     });
   }

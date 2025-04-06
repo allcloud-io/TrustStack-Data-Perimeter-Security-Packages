@@ -1,5 +1,23 @@
 # ECR Image Layer Access Security Solution
 
+This document outlines a comprehensive approach to securing ECR image layer access using multiple layers of controls.
+
+**Table of Contents:**
+
+- [ECR Image Layer Access Security Solution](#ecr-image-layer-access-security-solution)
+  - [Overview](#overview)
+  - [Problem Statement](#problem-statement)
+  - [Solution Components](#solution-components)
+    - [1. Preventative Control](#1-preventative-control)
+    - [2. Detective Control](#2-detective-control)
+    - [3. Proactive Controls](#3-proactive-controls)
+    - [4. Responsive Control](#4-responsive-control)
+  - [Deployment Instructions](#deployment-instructions)
+    - [Prerequisites](#prerequisites)
+    - [Network Perimeter Control Best Practices](#network-perimeter-control-best-practices)
+  - [Security Best Practices](#security-best-practices)
+  - [Compliance Considerations](#compliance-considerations)
+
 ## Overview
 
 The ECR Image Layer Access Security Solution addresses the risk of unauthorized access to Amazon ECR private image layers through presigned URLs. The `GetDownloadUrlForLayer` API returns Amazon S3 presigned URLs that users can use to download ECR private image layers from service-owned buckets, creating a potential security risk if not properly controlled.
@@ -22,17 +40,19 @@ This mechanism creates several potential security risks:
 
 This solution implements a comprehensive set of controls to mitigate these risks:
 
-### 1. Preventative Controls
+### 1. Preventative Control
 
-Service Control Policies (SCPs) that restrict `GetDownloadUrlForLayer` permissions to administrators or specific applications only. These SCPs can be applied at the AWS Organizations level to enforce consistent control across all accounts.
+Service Control Policy (SCP) that restricts `GetDownloadUrlForLayer` API calls based on:
 
-**Implementation**: [SCP Policy](./scp-policy/README.md)
+- Allowed IAM role patterns (via `aws:PrincipalARN` condition)
+- Source IP addresses (optional network restrictions)
+- VPC endpoints (optional VPC endpoint restrictions)
 
-### 2. Detective Controls
+These SCPs can be applied at the AWS Organizations level to enforce consistent control across all accounts.
 
-CloudTrail monitoring to detect and alert on `GetDownloadUrlForLayer` API calls in your environment. This allows security teams to identify potentially unauthorized access attempts.
+### 2. Detective Control
 
-**Implementation**: [Detective Control](./detective-control/README.md)
+CloudTrail monitoring to create AWS Security Hub findings for unauthorized `GetDownloadUrlForLayer` API calls in your environment. This allows security teams to identify potentially unauthorized access attempts.
 
 ### 3. Proactive Controls
 
@@ -42,17 +62,12 @@ Implementation guidelines for network perimeter controls to prevent access from 
 - Using AWS PrivateLink for ECR access
 - Setting up proper network segmentation
 
-**Implementation**: See the implementation guidelines in this documentation
+### 4. Responsive Control
 
-### 4. Responsive Controls
+Automated remediation to address unauthorized access attempts, including:
 
-Automated remediation workflows to address unauthorized access attempts, including:
-
-- Automatic notification of security teams
 - Revocation of IAM permissions
-- Session termination for suspicious activities
-
-**Implementation**: [Lambda Hook](./lambda-hook/README.md)
+- Automatic notification of security teams
 
 ## Deployment Instructions
 
@@ -60,23 +75,6 @@ Automated remediation workflows to address unauthorized access attempts, includi
 
 - AWS Organizations with all features enabled
 - CloudTrail enabled in all accounts
-- AWS Config enabled in all accounts
-- Administrative access to the organization management account
-
-### Implementing the SCP Policy
-
-The Service Control Policy (SCP) in this solution restricts the `ecr:GetDownloadUrlForLayer` API action to specific IAM roles or conditions. Follow these steps to deploy the SCP:
-
-1. Navigate to the [SCP Policy](./scp-policy/README.md) directory
-2. Review and customize the policy according to your organizational requirements
-3. Deploy the policy using your organization's SCP management process
-
-### Setting Up Detective Controls
-
-The detective controls monitor CloudTrail logs for `GetDownloadUrlForLayer` API calls and alert on suspicious activity:
-
-1. Navigate to the [Detective Control](./detective-control/README.md) directory
-2. Deploy the CloudFormation templates to set up the necessary CloudWatch rules and alerting mechanisms
 
 ### Network Perimeter Control Best Practices
 
@@ -111,13 +109,6 @@ To implement effective network perimeter controls:
 2. Use AWS PrivateLink to establish private connectivity between your VPC and ECR
 3. Implement network access control lists (NACLs) and security groups to restrict traffic flow
 
-### Implementing Responsive Controls
-
-The responsive controls automatically remediate unauthorized access attempts:
-
-1. Navigate to the [Lambda Hook](./lambda-hook/README.md) directory
-2. Deploy the CloudFormation templates to set up the remediation workflows
-
 ## Security Best Practices
 
 In addition to the controls provided in this solution, consider implementing these best practices:
@@ -136,23 +127,3 @@ This solution helps address compliance requirements related to data protection a
 - **PCI DSS**: Helps meet requirements for restricting access to sensitive data (Requirements 7 and 8)
 - **HIPAA**: Supports technical safeguards for access control and audit controls
 - **FedRAMP**: Aligns with security controls for data protection and access management
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Legitimate Access Blocked**: If legitimate users or applications are blocked from accessing ECR layers:
-
-   - Review the SCP configuration to ensure necessary exceptions are in place
-   - Check CloudTrail logs to understand why access was denied
-
-2. **Alerting False Positives**: If you receive excessive alerts about legitimate access:
-
-   - Adjust the CloudWatch rule patterns to better filter events
-   - Add known legitimate patterns to an allowlist
-
-3. **Remediation Workflow Failures**: If automated remediation fails:
-   - Check Lambda execution logs for error details
-   - Verify that the remediation role has sufficient permissions
-
-For additional support, please contact your security administrator or cloud operations team.

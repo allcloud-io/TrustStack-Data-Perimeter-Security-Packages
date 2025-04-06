@@ -1,19 +1,25 @@
+import { Logger } from "@aws-lambda-powertools/logger";
+import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import {
   type AwsSecurityFinding,
-  BatchImportFindingsCommand,
   ComplianceStatus,
   Partition,
   RecordState,
-  SecurityHubClient,
+  SecurityHub,
   SeverityLabel,
   WorkflowStatus,
 } from "@aws-sdk/client-securityhub";
+import middy from "@middy/core";
+import { getValidatedSolutionConfig } from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import * as ipaddr from "ipaddr.js";
-import { DEFAULT_CONFIG } from "../shared";
+
+const logger = new Logger({
+  serviceName: "ECRImageLayerAccessDetectiveControlHandler",
+});
 
 // Initialize AWS clients
-const securityHubClient = new SecurityHubClient({});
+const securityHub = new SecurityHub({});
 
 /**
  * CloudTrail event detail for ECR GetDownloadUrlForLayer API call
@@ -41,6 +47,8 @@ type EcrGetDownloadUrlEventDetail = {
   eventID: string;
 };
 
+export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
+
 /**
  * Lambda handler function processes CloudTrail events for ECR GetDownloadUrlForLayer
  * API calls, determines if they are authorized, and creates a Security Hub finding
@@ -50,14 +58,14 @@ type EcrGetDownloadUrlEventDetail = {
  * @param _context - The Lambda execution context (unused)
  * @returns Response object with status code and message
  */
-export async function handler(
+async function lambdaHandler(
   event: EventBridgeEvent<
     "AWS API Call via CloudTrail",
     EcrGetDownloadUrlEventDetail
   >,
   _context: Context,
 ): Promise<void> {
-  console.log(`Processing event: ${JSON.stringify(event, null, 2)}`);
+  logger.info(`Event: ${JSON.stringify(event, null, 2)}`);
 
   // Extract relevant information from the CloudTrail event
   const eventDetail = event.detail;
@@ -67,18 +75,19 @@ export async function handler(
     eventDetail.eventSource !== "ecr.amazonaws.com" ||
     eventDetail.eventName !== "GetDownloadUrlForLayer"
   ) {
-    console.log("Not an ECR GetDownloadUrlForLayer event, skipping");
+    logger.info("Not an ECR GetDownloadUrlForLayer event, skipping");
     return;
   }
 
-  const { allowedRolePatterns, allowedNetworks } = DEFAULT_CONFIG;
+  const { allowedRolePatterns, allowedNetworks } =
+    await getValidatedSolutionConfig("ecr-image-layer-access");
 
-  const accountId = eventDetail.recipientAccountId;
+  const accountID = eventDetail.recipientAccountId;
   const region = eventDetail.awsRegion;
 
-  console.log(
-    `Processing ECR GetDownloadUrlForLayer API call for repository: ${eventDetail.requestParameters?.repositoryName}`,
-  );
+  logger.info("Processing ECR GetDownloadUrlForLayer API call", {
+    repositoryName: eventDetail.requestParameters?.repositoryName,
+  });
 
   // Check if this is an authorized access
   if (
@@ -88,27 +97,25 @@ export async function handler(
       allowedNetworks,
     })
   ) {
-    console.log("Access is authorized, skipping");
+    logger.info("Access is authorized, skipping");
     return;
   }
 
   // Create a Security Hub finding
   const finding = createSecurityHubFinding({
     eventDetail,
-    accountId,
+    accountID,
     region,
   });
 
   // Import the finding into Security Hub
   try {
-    const command = new BatchImportFindingsCommand({
+    const response = await securityHub.batchImportFindings({
       Findings: [finding],
     });
-
-    const response = await securityHubClient.send(command);
-    console.log("Security Hub finding created:", response);
+    logger.info("Security Hub finding created", { response });
   } catch (error) {
-    console.error("Error creating Security Hub finding:", error);
+    logger.error("Error creating Security Hub finding", { error });
     throw error;
   }
 }
@@ -125,8 +132,8 @@ function isAuthorizedAccess({
   allowedNetworks,
 }: Readonly<{
   eventDetail: EcrGetDownloadUrlEventDetail;
-  allowedRolePatterns: string[];
-  allowedNetworks: string[];
+  allowedRolePatterns?: string[];
+  allowedNetworks?: string[];
 }>): boolean {
   try {
     // Extract identity information
@@ -140,34 +147,50 @@ function isAuthorizedAccess({
     const sourceIp = eventDetail.sourceIPAddress || "";
 
     // Check if it's from an allowed role
-    if (identityType === "AssumedRole" && principalArn) {
+    if (
+      allowedRolePatterns &&
+      allowedRolePatterns.length > 0 &&
+      identityType === "AssumedRole" &&
+      principalArn
+    ) {
       const roleName = principalArn.includes("/")
         ? principalArn.split("/").pop() || ""
         : "";
+
       if (allowedRolePatterns.some((pattern) => roleName.includes(pattern))) {
-        console.log(
-          `Access authorized: Role ${roleName} matches allowed pattern`,
-        );
+        logger.info("Access authorized", {
+          roleName,
+          allowedPattern: allowedRolePatterns,
+        });
+
         return true;
       }
     }
 
     // Check if access is from an internal network
-    if (isIpInNetwork(sourceIp, allowedNetworks)) {
-      console.log(
-        `Access authorized: Source IP ${sourceIp} is from an allowed network`,
-      );
+    if (
+      allowedNetworks &&
+      allowedNetworks.length > 0 &&
+      isIpInNetwork(sourceIp, allowedNetworks)
+    ) {
+      logger.info("Access authorized", {
+        sourceIp,
+        allowedNetworks,
+      });
+
       return true;
     }
 
     // Additional rules can be added here
 
-    console.warn(
-      `Unauthorized access detected: ${identityType} from ${sourceIp}`,
-    );
+    logger.warn("Unauthorized access detected", {
+      identityType,
+      sourceIp,
+    });
+
     return false;
   } catch (error) {
-    console.error(`Error determining authorization: ${error}`);
+    logger.error("Error determining authorization", { error });
     // Default to authorized in case of error to prevent false positives
     return true;
   }
@@ -184,15 +207,15 @@ function isIpInNetwork(ip: string, networks: string[]): boolean {
   try {
     const ipObj = ipaddr.parse(ip);
 
-    for (const network of networks) {
+    for (const networkCIDR of networks) {
       try {
-        const cidr = ipaddr.parseCIDR(network);
+        const cidr = ipaddr.parseCIDR(networkCIDR);
         if (ipObj.match(cidr)) {
           return true;
         }
       } catch (_error) {
         // Skip invalid network definitions
-        console.warn(`Invalid network CIDR: ${network}`);
+        logger.warn("Invalid network CIDR", { networkCIDR });
         continue;
       }
     }
@@ -200,7 +223,7 @@ function isIpInNetwork(ip: string, networks: string[]): boolean {
     return false;
   } catch (_error) {
     // If the IP is invalid, return false
-    console.warn(`Invalid IP address: ${ip}`);
+    logger.warn("Invalid IP address", { ip });
     return false;
   }
 }
@@ -216,16 +239,17 @@ function isIpInNetwork(ip: string, networks: string[]): boolean {
  */
 function createSecurityHubFinding({
   eventDetail,
-  accountId,
+  accountID,
   region,
 }: Readonly<{
   eventDetail: EcrGetDownloadUrlEventDetail;
-  accountId: string;
+  accountID: string;
   region: string;
 }>): AwsSecurityFinding {
   const timestamp = new Date().toISOString();
   const repositoryName =
     eventDetail.requestParameters?.repositoryName || "unknown";
+  const repositoryARN = `arn:aws:ecr:${region}:${accountID}:repository/${repositoryName}`;
   const layerDigest = eventDetail.requestParameters?.layerDigest || "unknown";
   const userIdentity = eventDetail.userIdentity || {};
   const identityType = userIdentity.type || "unknown";
@@ -240,9 +264,9 @@ function createSecurityHubFinding({
   return {
     SchemaVersion: "2018-10-08",
     Id: id,
-    ProductArn: `arn:aws:securityhub:${region}:${accountId}:product/${accountId}/default`,
+    ProductArn: `arn:aws:securityhub:${region}:${accountID}:product/${accountID}/default`,
     GeneratorId: "ECRImageLayerAccessMonitor",
-    AwsAccountId: accountId,
+    AwsAccountId: accountID,
     Types: ["Software and Configuration Checks/AWS Security Best Practices"],
     FirstObservedAt: timestamp,
     CreatedAt: timestamp,
@@ -262,10 +286,14 @@ function createSecurityHubFinding({
     Resources: [
       {
         Type: "AwsEcrRepository",
-        Id: `arn:aws:ecr:${region}:${accountId}:repository/${repositoryName}`,
+        Id: repositoryARN,
         Partition: Partition.AWS,
         Region: region,
         Details: {
+          AwsEcrRepository: {
+            Arn: repositoryARN,
+            RepositoryName: repositoryName,
+          },
           Other: {
             layerDigest: layerDigest,
             identityType: identityType,
