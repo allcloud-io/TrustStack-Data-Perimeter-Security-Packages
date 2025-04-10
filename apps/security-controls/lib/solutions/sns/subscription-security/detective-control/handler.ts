@@ -69,7 +69,7 @@ async function lambdaHandler(
 
   if (
     (["email", "email-json"] satisfies SNSSupportedProtocols[]).includes(
-      protocol as any,
+      protocol.toLowerCase() as any,
     )
   ) {
     logger.info("Skipping validation for email and email-json protocols");
