@@ -63,9 +63,11 @@ export type SCPStatement = {
  * Represents a condition in a Service Control Policy statement
  */
 export type SCPCondition = {
-  [operator: string]: {
-    [key: string]: string | string[] | number | number[] | boolean;
-  };
+  [operator: string]:
+    | {
+        [key: string]: string | string[] | number | number[] | boolean;
+      }
+    | undefined;
 };
 
 /**

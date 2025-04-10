@@ -1,12 +1,18 @@
 #!/usr/bin/env node
-import { validateEnvironmentVariables } from "@trust-stack/utils";
+import { ConfigurationSchema, parseManifestFile } from "@trust-stack/schema";
 import * as cdk from "aws-cdk-lib";
+import * as path from "node:path";
 import {
   AssetsBucketStack,
   CloudFormationHookExecutionRoleStack,
 } from "../lib";
 
-const env = validateEnvironmentVariables(["SHARED_SERVICES_ACCOUNT_ID"]);
+const {
+  spec: { awsOrganizationARN, sharedServicesAccountID },
+} = parseManifestFile(
+  ConfigurationSchema,
+  path.join(__dirname, "..", "..", "..", "trust-stack.yml"),
+);
 
 const app = new cdk.App({
   analyticsReporting: false,
@@ -19,8 +25,9 @@ const app = new cdk.App({
 // Should be deployed into the shared services account
 new AssetsBucketStack(app, "AssetsBucket", {
   env: {
-    account: env.SHARED_SERVICES_ACCOUNT_ID,
+    account: sharedServicesAccountID,
   },
+  awsOrganizationARN,
 });
 
 // Should be deployed into all accounts
@@ -29,7 +36,7 @@ new CloudFormationHookExecutionRoleStack(
   "CloudFormationHookExecutionRole",
   {
     env: {
-      account: env.SHARED_SERVICES_ACCOUNT_ID,
+      account: sharedServicesAccountID,
     },
   },
 );

@@ -23,7 +23,7 @@
 import {
   ConfigurationSchema,
   parseManifestFile,
-  SecuritySolutionSlug,
+  type SecuritySolutionSlug,
 } from "@trust-stack/schema";
 import dedent from "dedent";
 import * as esbuild from "esbuild";
@@ -134,9 +134,9 @@ async function buildLambdaHandlerArchives(
   }
 
   console.log("Found lambda handler files:");
-  lambdaHandlerFiles.forEach((file) =>
-    console.log(`- ${path.relative(solutionDirectoryPath, file)}`),
-  );
+  lambdaHandlerFiles.forEach((file) => {
+    console.log(`- ${path.relative(solutionDirectoryPath, file)}`);
+  });
 
   // Create dist directory if it doesn't exist
   const solutionDistDir = path.join(distDirectory, solution);
@@ -218,8 +218,7 @@ async function buildLambdaHandlerArchives(
           `Cannot mix files and directories at the same level: ${dir}`,
         );
       }
-      (lambdaHandlerFilesByDirectory[dir] as Record<string, string>)[file] =
-        filePath;
+      lambdaHandlerFilesByDirectory[dir][file] = filePath;
     } else if (pathParts.length === 3) {
       // Two levels of nesting
       const [dir1, dir2, file] = pathParts;
@@ -233,9 +232,7 @@ async function buildLambdaHandlerArchives(
           `Cannot mix files and directories at the same level: ${nestedDir}`,
         );
       }
-      (lambdaHandlerFilesByDirectory[nestedDir] as Record<string, string>)[
-        file
-      ] = filePath;
+      lambdaHandlerFilesByDirectory[nestedDir][file] = filePath;
     }
   }
 
@@ -279,7 +276,7 @@ async function buildLambdaHandlerArchives(
   }
 
   console.log(
-    `Successfully built ${lambdaHandlerFiles.length} Lambda handlers to ${solutionDistDir}`,
+    `Successfully built ${lambdaHandlerFiles.length.toString()} Lambda handlers to ${solutionDistDir}`,
   );
 
   // Clean up the generated JS and map files after zipping
@@ -300,14 +297,6 @@ async function buildLambdaHandlerArchives(
 
   return archiveFilePaths;
 }
-
-type ServiceControlPolicyConfig = {
-  description: string;
-  name: string;
-  policy: string;
-  strategy?: "deny-list" | "allow-list";
-  type: "awsManaged" | "customerManaged";
-};
 
 async function generateLZAOrganizationConfigFile(
   solution: SecuritySolutionSlug,
@@ -510,7 +499,7 @@ if (require.main === module) {
     .then(() => {
       console.log("Successfully packaged all solutions");
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error("Failed to package solutions", error);
       process.exit(1);
     });

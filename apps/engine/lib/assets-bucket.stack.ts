@@ -3,7 +3,7 @@ import * as cdk from "aws-cdk-lib";
 import * as ram from "aws-cdk-lib/aws-ram";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as ssm from "aws-cdk-lib/aws-ssm";
-import { Construct } from "constructs";
+import type { Construct } from "constructs";
 
 export type AssetsBucketStackProps = cdk.StackProps &
   Readonly<{

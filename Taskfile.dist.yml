@@ -15,5 +15,7 @@ includes:
     aliases:
       - "sc"
 
+  scripts: ./tasks/Taskfile.scripts.yml
+
   ci:
     taskfile: ./tasks/Taskfile.ci.yml

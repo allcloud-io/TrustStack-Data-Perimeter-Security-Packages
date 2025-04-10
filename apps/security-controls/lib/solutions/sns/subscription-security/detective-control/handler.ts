@@ -1,7 +1,7 @@
 import { Logger } from "@aws-lambda-powertools/logger";
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import {
-  AwsSecurityFinding,
+  type AwsSecurityFinding,
   ComplianceStatus,
   Partition,
   RecordState,
@@ -10,7 +10,7 @@ import {
   WorkflowStatus,
 } from "@aws-sdk/client-securityhub";
 import middy from "@middy/core";
-import { SNSSupportedProtocols } from "@trust-stack/schema";
+import type { SNSSupportedProtocols } from "@trust-stack/schema";
 import { getValidatedSolutionConfig } from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type { SNSSubscribeEventDetail } from "../../../../../../../types/cloudtrail-events";
@@ -43,7 +43,9 @@ async function lambdaHandler(
 
   // Check if this is an SNS subscribe API call
   if (
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     event.detail.eventSource !== "sns.amazonaws.com" ||
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     event.detail.eventName !== "Subscribe"
   ) {
     logger.info("Not an SNS Subscribe event, skipping");
@@ -69,6 +71,7 @@ async function lambdaHandler(
 
   if (
     (["email", "email-json"] satisfies SNSSupportedProtocols[]).includes(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
       protocol.toLowerCase() as any,
     )
   ) {
@@ -141,7 +144,8 @@ function createSecurityHubFinding(
   const endpoint = event.requestParameters.endpoint;
 
   // Generate a deterministic ID based on the subscription ARN
-  const id = `sns-subscription-validation-${subscriptionARN.split(":").pop()}`;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const id = `sns-subscription-validation-${subscriptionARN.split(":").pop()!}`;
 
   return {
     SchemaVersion: "2018-10-08",

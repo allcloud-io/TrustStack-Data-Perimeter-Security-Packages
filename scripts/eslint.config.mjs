@@ -3,7 +3,10 @@ import nodeeslint from "eslint-plugin-n";
 import globals from "globals/index.js";
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(
+/**
+ * @type {import('eslint').Linter.ConfigArray}
+ */
+const config = tseslint.config(
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -17,6 +20,12 @@ export default tseslint.config(
     },
   },
   {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     plugins: {
       n: nodeeslint,
     },
@@ -45,3 +54,5 @@ export default tseslint.config(
     },
   },
 );
+
+export default config;

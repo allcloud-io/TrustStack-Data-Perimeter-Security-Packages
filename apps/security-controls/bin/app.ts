@@ -7,14 +7,6 @@ import {
   SNS_SubscriptionSecurityStack,
 } from "../lib";
 
-const app = new cdk.App({
-  analyticsReporting: false,
-  treeMetadata: false,
-  stackTraces: false,
-  // Use the BootstraplessSynthesizer to exclude AWS-specific metadata (such as "aws:cdk:path") from the synthesized templates.
-  defaultStackSynthesizer: new cdk.BootstraplessSynthesizer(),
-});
-
 const solutionsDir = path.join(__dirname, "..", "lib", "solutions");
 
 const {
@@ -23,6 +15,14 @@ const {
   ConfigurationSchema,
   path.join(__dirname, "..", "..", "..", "trust-stack.yml"),
 );
+
+const app = new cdk.App({
+  analyticsReporting: false,
+  treeMetadata: false,
+  stackTraces: false,
+  // Use the BootstraplessSynthesizer to exclude AWS-specific metadata (such as "aws:cdk:path") from the synthesized templates.
+  defaultStackSynthesizer: new cdk.BootstraplessSynthesizer(),
+});
 
 if (solutions.snsSubscriptionSecurity?.enabled) {
   new SNS_SubscriptionSecurityStack(app, "SNSSubscriptionSecurity", {

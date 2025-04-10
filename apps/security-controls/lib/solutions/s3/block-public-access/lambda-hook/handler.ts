@@ -14,12 +14,12 @@ import type { AWS_S3_MultiRegionAccessPoint } from "../../../../../../../types/c
  *
  * @param event - The CloudFormation hook event
  * @param _context - The Lambda context (unused)
- * @returns A promise resolving to the hook result
+ * @returns The hook result
  */
-export async function handler(
+export function handler(
   event: CloudFormationHookEvent,
   _context: Context,
-): Promise<CloudFormationHookResult> {
+): CloudFormationHookResult {
   console.log("CloudFormation Hook triggered");
   console.log("Event:", JSON.stringify(event, null, 2));
 
@@ -127,9 +127,9 @@ function validateS3BucketPublicAccessBlock(
       isValid: false,
       reason:
         `S3 bucket '${resourceId}' does not have all Block Public Access ` +
-        `settings enabled. Required settings: BlockPublicAcls=${blockPublicAcls}, ` +
-        `IgnorePublicAcls=${ignorePublicAcls}, BlockPublicPolicy=${blockPublicPolicy}, ` +
-        `RestrictPublicBuckets=${restrictPublicBuckets}`,
+        `settings enabled. Required settings: BlockPublicAcls=${blockPublicAcls.toString()}, ` +
+        `IgnorePublicAcls=${ignorePublicAcls.toString()}, BlockPublicPolicy=${blockPublicPolicy.toString()}, ` +
+        `RestrictPublicBuckets=${restrictPublicBuckets.toString()}`,
     };
   }
 
@@ -180,9 +180,9 @@ function validateMultiRegionAccessPointPublicAccessBlock(
       reason:
         `Multi-Region Access Point '${resourceId}' does not have all Block ` +
         `Public Access settings enabled. Required settings: ` +
-        `BlockPublicAcls=${blockPublicAcls}, IgnorePublicAcls=${ignorePublicAcls}, ` +
-        `BlockPublicPolicy=${blockPublicPolicy}, ` +
-        `RestrictPublicBuckets=${restrictPublicBuckets}`,
+        `BlockPublicAcls=${blockPublicAcls.toString()}, IgnorePublicAcls=${ignorePublicAcls.toString()}, ` +
+        `BlockPublicPolicy=${blockPublicPolicy.toString()}, ` +
+        `RestrictPublicBuckets=${restrictPublicBuckets.toString()}`,
     };
   }
 

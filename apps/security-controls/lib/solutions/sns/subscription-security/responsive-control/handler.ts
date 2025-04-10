@@ -52,7 +52,7 @@ async function lambdaHandler(event: SecurityHubFindingsImportedEvent) {
       });
 
       isPendingConfirmation =
-        subscriptionAttributes.Attributes?.["PendingConfirmation"] === "true";
+        subscriptionAttributes.Attributes?.PendingConfirmation === "true";
     } catch (error) {
       logger.error("Failed to get subscription attributes");
       throw error;

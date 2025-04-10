@@ -4,57 +4,60 @@ tasks:
   lint:
     desc: "Lint the security controls code"
     dir: "apps/security-controls"
-    cmds:
-      - pnpm lint
+    cmd: pnpm lint
 
   format:
     desc: "Format the security controls code"
     dir: "apps/security-controls"
-    cmds:
-      - pnpm format
+    cmd: pnpm format
 
   test:
     desc: "Test the security controls code"
     dir: "apps/security-controls"
-    cmds:
-      - pnpm test
+    cmd: pnpm test
 
   "cdk:deploy":
     desc: "Deploy the security controls(except for organization policies)"
     dir: "apps/security-controls"
-    cmds:
-      - pnpm cdk deploy {{ .CLI_ARGS }}
+    cmd: >
+      BUILD_HASH=$(task generate:build-hash)
+      pnpm cdk deploy {{ .CLI_ARGS }}
 
   "cdk:destroy":
     desc: "Remove the security controls from the environment(except for organization policies)"
     dir: "apps/security-controls"
-    cmds:
-      - pnpm cdk destroy {{ .CLI_ARGS }}
+    cmd: >
+      BUILD_HASH=$(task generate:build-hash)
+      pnpm cdk destroy {{ .CLI_ARGS }}
 
   "cdk:diff":
     desc: "Present a diff of the security controls code against the deployed stack(except for organization policies)"
     dir: "apps/security-controls"
-    cmds:
-      - pnpm cdk diff {{ .CLI_ARGS }}
+    cmd: >
+      BUILD_HASH=$(task generate:build-hash)
+      pnpm cdk diff {{ .CLI_ARGS }}
 
   "cdk:synth":
     desc: "Synthesize deployment artifacts for the security controls(except for organization policies)"
     dir: "apps/security-controls"
-    cmds:
-      - pnpm cdk synth --version-reporting=false --path-metadata=false --asset-metadata=false --ci {{ .CLI_ARGS }}
+    cmd: >
+      BUILD_HASH=$(task generate:build-hash)
+      pnpm cdk synth --version-reporting=false --path-metadata=false --asset-metadata=false --ci {{ .CLI_ARGS }}
 
   package:
     desc: "Generate deployment artifacts for the security controls"
     dir: "apps/security-controls"
-    cmds:
-      - pnpm generate-deployment-assets
+    cmd: >
+      BUILD_HASH=$(task generate:build-hash)
+      pnpm generate-deployment-assets
 
   upload-to-s3:
     desc: "Upload the generated deployment artifacts to the assets bucket"
     dir: "apps/security-controls"
     cmds:
       - rm -rf dist cdk.out
-      - pnpm generate-deployment-assets
       - >
-        ASSETS_BUCKET_NAME=$(aws ssm get-parameter --name "/trust-stack/assets-bucket/name" --query "Parameter.Value" --output text) &&
+        export BUILD_HASH=$(task generate:build-hash) &&
+        export ASSETS_BUCKET_NAME=$(aws ssm get-parameter --name "/trust-stack/assets-bucket/name" --query "Parameter.Value" --output text) &&
+        pnpm generate-deployment-assets &&
         aws s3 sync dist s3://$ASSETS_BUCKET_NAME/$BUILD_HASH/solutions --delete

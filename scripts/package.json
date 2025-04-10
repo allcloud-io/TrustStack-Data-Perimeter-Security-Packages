@@ -1,5 +1,20 @@
 {
+  "name": "scripts",
+  "private": true,
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "eslint --fix && prettier --write \"**/*.{ts,js,json,yml,yaml}\""
+  },
+  "dependencies": {
+    "prettier": "catalog:"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:"
   }
 }

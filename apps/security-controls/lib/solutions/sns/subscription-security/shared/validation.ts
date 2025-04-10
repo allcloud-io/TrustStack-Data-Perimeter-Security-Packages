@@ -17,6 +17,7 @@ export function validateSnsSubscriptionEndpoint(
   config: SNSSubscriptionSecuritySolutionConfig,
 ): { isValid: boolean; reason?: string } {
   // If Protocol is not defined, we can't validate
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!protocol) {
     return {
       isValid: false,

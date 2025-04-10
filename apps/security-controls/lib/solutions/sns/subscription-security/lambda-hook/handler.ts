@@ -1,9 +1,9 @@
 import { Logger } from "@aws-lambda-powertools/logger";
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import middy from "@middy/core";
-import {
+import type {
   SNSSubscriptionSecuritySolutionConfig,
-  type SNSSupportedProtocols,
+  SNSSupportedProtocols,
 } from "@trust-stack/schema";
 import { getValidatedSolutionConfig } from "@trust-stack/utils";
 import type { Context } from "aws-lambda";

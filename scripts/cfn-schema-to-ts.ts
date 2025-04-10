@@ -63,7 +63,7 @@ function convertType(
   if (property.$ref) {
     // Handle references to definitions
     const refName = property.$ref.split("/").pop();
-    if (refName && definitions[refName]) {
+    if (refName && refName in definitions) {
       return `${refName}Type`;
     }
     return "any";
@@ -141,12 +141,12 @@ function formatDescription(description?: string): string {
 function generateTypeDefinitions(schema: CloudFormationSchema): string {
   const namespace = getNamespace(schema.typeName);
   const resourceTypeName = getResourceTypeName(schema.typeName);
-  const definitions = schema.definitions || {};
-  const required = schema.required || [];
+  const definitions = schema.definitions ?? {};
+  const required = schema.required ?? [];
   const readOnlyProps =
-    schema.readOnlyProperties?.map((p) => p.replace("/properties/", "")) || [];
+    schema.readOnlyProperties?.map((p) => p.replace("/properties/", "")) ?? [];
   const createOnlyProps =
-    schema.createOnlyProperties?.map((p) => p.replace("/properties/", "")) ||
+    schema.createOnlyProperties?.map((p) => p.replace("/properties/", "")) ??
     [];
 
   let output = `/**
@@ -176,11 +176,11 @@ function generateTypeDefinitions(schema: CloudFormationSchema): string {
 
     output += `  export type ${defName}Type = {\n`;
 
-    const defRequired = definition.required || [];
+    const defRequired = definition.required ?? [];
 
     // Generate properties for the definition
     for (const [propName, property] of Object.entries(
-      definition.properties || {},
+      definition.properties ?? {},
     )) {
       if (property.description) {
         output += `    /**
@@ -251,7 +251,7 @@ async function formatTypeScript(code: string): Promise<string> {
     const prettierConfig = await prettier.resolveConfig(process.cwd());
 
     // Format the code
-    return prettier.format(code, {
+    return await prettier.format(code, {
       ...prettierConfig,
       parser: "typescript",
     });
@@ -270,7 +270,7 @@ export async function processSchemaFile(
   try {
     // Read and parse the schema file
     const schemaContent = fs.readFileSync(schemaFilePath, "utf-8");
-    const schema: CloudFormationSchema = JSON.parse(schemaContent);
+    const schema = JSON.parse(schemaContent) as CloudFormationSchema;
 
     // Generate TypeScript definitions
     const typeDefinitions = generateTypeDefinitions(schema);
@@ -314,7 +314,7 @@ async function main(): Promise<void> {
 }
 
 if (require.main === module) {
-  main().catch((error) => {
+  main().catch((error: unknown) => {
     console.error("Error:", error);
     process.exit(1);
   });

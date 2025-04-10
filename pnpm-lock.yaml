@@ -119,6 +119,9 @@ importers:
 
   .:
     devDependencies:
+      '@eslint/js':
+        specifier: 'catalog:'
+        version: 9.22.0
       '@types/node':
         specifier: 'catalog:'
         version: 22.13.10
@@ -140,6 +143,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.8.2
+      typescript-eslint:
+        specifier: 'catalog:'
+        version: 8.26.0(eslint@9.22.0)(typescript@5.8.2)
 
   apps/e2e-tests:
     dependencies:
@@ -204,6 +210,9 @@ importers:
 
   apps/engine:
     dependencies:
+      '@trust-stack/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       '@trust-stack/utils':
         specifier: workspace:*
         version: link:../../packages/utils

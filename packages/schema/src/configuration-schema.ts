@@ -80,11 +80,16 @@ export type SecuritySolutionSlug = z.infer<typeof SecuritySolutionSlug>;
 export const ConfigurationSchema = z.object({
   version: z.enum(["v1"]),
   spec: z.object({
-    aws: z.object({
-      regions: z
-        .array(z.string())
-        .describe("The AWS regions to use for the deployment"),
-    }),
+    awsOrganizationARN: z
+      .string()
+      .describe(
+        "ARN of the AWS organization to use for provisioning TrustStack's components",
+      ),
+    sharedServicesAccountID: z
+      .string()
+      .describe(
+        "ID of an AWS account to use for provisioning TrustStack's shared components",
+      ),
     solutions: z
       .object({
         ecrImageLayerAccess: z

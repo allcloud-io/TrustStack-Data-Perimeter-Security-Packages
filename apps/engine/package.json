@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@trust-stack/utils": "workspace:*",
+    "@trust-stack/schema": "workspace:*",
     "aws-cdk-lib": "catalog:",
     "constructs": "catalog:"
   },

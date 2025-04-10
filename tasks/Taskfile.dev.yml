@@ -1,11 +1,9 @@
 version: "3"
 
 tasks:
-  "lint:scripts":
-    desc: "Lint all TypeScript files in the `scripts` directory"
-    dir: "scripts"
-    cmds:
-      - pnpm lint
+  "generate:build-hash":
+    desc: "Generate a build hash for the current commit"
+    cmd: "git rev-parse --short HEAD"
 
   "generate:cfn-schema-to-ts":
     desc: "Generate TypeScript types from the CloudFormation schema file in the `CloudformationSchema` directory"

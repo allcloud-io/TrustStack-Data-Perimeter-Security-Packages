@@ -1,5 +1,5 @@
 import * as lambda from "aws-cdk-lib/aws-lambda";
-import { Construct } from "constructs";
+import type { Construct } from "constructs";
 
 export type CreateNodejsLambdaFunctionProps = Omit<
   lambda.FunctionProps,

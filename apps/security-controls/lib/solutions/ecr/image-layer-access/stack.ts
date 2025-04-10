@@ -1,18 +1,18 @@
-import { ECRImageLayerAccessSolutionConfig } from "@trust-stack/schema";
-import { SharedSSMParameterName } from "@trust-stack/utils";
-import { Stack, StackProps } from "aws-cdk-lib";
+import type { ECRImageLayerAccessSolutionConfig } from "@trust-stack/schema";
+import type { SharedSSMParameterName } from "@trust-stack/utils";
+import * as cdk from "aws-cdk-lib";
 import * as events from "aws-cdk-lib/aws-events";
 import * as eventsTargets from "aws-cdk-lib/aws-events-targets";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as ssm from "aws-cdk-lib/aws-ssm";
-import { Construct } from "constructs";
+import type { Construct } from "constructs";
 import { BUILD_HASH } from "../../../shared/build-configuration";
 import { createNodejsLambdaFunction } from "../../../shared/constructs/nodejs-lambda-function";
 import { SECURITY_SOLUTION_NAME, SECURITY_SOLUTION_SLUG } from "./shared";
 
-export type ECR_ImageLayerAccessStackProps = StackProps &
+export type ECR_ImageLayerAccessStackProps = cdk.StackProps &
   Readonly<{
     solutionsDir: string;
     config: ECRImageLayerAccessSolutionConfig;
@@ -21,7 +21,7 @@ export type ECR_ImageLayerAccessStackProps = StackProps &
 /**
  * Stack for the ECR image layer access solution
  */
-export class ECR_ImageLayerAccessStack extends Stack {
+export class ECR_ImageLayerAccessStack extends cdk.Stack {
   private readonly assetsBucket: s3.IBucket;
   private readonly solutionConfigSSMParameter: ssm.StringParameter;
 

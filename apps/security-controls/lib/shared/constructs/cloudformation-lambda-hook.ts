@@ -1,7 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import * as cloudformation from "aws-cdk-lib/aws-cloudformation";
 import type * as iam from "aws-cdk-lib/aws-iam";
-import * as lambda from "aws-cdk-lib/aws-lambda";
+import type * as lambda from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 import type { HookFailureMode, HookTargetOperation } from "../cfn-lambda-hooks";
 import { createNodejsLambdaFunction } from "./nodejs-lambda-function";

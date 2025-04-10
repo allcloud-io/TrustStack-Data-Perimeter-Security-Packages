@@ -2,7 +2,7 @@ import type { SharedSSMParameterName } from "@trust-stack/utils";
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as ssm from "aws-cdk-lib/aws-ssm";
-import { Construct } from "constructs";
+import type { Construct } from "constructs";
 
 export class CloudFormationHookExecutionRoleStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: cdk.StackProps) {

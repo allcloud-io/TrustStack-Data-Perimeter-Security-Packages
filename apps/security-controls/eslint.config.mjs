@@ -17,6 +17,12 @@ export default tseslint.config(
     },
   },
   {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     plugins: {
       n: nodeeslint,
     },

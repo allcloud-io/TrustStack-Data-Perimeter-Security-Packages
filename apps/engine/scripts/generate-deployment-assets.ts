@@ -98,7 +98,7 @@ if (require.main === module) {
         "Successfully generated deployment assets for the TrustStack engine",
       );
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error(
         "Failed to generate deployment assets for the TrustStack engine",
         error,

@@ -1,0 +1,12 @@
+version: "3"
+
+tasks:
+  "lint":
+    desc: "Lint all TypeScript files in the `scripts` directory"
+    dir: "scripts"
+    cmd: pnpm lint
+
+  "format":
+    desc: "Format all TypeScript files in the `scripts` directory"
+    dir: "scripts"
+    cmd: pnpm format

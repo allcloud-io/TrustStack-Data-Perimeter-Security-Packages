@@ -86,7 +86,7 @@ async function lambdaHandler(
   const region = eventDetail.awsRegion;
 
   logger.info("Processing ECR GetDownloadUrlForLayer API call", {
-    repositoryName: eventDetail.requestParameters?.repositoryName,
+    repositoryName: eventDetail.requestParameters.repositoryName,
   });
 
   // Check if this is an authorized access
@@ -137,14 +137,14 @@ function isAuthorizedAccess({
 }>): boolean {
   try {
     // Extract identity information
-    const userIdentity = eventDetail.userIdentity || {};
+    const userIdentity = eventDetail.userIdentity;
     const identityType = userIdentity.type;
 
     // Extract the principal ARN
-    const principalArn = userIdentity.arn || "";
+    const principalArn = userIdentity.arn;
 
     // Extract source IP
-    const sourceIp = eventDetail.sourceIPAddress || "";
+    const sourceIp = eventDetail.sourceIPAddress;
 
     // Check if it's from an allowed role
     if (
@@ -154,7 +154,7 @@ function isAuthorizedAccess({
       principalArn
     ) {
       const roleName = principalArn.includes("/")
-        ? principalArn.split("/").pop() || ""
+        ? (principalArn.split("/").pop() ?? "")
         : "";
 
       if (allowedRolePatterns.some((pattern) => roleName.includes(pattern))) {
@@ -247,16 +247,15 @@ function createSecurityHubFinding({
   region: string;
 }>): AwsSecurityFinding {
   const timestamp = new Date().toISOString();
-  const repositoryName =
-    eventDetail.requestParameters?.repositoryName || "unknown";
+  const repositoryName = eventDetail.requestParameters.repositoryName;
   const repositoryARN = `arn:aws:ecr:${region}:${accountID}:repository/${repositoryName}`;
-  const layerDigest = eventDetail.requestParameters?.layerDigest || "unknown";
-  const userIdentity = eventDetail.userIdentity || {};
-  const identityType = userIdentity.type || "unknown";
+  const layerDigest = eventDetail.requestParameters.layerDigest;
+  const userIdentity = eventDetail.userIdentity;
+  const identityType = userIdentity.type;
   const identityName =
-    userIdentity.userName || userIdentity.sessionName || "unknown";
-  const sourceIp = eventDetail.sourceIPAddress || "unknown";
-  const principalArn = userIdentity.arn || "unknown";
+    userIdentity.userName ?? userIdentity.sessionName ?? "unknown";
+  const sourceIp = eventDetail.sourceIPAddress;
+  const principalArn = userIdentity.arn;
 
   // Generate a deterministic ID based on the event ID
   const id = `ecr-getdownloadurlforlayer-${eventDetail.eventID}`;
