@@ -25,14 +25,15 @@ import {
   parseManifestFile,
   SecuritySolutionSlug,
 } from "@trust-stack/schema";
+import dedent from "dedent";
 import * as esbuild from "esbuild";
-import * as yaml from "js-yaml";
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import {
   buildConfiguration,
   distDirectory,
+  lzaCustomizationsConfigFileName,
   lzaOrganizationConfigFileName,
   manifestFilePath,
   projectDirectory,
@@ -310,7 +311,7 @@ type ServiceControlPolicyConfig = {
 
 async function generateLZAOrganizationConfigFile(
   solution: SecuritySolutionSlug,
-  scpDescription: string,
+  description: string,
 ) {
   const organizationConfigFilePath = path.join(
     distDirectory,
@@ -322,21 +323,79 @@ async function generateLZAOrganizationConfigFile(
 
   await fs.mkdir(solutionDistDir, { recursive: true });
 
-  const organizationConfig = {
-    serviceControlPolicies: [
-      {
-        name: `trust-stack-${solution}`,
-        description: scpDescription,
-        policy: "./service-control-policy.json",
-        strategy: "deny-list",
-        type: "customerManaged",
-      },
-    ] satisfies ServiceControlPolicyConfig[],
-  };
+  const organizationConfig = dedent`
+  serviceControlPolicies:
+    - name: trust-stack-${solution}
+      description: ${description}
+      policy: ./trust-stack/${solution}/service-control-policy.json
+      strategy: deny-list
+      type: customerManaged
+      # Uncomment and edit the following section to customize the deployment targets
+      # deploymentTargets:
+      #   accounts:
+      #     - <ACCOUNT_1>
+      #     - <ACCOUNT_2>
+      #   organizationalUnits:
+      #     - <ORGANIZATIONAL_UNIT_1>
+      #     - <ORGANIZATIONAL_UNIT_2>
+      #   excludedAccounts:
+      #     - <EXCLUDED_ACCOUNT_1>
+      #     - <EXCLUDED_ACCOUNT_2>
+      #   excludedRegions:
+      #     - <EXCLUDED_REGION_1>
+      #     - <EXCLUDED_REGION_2>
+  `;
 
-  await fs.writeFile(organizationConfigFilePath, yaml.dump(organizationConfig));
+  await fs.writeFile(organizationConfigFilePath, organizationConfig);
 
   return organizationConfigFilePath;
+}
+
+async function generateLZACustomizationsConfigFile(
+  solution: SecuritySolutionSlug,
+  description: string,
+) {
+  const lzaCustomizationsConfigFilePath = path.join(
+    distDirectory,
+    solution,
+    lzaCustomizationsConfigFileName,
+  );
+
+  const solutionDistDir = path.join(distDirectory, solution);
+
+  await fs.mkdir(solutionDistDir, { recursive: true });
+
+  const lzaCustomizationsConfig = dedent`
+    customizations:
+      cloudFormationStackSets:
+        - name: trust-stack-${solution}
+          description: ${description}
+          template: ./trust-stack/${solution}/cloudformation-template.json
+          capabilities:
+            - "CAPABILITY_IAM"
+            - "CAPABILITY_NAMED_IAM"
+          # Uncomment and edit the following section to customize the deployment targets and regions
+          # regions:
+          #   - <REGION_1>
+          #   - <REGION_2>
+          # deploymentTargets:
+          #   accounts:
+          #     - <ACCOUNT_1>
+          #     - <ACCOUNT_2>
+          #   organizationalUnits:
+          #     - <ORGANIZATIONAL_UNIT_1>
+          #     - <ORGANIZATIONAL_UNIT_2>
+          #   excludedAccounts:
+          #     - <EXCLUDED_ACCOUNT_1>
+          #     - <EXCLUDED_ACCOUNT_2>
+          #   excludedRegions:
+          #     - <EXCLUDED_REGION_1>
+          #     - <EXCLUDED_REGION_2>
+  `;
+
+  await fs.writeFile(lzaCustomizationsConfigFilePath, lzaCustomizationsConfig);
+
+  return lzaCustomizationsConfigFilePath;
 }
 
 async function main() {
@@ -353,6 +412,8 @@ async function main() {
     console.log("ECR Image Layer Access is enabled");
 
     const solutionSlug = "ecr-image-layer-access";
+    const description =
+      "Deny ECR image layer access to untrusted roles and networks";
 
     const cloudformationTemplateFilePath =
       await addCloudFormationTemplate(solutionSlug);
@@ -375,21 +436,19 @@ async function main() {
 
     generatedFilePaths.push(path.relative(projectDirectory, scpFilePath));
 
-    const organizationConfigFilePath = await generateLZAOrganizationConfigFile(
-      solutionSlug,
-      "Deny ECR image layer access to untrusted roles and networks",
-    );
+    const lzaOrganizationConfigFilePath =
+      await generateLZAOrganizationConfigFile(solutionSlug, description);
 
-    generatedFilePaths.push(
-      path.relative(projectDirectory, organizationConfigFilePath),
-    );
+    const lzaCustomizationsConfigFilePath =
+      await generateLZACustomizationsConfigFile(solutionSlug, description);
 
     const lambdaHandlerArchiveFilePaths =
       await buildLambdaHandlerArchives(solutionSlug);
 
     const relativeFilePaths = [
       scpFilePath,
-      organizationConfigFilePath,
+      lzaOrganizationConfigFilePath,
+      lzaCustomizationsConfigFilePath,
       ...lambdaHandlerArchiveFilePaths,
     ].map((filePath) => path.relative(projectDirectory, filePath));
 
@@ -402,6 +461,8 @@ async function main() {
     console.log("SNS Subscription Security is enabled");
 
     const solutionSlug = "sns-subscription-security";
+    const description =
+      "Deny SNS subscriptions to untrusted endpoints and protocols";
 
     const cloudformationTemplateFilePath =
       await addCloudFormationTemplate(solutionSlug);
@@ -422,17 +483,19 @@ async function main() {
     await fs.mkdir(path.dirname(scpFilePath), { recursive: true });
     await fs.writeFile(scpFilePath, JSON.stringify(scp, null, 2));
 
-    const organizationConfigFilePath = await generateLZAOrganizationConfigFile(
-      solutionSlug,
-      "Deny SNS subscriptions to untrusted endpoints and protocols",
-    );
+    const lzaOrganizationConfigFilePath =
+      await generateLZAOrganizationConfigFile(solutionSlug, description);
+
+    const lzaCustomizationsConfigFilePath =
+      await generateLZACustomizationsConfigFile(solutionSlug, description);
 
     const lambdaHandlerArchiveFilePaths =
       await buildLambdaHandlerArchives(solutionSlug);
 
     const relativeFilePaths = [
       scpFilePath,
-      organizationConfigFilePath,
+      lzaOrganizationConfigFilePath,
+      lzaCustomizationsConfigFilePath,
       ...lambdaHandlerArchiveFilePaths,
     ].map((filePath) => path.relative(projectDirectory, filePath));
 

@@ -13,41 +13,12 @@ import middy from "@middy/core";
 import { SNSSupportedProtocols } from "@trust-stack/schema";
 import { getValidatedSolutionConfig } from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
+import type { SNSSubscribeEventDetail } from "../../../../../../../types/cloudtrail-events";
 import { validateSnsSubscriptionEndpoint } from "../shared";
 
 const logger = new Logger({
   serviceName: "SNSSubscriptionSecurityDetectiveControlHandler",
 });
-
-/**
- * CloudTrail event detail for SNS subscription creation
- */
-type SnsSubscribeEventDetail = {
-  eventSource: string;
-  eventName: string;
-  awsRegion: string;
-  sourceIPAddress: string;
-  userIdentity: {
-    type: string;
-    principalId: string;
-    arn: string;
-    accountId: string;
-    userName?: string;
-  };
-  requestParameters: {
-    topicArn: string;
-    protocol: string;
-    endpoint?: string;
-    returnSubscriptionArn?: boolean;
-    attributes?: Record<string, string>;
-  };
-  responseElements: {
-    subscriptionArn: string;
-  };
-  eventID: string;
-  eventType: string;
-  recipientAccountId: string;
-};
 
 export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
 
@@ -64,7 +35,7 @@ export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
 async function lambdaHandler(
   event: EventBridgeEvent<
     "AWS API Call via CloudTrail",
-    SnsSubscribeEventDetail
+    SNSSubscribeEventDetail
   >,
   _context: Context,
 ): Promise<void> {
@@ -158,7 +129,7 @@ async function lambdaHandler(
  * @returns The Security Hub finding
  */
 function createSecurityHubFinding(
-  event: SnsSubscribeEventDetail,
+  event: SNSSubscribeEventDetail,
   reason: string,
   accountID: string,
   region: string,
@@ -170,9 +141,7 @@ function createSecurityHubFinding(
   const endpoint = event.requestParameters.endpoint;
 
   // Generate a deterministic ID based on the subscription ARN
-  const id = subscriptionARN
-    ? `sns-subscription-validation-${subscriptionARN.split(":").pop()}`
-    : `sns-subscription-validation-${event.eventID}`;
+  const id = `sns-subscription-validation-${subscriptionARN.split(":").pop()}`;
 
   return {
     SchemaVersion: "2018-10-08",

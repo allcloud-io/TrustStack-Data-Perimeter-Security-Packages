@@ -16,12 +16,14 @@ const app = new cdk.App({
   defaultStackSynthesizer: new cdk.BootstraplessSynthesizer(),
 });
 
+// Should be deployed into the shared services account
 new AssetsBucketStack(app, "AssetsBucket", {
   env: {
     account: env.SHARED_SERVICES_ACCOUNT_ID,
   },
 });
 
+// Should be deployed into all accounts
 new CloudFormationHookExecutionRoleStack(
   app,
   "CloudFormationHookExecutionRole",

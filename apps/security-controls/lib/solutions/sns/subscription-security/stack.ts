@@ -171,6 +171,8 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
       },
     );
 
+    const eventTarget = new eventsTargets.LambdaFunction(lambdaHandler);
+
     // Create an EventBridge rule to trigger the responsive control Lambda
     // when Security Hub findings for unauthorized SNS subscriptions are created
     new events.Rule(this, "SNSUnauthorizedSubscriptionRule", {
@@ -186,7 +188,19 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
           },
         },
       },
-      targets: [new eventsTargets.LambdaFunction(lambdaHandler)],
+      targets: [eventTarget],
+    });
+
+    new events.Rule(this, "SNSSubscriptionConfirmationRule", {
+      eventPattern: {
+        source: ["aws.sns"],
+        detailType: ["AWS API Call via CloudTrail"],
+        detail: {
+          eventSource: ["sns.amazonaws.com"],
+          eventName: ["ConfirmSubscription"],
+        },
+      },
+      targets: [eventTarget],
     });
   }
 }

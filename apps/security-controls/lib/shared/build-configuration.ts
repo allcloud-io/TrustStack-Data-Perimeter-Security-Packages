@@ -21,6 +21,8 @@ export const cdkOutDirectory = "cdk.out";
 
 export const lzaOrganizationConfigFileName = "organization-config.yaml";
 
+export const lzaCustomizationsConfigFileName = "customizations-config.yaml";
+
 export const buildConfiguration = {
   ["ecr-image-layer-access" satisfies SecuritySolutionSlug]: {
     solutionDirectoryPath: path.join(
