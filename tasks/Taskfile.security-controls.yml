@@ -44,6 +44,13 @@ tasks:
       BUILD_HASH=$(task generate:build-hash)
       pnpm cdk synth --version-reporting=false --path-metadata=false --asset-metadata=false --ci {{ .CLI_ARGS }}
 
+  "cdk:ls":
+    desc: "List the security controls stack"
+    dir: "apps/security-controls"
+    cmd: >
+      BUILD_HASH=$(task generate:build-hash)
+      pnpm cdk ls
+
   package:
     desc: "Generate deployment artifacts for the security controls"
     dir: "apps/security-controls"

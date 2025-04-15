@@ -19,3 +19,6 @@ includes:
 
   ci:
     taskfile: ./tasks/Taskfile.ci.yml
+
+  e2e:
+    taskfile: ./tasks/Taskfile.e2e.yml

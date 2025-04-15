@@ -1,0 +1,27 @@
+version: "3"
+
+tasks:
+  "cdk:deploy":
+    desc: "Deploy the e2e tests resources"
+    dir: "apps/e2e-tests"
+    cmd: pnpm cdk deploy {{ .CLI_ARGS }}
+
+  "cdk:destroy":
+    desc: "Destroy the e2e tests resources"
+    dir: "apps/e2e-tests"
+    cmd: pnpm cdk destroy {{ .CLI_ARGS }}
+
+  "cdk:diff":
+    desc: "Diff the e2e tests resources"
+    dir: "apps/e2e-tests"
+    cmd: pnpm cdk diff {{ .CLI_ARGS }}
+
+  "cdk:synth":
+    desc: "Synthesize the e2e tests resources"
+    dir: "apps/e2e-tests"
+    cmd: pnpm cdk synth --version-reporting=false --path-metadata=false --asset-metadata=false --ci {{ .CLI_ARGS }}
+
+  "cdk:ls":
+    desc: "List the e2e tests resources"
+    dir: "apps/e2e-tests"
+    cmd: pnpm cdk ls

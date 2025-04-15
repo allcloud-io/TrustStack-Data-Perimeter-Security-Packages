@@ -14,6 +14,8 @@
     "format": "eslint --fix && prettier --write \"**/*.{ts,js,json,yml,yaml}\""
   },
   "dependencies": {
+    "@aws-lambda-powertools/logger": "catalog:",
+    "@aws-sdk/client-sns": "catalog:",
     "aws-cdk-lib": "catalog:",
     "constructs": "catalog:"
   },

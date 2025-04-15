@@ -115,11 +115,19 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
         ),
         initialPolicy: [
           new iam.PolicyStatement({
+            sid: "AllowGetSolutionConfiguration",
             effect: iam.Effect.ALLOW,
             actions: ["ssm:GetParameter"],
             resources: [this.solutionConfigSSMParameter.parameterArn],
           }),
           new iam.PolicyStatement({
+            sid: "AllowGetSNSSubscriptionAttributes",
+            effect: iam.Effect.ALLOW,
+            actions: ["sns:GetSubscriptionAttributes"],
+            resources: ["*"],
+          }),
+          new iam.PolicyStatement({
+            sid: "AllowImportSecurityHubFindings",
             effect: iam.Effect.ALLOW,
             actions: ["securityhub:BatchImportFindings"],
             resources: ["*"],
@@ -162,9 +170,12 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
             resources: ["*"],
           }),
           new iam.PolicyStatement({
-            sid: "AllowUpdateSecurityHubFindings",
+            sid: "AllowGetAndUpdateSecurityHubFindings",
             effect: iam.Effect.ALLOW,
-            actions: ["securityhub:BatchUpdateFindings"],
+            actions: [
+              "securityhub:GetFindings",
+              "securityhub:BatchUpdateFindings",
+            ],
             resources: ["*"],
           }),
         ],

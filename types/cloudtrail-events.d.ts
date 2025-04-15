@@ -41,6 +41,38 @@ export type SNSConfirmationEventDetail = {
     principalId: string;
     arn: string;
     accountId: string;
-    userName?: string;
+    accessKeyId: string;
+    sessionContext: {
+      sessionIssuer: {
+        type: string;
+        principalId: string;
+        arn: string;
+        accountId: string;
+        userName: string;
+      };
+      attributes: {
+        creationDate: string;
+        mfaAuthenticated: string;
+      };
+    };
+  };
+  requestParameters: {
+    topicArn: string;
+    token: string;
+  };
+  responseElements: {
+    subscriptionArn: string;
+  };
+  requestID: string;
+  eventID: string;
+  readOnly: boolean;
+  eventType: "AwsApiCall";
+  managementEvent: boolean;
+  recipientAccountId: string;
+  eventCategory: "Management";
+  tlsDetails: {
+    tlsVersion: string;
+    cipherSuite: string;
+    clientProvidedHostHeader: string;
   };
 };

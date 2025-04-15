@@ -6,7 +6,7 @@ import type {
 import { handlerSubscriptionConfirmationHTTPRequest } from "../common";
 
 const logger = new Logger({
-  serviceName: "SNSSubscriptionConfirmationHandler",
+  serviceName: "SNSSubscriptionConfirmationWithSubscribeURLHandler",
 });
 
 export async function handler(
@@ -15,5 +15,6 @@ export async function handler(
   return handlerSubscriptionConfirmationHTTPRequest({
     event,
     logger,
+    useSubscribeURL: true,
   });
 }

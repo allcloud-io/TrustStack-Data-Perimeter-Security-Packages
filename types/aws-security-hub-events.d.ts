@@ -2,7 +2,7 @@ export type SecurityHubFindingsImportedEvent = {
   version: string;
   id: string;
   "detail-type": string;
-  source: string;
+  source: "aws.securityhub";
   account: string;
   time: string;
   region: string;

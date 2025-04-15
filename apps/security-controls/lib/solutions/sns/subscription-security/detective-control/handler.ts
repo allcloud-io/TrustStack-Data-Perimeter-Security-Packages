@@ -9,12 +9,15 @@ import {
   SeverityLabel,
   WorkflowStatus,
 } from "@aws-sdk/client-securityhub";
+import { SNS } from "@aws-sdk/client-sns";
 import middy from "@middy/core";
 import type { SNSSupportedProtocols } from "@trust-stack/schema";
 import { getValidatedSolutionConfig } from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type { SNSSubscribeEventDetail } from "../../../../../../../types/cloudtrail-events";
 import { validateSnsSubscriptionEndpoint } from "../shared";
+
+const sns = new SNS();
 
 const logger = new Logger({
   serviceName: "SNSSubscriptionSecurityDetectiveControlHandler",
@@ -39,7 +42,7 @@ async function lambdaHandler(
   >,
   _context: Context,
 ): Promise<void> {
-  logger.info(`Event: ${JSON.stringify(event, null, 2)}`);
+  logger.info("Event", { event });
 
   // Check if this is an SNS subscribe API call
   if (
@@ -52,7 +55,8 @@ async function lambdaHandler(
     return;
   }
 
-  const { protocol, endpoint } = event.detail.requestParameters;
+  const { protocol } = event.detail.requestParameters;
+  let { endpoint } = event.detail.requestParameters;
   const accountId = event.detail.recipientAccountId;
   const region = event.detail.awsRegion;
   const subscriptionArn = event.detail.responseElements.subscriptionArn;
@@ -75,8 +79,7 @@ async function lambdaHandler(
       protocol.toLowerCase() as any,
     )
   ) {
-    logger.info("Skipping validation for email and email-json protocols");
-    return;
+    endpoint = await getSNSSubscriptionEndpoint(subscriptionArn);
   }
 
   // Validate the subscription endpoint
@@ -120,6 +123,43 @@ async function lambdaHandler(
   } else {
     logger.info("SNS subscription validated successfully");
   }
+}
+
+async function getSNSSubscriptionEndpoint(
+  subscriptionARN: string,
+): Promise<string> {
+  logger.info("Getting SNS subscription endpoint", { subscriptionARN });
+
+  let endpoint: string | undefined;
+
+  try {
+    const getSubscriptionAttributesResult = await sns.getSubscriptionAttributes(
+      {
+        SubscriptionArn: subscriptionARN,
+      },
+    );
+
+    endpoint = getSubscriptionAttributesResult.Attributes?.Endpoint;
+  } catch (error) {
+    logger.error("Error getting SNS subscription attributes", {
+      error,
+      subscriptionARN,
+    });
+
+    throw error;
+  }
+
+  if (!endpoint) {
+    const errorMessage = "No endpoint found for SNS subscription";
+
+    logger.error(errorMessage, {
+      subscriptionARN,
+    });
+
+    throw new Error(errorMessage);
+  }
+
+  return endpoint;
 }
 
 /**
@@ -192,7 +232,7 @@ function createSecurityHubFinding(
     Remediation: {
       Recommendation: {
         Text: "Delete the non-compliant SNS subscription and create a new one with a trusted endpoint",
-        Url: "https://docs.aws.amazon.com/sns/latest/dg/sns-delete-subscription.html",
+        Url: "https://docs.aws.amazon.com/sns/latest/dg/sns-delete-subscription-topic.html",
       },
     },
   };

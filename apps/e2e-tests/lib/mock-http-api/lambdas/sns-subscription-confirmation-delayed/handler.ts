@@ -15,5 +15,6 @@ export async function handler(
   return handlerSubscriptionConfirmationHTTPRequest({
     event,
     logger,
+    delayInMilliseconds: 60 * 1000,
   });
 }
