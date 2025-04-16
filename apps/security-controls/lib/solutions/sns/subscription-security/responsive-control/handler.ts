@@ -27,7 +27,8 @@ async function lambdaHandler(
         SNSConfirmationEventDetail
       >,
 ) {
-  logger.info("Event", { event });
+  logger.appendKeys({ event });
+  logger.info("Received event");
 
   if (event.source === "aws.securityhub") {
     await handleSecurityHubFindingsImportedEvent(

@@ -93,6 +93,7 @@ async function lambdaHandler(
   if (!validationResult.isValid && validationResult.reason) {
     logger.error("SNS subscription validation failed", {
       reason: validationResult.reason,
+      event,
     });
 
     // Create a Security Hub client

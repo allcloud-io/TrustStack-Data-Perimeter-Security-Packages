@@ -34,7 +34,8 @@ async function lambdaHandler(
   event: CloudFormationHookEvent,
   _context: Context,
 ): Promise<CloudFormationHookResult> {
-  logger.info(`Event: ${JSON.stringify(event, null, 2)}`);
+  logger.resetKeys();
+  logger.info("Event", { event });
 
   const {
     actionInvocationPoint,
@@ -46,20 +47,26 @@ async function lambdaHandler(
     clientRequestToken,
   } = event;
 
-  logger.info(`Invocation Point: ${actionInvocationPoint}`);
-  logger.info(`Target Logical ID: ${targetLogicalId}`);
-  logger.info(`Target Name: ${targetName}`);
+  logger.appendKeys({
+    actionInvocationPoint,
+    targetLogicalId,
+    targetName,
+    resourceProperties,
+  });
+
+  logger.info("Starting SNS subscription validation");
 
   if (!isValidTargetEvent(actionInvocationPoint, targetName)) {
-    logger.info(
-      `Not a valid target event: ${actionInvocationPoint} ${targetName}`,
-    );
+    const message =
+      actionInvocationPoint !== "CREATE_PRE_PROVISION"
+        ? "Not a CREATE_PRE_PROVISION event"
+        : "Not a SNS subscription";
+
+    logger.info(message);
+
     return {
       hookStatus: "SUCCESS",
-      message:
-        actionInvocationPoint !== "CREATE_PRE_PROVISION"
-          ? "Not a CREATE_PRE_PROVISION event"
-          : "Not a SNS subscription",
+      message: message,
       clientRequestToken,
     };
   }
@@ -68,22 +75,27 @@ async function lambdaHandler(
   try {
     logger.info("Retrieving configuration from SSM Parameter Store");
     config = await getValidatedSolutionConfig("sns-subscription-security");
+    logger.info("Configuration retrieved successfully");
   } catch (error) {
-    logger.error("Error retrieving configuration from SSM Parameter Store:", {
+    const errorMessage =
+      "Failed to retrieve configuration from SSM Parameter Store";
+
+    logger.error(errorMessage, {
       error: error instanceof Error ? error.message : String(error),
     });
+
     return {
       hookStatus: "FAILURE",
       errorCode: "InternalFailure",
-      message:
-        "Failed to retrieve configuration from SSM Parameter Store: " +
-        (error instanceof Error ? error.message : "Unknown error"),
+      message: `${errorMessage}: ${error instanceof Error ? error.message : "Unknown error"}`,
       clientRequestToken,
     };
   }
 
   const { Protocol, Endpoint } =
     resourceProperties as AWS_SNS_Subscription.SubscriptionResourceType;
+
+  logger.info("Validating SNS subscription");
 
   const validationResult = validateSnsSubscriptionEndpoint(
     Protocol as SNSSupportedProtocols,
@@ -92,14 +104,16 @@ async function lambdaHandler(
   );
 
   if (!validationResult.isValid && validationResult.reason) {
-    logger.error(
-      "SNS subscription validation failed:",
-      validationResult.reason,
-    );
+    const errorMessage = "SNS subscription validation failed";
+
+    logger.error(errorMessage, {
+      reason: validationResult.reason,
+    });
+
     return {
       hookStatus: "FAILURE",
       errorCode: "NonCompliant",
-      message: "SNS subscription validation failed: " + validationResult.reason,
+      message: `${errorMessage}: ${validationResult.reason}`,
       clientRequestToken,
     };
   }
