@@ -20,6 +20,7 @@
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
     "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
     "typeRoots": [
       "./node_modules/@types",
       "../../types"

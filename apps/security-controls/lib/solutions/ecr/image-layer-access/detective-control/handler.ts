@@ -12,45 +12,19 @@ import {
 import middy from "@middy/core";
 import { getValidatedSolutionConfig } from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
-import * as ipaddr from "ipaddr.js";
+import ipaddr from "ipaddr.js";
+import type { ECRBatchGetImageEventDetail } from "../../../../../../../types/cloudtrail-events";
 
 const logger = new Logger({
   serviceName: "ECRImageLayerAccessDetectiveControlHandler",
 });
 
-// Initialize AWS clients
 const securityHub = new SecurityHub({});
-
-/**
- * CloudTrail event detail for ECR GetDownloadUrlForLayer API call
- */
-type EcrGetDownloadUrlEventDetail = {
-  eventSource: string;
-  eventName: string;
-  eventTime: string;
-  sourceIPAddress: string;
-  userIdentity: {
-    type: string;
-    principalId: string;
-    arn: string;
-    accountId: string;
-    userName?: string;
-    sessionName?: string;
-  };
-  requestParameters: {
-    repositoryName: string;
-    layerDigest: string;
-  };
-  responseElements?: Record<string, unknown>;
-  awsRegion: string;
-  recipientAccountId: string;
-  eventID: string;
-};
 
 export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
 
 /**
- * Lambda handler function processes CloudTrail events for ECR GetDownloadUrlForLayer
+ * Lambda handler function processes CloudTrail events for ECR BatchGetImage
  * API calls, determines if they are authorized, and creates a Security Hub finding
  * for unauthorized access.
  *
@@ -61,21 +35,21 @@ export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
 async function lambdaHandler(
   event: EventBridgeEvent<
     "AWS API Call via CloudTrail",
-    EcrGetDownloadUrlEventDetail
+    ECRBatchGetImageEventDetail
   >,
   _context: Context,
 ): Promise<void> {
-  logger.info(`Event: ${JSON.stringify(event, null, 2)}`);
+  logger.info("Received event", { event });
 
   // Extract relevant information from the CloudTrail event
   const eventDetail = event.detail;
 
-  // Check if this is an ECR GetDownloadUrlForLayer API call
+  // Check if this is an ECR BatchGetImage API call
   if (
     eventDetail.eventSource !== "ecr.amazonaws.com" ||
-    eventDetail.eventName !== "GetDownloadUrlForLayer"
+    eventDetail.eventName !== "BatchGetImage"
   ) {
-    logger.info("Not an ECR GetDownloadUrlForLayer event, skipping");
+    logger.info("Not an ECR BatchGetImage event, skipping");
     return;
   }
 
@@ -85,18 +59,18 @@ async function lambdaHandler(
   const accountID = eventDetail.recipientAccountId;
   const region = eventDetail.awsRegion;
 
-  logger.info("Processing ECR GetDownloadUrlForLayer API call", {
+  logger.info("Processing ECR BatchGetImage API call", {
     repositoryName: eventDetail.requestParameters.repositoryName,
   });
 
+  const checkResult = isAuthorizedAccess({
+    eventDetail,
+    allowedRolePatterns,
+    allowedNetworks,
+  });
+
   // Check if this is an authorized access
-  if (
-    isAuthorizedAccess({
-      eventDetail,
-      allowedRolePatterns,
-      allowedNetworks,
-    })
-  ) {
+  if (checkResult.isAuthorized) {
     logger.info("Access is authorized, skipping");
     return;
   }
@@ -106,6 +80,7 @@ async function lambdaHandler(
     eventDetail,
     accountID,
     region,
+    reason: checkResult.reason,
   });
 
   // Import the finding into Security Hub
@@ -124,76 +99,141 @@ async function lambdaHandler(
  * Determines if the ECR access is authorized based on predefined rules.
  *
  * @param eventDetail - The CloudTrail event detail
- * @returns True if the access is authorized, False otherwise
  */
 function isAuthorizedAccess({
   eventDetail,
   allowedRolePatterns,
   allowedNetworks,
 }: Readonly<{
-  eventDetail: EcrGetDownloadUrlEventDetail;
+  eventDetail: ECRBatchGetImageEventDetail;
   allowedRolePatterns?: string[];
   allowedNetworks?: string[];
-}>): boolean {
+}>):
+  | {
+      isAuthorized: true;
+    }
+  | {
+      isAuthorized: false;
+      reason: string;
+    } {
   try {
     // Extract identity information
     const userIdentity = eventDetail.userIdentity;
     const identityType = userIdentity.type;
 
     // Extract the principal ARN
-    const principalArn = userIdentity.arn;
+    const principalARN = userIdentity.arn;
 
     // Extract source IP
-    const sourceIp = eventDetail.sourceIPAddress;
+    const sourceIP = eventDetail.sourceIPAddress;
 
     // Check if it's from an allowed role
     if (
       allowedRolePatterns &&
       allowedRolePatterns.length > 0 &&
       identityType === "AssumedRole" &&
-      principalArn
+      principalARN
     ) {
-      const roleName = principalArn.includes("/")
-        ? (principalArn.split("/").pop() ?? "")
-        : "";
+      logger.info("Checking if access is authorized by role", {
+        principalARN,
+        allowedRolePatterns,
+      });
 
-      if (allowedRolePatterns.some((pattern) => roleName.includes(pattern))) {
-        logger.info("Access authorized", {
+      const principalARNParts = principalARN.split("/");
+
+      const roleName =
+        principalARNParts.length > 2
+          ? principalARNParts.slice(-2).join("/")
+          : (principalARNParts.pop() ?? "");
+
+      if (!allowedRolePatterns.some((pattern) => roleName.includes(pattern))) {
+        logger.warn("Access is not authorized by role pattern", {
           roleName,
           allowedPattern: allowedRolePatterns,
         });
 
-        return true;
+        return {
+          isAuthorized: false,
+          reason:
+            `Access is not authorized by role pattern: ${roleName} does not match any ` +
+            `of the allowed patterns: ${allowedRolePatterns.join(", ")}`,
+        };
+      } else {
+        logger.info("Access is authorized by role pattern", {
+          roleName,
+          allowedPattern: allowedRolePatterns,
+        });
       }
     }
 
-    // Check if access is from an internal network
-    if (
-      allowedNetworks &&
-      allowedNetworks.length > 0 &&
-      isIpInNetwork(sourceIp, allowedNetworks)
-    ) {
-      logger.info("Access authorized", {
-        sourceIp,
+    // Check if access is from an allowed network
+    if (allowedNetworks && allowedNetworks.length > 0) {
+      if (!isValidIPAddress(sourceIP)) {
+        logger.warn("Source IP address is not a valid IP address", {
+          sourceIP,
+        });
+
+        if (sourceIP === "ecr.amazonaws.com") {
+          logger.info("Source IP address is masked, skipping", {
+            sourceIP,
+          });
+
+          return {
+            isAuthorized: true,
+          };
+        }
+
+        return {
+          isAuthorized: false,
+          reason: "Source IP address is not a valid IP address",
+        };
+      }
+
+      logger.info("Checking if IP is in allowed networks", {
+        sourceIP,
         allowedNetworks,
       });
 
-      return true;
+      // If IP is not in any allowed network, access is not authorized
+      const ipInAllowedNetwork = isIPAddressInAllowedNetworks(
+        sourceIP,
+        allowedNetworks,
+      );
+
+      if (!ipInAllowedNetwork) {
+        logger.warn("Source IP address is not in the allowed networks", {
+          sourceIP,
+          allowedNetworks,
+        });
+
+        return {
+          isAuthorized: false,
+          reason:
+            `Source IP address is not in the allowed networks: ${sourceIP} is not in ` +
+            `any of the allowed networks: ${allowedNetworks.join(", ")}`,
+        };
+      } else {
+        logger.info("Source IP address is in the allowed networks", {
+          sourceIP,
+          allowedNetworks,
+        });
+      }
     }
 
-    // Additional rules can be added here
-
-    logger.warn("Unauthorized access detected", {
-      identityType,
-      sourceIp,
-    });
-
-    return false;
+    return {
+      isAuthorized: true,
+    };
   } catch (error) {
     logger.error("Error determining authorization", { error });
     // Default to authorized in case of error to prevent false positives
-    return true;
+    return {
+      isAuthorized: true,
+    };
   }
+}
+
+function isValidIPAddress(ip: string): boolean {
+  return ipaddr.IPv4.isIPv4(ip) || ipaddr.IPv6.isIPv6(ip);
 }
 
 /**
@@ -203,37 +243,40 @@ function isAuthorizedAccess({
  * @param networks - List of network CIDR blocks
  * @returns True if the IP is in any of the networks, False otherwise
  */
-function isIpInNetwork(ip: string, networks: string[]): boolean {
+function isIPAddressInAllowedNetworks(ip: string, networks: string[]): boolean {
+  let ipObj: ipaddr.IPv4 | ipaddr.IPv6;
+
   try {
-    const ipObj = ipaddr.parse(ip);
-
-    for (const networkCIDR of networks) {
-      try {
-        const cidr = ipaddr.parseCIDR(networkCIDR);
-        if (ipObj.match(cidr)) {
-          return true;
-        }
-      } catch (_error) {
-        // Skip invalid network definitions
-        logger.warn("Invalid network CIDR", { networkCIDR });
-        continue;
-      }
-    }
-
-    return false;
-  } catch (_error) {
-    // If the IP is invalid, return false
-    logger.warn("Invalid IP address", { ip });
-    return false;
+    ipObj = ipaddr.parse(ip);
+  } catch (error) {
+    // This should never happen because we check for valid IP addresses
+    // before calling this function, but just in case
+    logger.error("Error parsing IP address", { ip });
+    throw error;
   }
+
+  for (const networkCIDR of networks) {
+    try {
+      const cidr = ipaddr.parseCIDR(networkCIDR);
+      if (ipObj.match(cidr)) {
+        return true;
+      }
+    } catch (_error) {
+      // Skip invalid network definitions
+      logger.warn("Invalid network CIDR", { networkCIDR });
+      continue;
+    }
+  }
+
+  return false;
 }
 
 /**
  * Creates a Security Hub finding for an unauthorized
- * ECR GetDownloadUrlForLayer API call.
+ * ECR BatchGetImage API call.
  *
  * @param eventDetail - The CloudTrail event detail
- * @param accountId - The AWS account ID
+ * @param accountID - The AWS account ID
  * @param region - The AWS region
  * @returns The Security Hub finding
  */
@@ -241,24 +284,34 @@ function createSecurityHubFinding({
   eventDetail,
   accountID,
   region,
+  reason,
 }: Readonly<{
-  eventDetail: EcrGetDownloadUrlEventDetail;
+  eventDetail: ECRBatchGetImageEventDetail;
   accountID: string;
   region: string;
+  reason: string;
 }>): AwsSecurityFinding {
   const timestamp = new Date().toISOString();
   const repositoryName = eventDetail.requestParameters.repositoryName;
   const repositoryARN = `arn:aws:ecr:${region}:${accountID}:repository/${repositoryName}`;
-  const layerDigest = eventDetail.requestParameters.layerDigest;
+
+  // Get image IDs instead of layer digest
+  const imageIDs = eventDetail.requestParameters.imageIds
+    .map((id) => id.imageTag)
+    .join(", ");
+
   const userIdentity = eventDetail.userIdentity;
   const identityType = userIdentity.type;
+
+  // Extract user name from session context if available - sessionIssuer is always present in this type
   const identityName =
-    userIdentity.userName ?? userIdentity.sessionName ?? "unknown";
-  const sourceIp = eventDetail.sourceIPAddress;
-  const principalArn = userIdentity.arn;
+    userIdentity.sessionContext.sessionIssuer.userName || "unknown";
+
+  const sourceIP = eventDetail.sourceIPAddress;
+  const principalARN = userIdentity.arn;
 
   // Generate a deterministic ID based on the event ID
-  const id = `ecr-getdownloadurlforlayer-${eventDetail.eventID}`;
+  const id = `ecr-batchgetimage-${eventDetail.eventID}`;
 
   return {
     SchemaVersion: "2018-10-08",
@@ -273,11 +326,11 @@ function createSecurityHubFinding({
     Severity: {
       Label: SeverityLabel.MEDIUM,
     },
-    Title: "Unauthorized ECR GetDownloadUrlForLayer API Call Detected",
+    Title: "Unauthorized ECR BatchGetImage API Call Detected",
     Description:
-      "An unauthorized ECR GetDownloadUrlForLayer API call was detected, " +
-      "which generates a presigned URL that could potentially be used for " +
-      "unauthorized access to ECR image layers.",
+      "An unauthorized ECR BatchGetImage API call was detected, " +
+      "which could potentially be used for unauthorized access to ECR images. " +
+      `Reason: ${reason}`,
     ProductFields: {
       ProviderName: "TrustStack",
       ProviderVersion: "1.0",
@@ -294,11 +347,11 @@ function createSecurityHubFinding({
             RepositoryName: repositoryName,
           },
           Other: {
-            layerDigest: layerDigest,
+            imageIds: imageIDs,
             identityType: identityType,
             identityName: identityName,
-            sourceIp: sourceIp,
-            principalArn: principalArn,
+            sourceIp: sourceIP,
+            principalArn: principalARN,
             eventTime: eventDetail.eventTime || "unknown",
           },
         },
@@ -314,8 +367,7 @@ function createSecurityHubFinding({
     },
     Remediation: {
       Recommendation: {
-        Text: "Review this access to ensure it is legitimate and in accordance with your security policies. Consider implementing preventative controls for ECR image layer access.",
-        Url: "https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-layer-perimeter-security.html",
+        Text: "Review this access to ensure it is legitimate and in accordance with your security policies. Consider implementing preventative controls for ECR image access.",
       },
     },
   };

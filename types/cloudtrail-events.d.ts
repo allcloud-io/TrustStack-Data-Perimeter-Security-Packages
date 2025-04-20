@@ -1,4 +1,62 @@
 /**
+ * CloudTrail event detail for ECR BatchGetImage API call
+ */
+export type ECRBatchGetImageEventDetail = {
+  eventVersion: string;
+  userIdentity: {
+    type: string;
+    principalId: string;
+    arn: string;
+    accountId: string;
+    accessKeyId: string;
+    sessionContext: {
+      sessionIssuer: {
+        type: string;
+        principalId: string;
+        arn: string;
+        accountId: string;
+        userName: string;
+      };
+      webIdFederationData: Record<string, unknown>;
+      attributes: {
+        creationDate: string;
+        mfaAuthenticated: string;
+      };
+    };
+    invokedBy: string;
+  };
+  eventTime: string;
+  eventSource: string;
+  eventName: string;
+  awsRegion: string;
+  sourceIPAddress: string;
+  userAgent: string;
+  requestParameters: {
+    registryId: string;
+    repositoryName: string;
+    imageIds: Array<{
+      imageTag: string;
+    }>;
+    acceptedMediaTypes: string[];
+    excludeManifestContent: boolean;
+    excludeTags: boolean;
+    disableLastRecordedPullTimeUpdate: boolean;
+  };
+  responseElements: null;
+  requestID: string;
+  eventID: string;
+  readOnly: boolean;
+  resources: Array<{
+    accountId: string;
+    ARN: string;
+  }>;
+  eventType: string;
+  managementEvent: boolean;
+  recipientAccountId: string;
+  eventCategory: string;
+};
+
+/**
  * CloudTrail event detail for SNS subscription creation
  */
 export type SNSSubscribeEventDetail = {

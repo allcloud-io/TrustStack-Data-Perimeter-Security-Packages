@@ -14,7 +14,7 @@ tasks:
   test:
     desc: "Test the security controls code"
     dir: "apps/security-controls"
-    cmd: pnpm test
+    cmd: pnpm test {{ .CLI_ARGS }}
 
   "cdk:deploy":
     desc: "Deploy the security controls(except for organization policies)"

@@ -28,6 +28,9 @@ if (solutions.snsSubscriptionSecurity?.enabled) {
   new SNS_SubscriptionSecurityStack(app, "SNSSubscriptionSecurity", {
     solutionsDir,
     config: solutions.snsSubscriptionSecurity.configuration,
+    tags: {
+      "TrustStack:Solution": "SNSSubscriptionSecurity",
+    },
   });
 }
 
@@ -35,6 +38,9 @@ if (solutions.ecrImageLayerAccess?.enabled) {
   new ECR_ImageLayerAccessStack(app, "ECRImageLayerAccess", {
     solutionsDir,
     config: solutions.ecrImageLayerAccess.configuration,
+    tags: {
+      "TrustStack:Solution": "ECRImageLayerAccess",
+    },
   });
 }
 

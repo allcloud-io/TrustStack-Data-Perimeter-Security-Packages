@@ -27,7 +27,9 @@ export function validateSnsSubscriptionEndpoint(
 
   // For some protocols, we don't need to validate the endpoint
   // For example, the 'application' protocol uses ARNs that are validated by AWS
-  if (config.trustedProtocols.includes(protocol)) {
+  if (!config.trustedProtocols.includes(protocol)) {
+    return { isValid: false };
+  } else if (!["email", "email-json", "http", "https"].includes(protocol)) {
     return { isValid: true };
   }
 

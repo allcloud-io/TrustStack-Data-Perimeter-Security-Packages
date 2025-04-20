@@ -38,7 +38,7 @@ export type SecurityHubFindingsImportedEventDetail = {
     Remediation: {
       Recommendation: {
         Text: string;
-        Url: string;
+        Url?: string;
       };
     };
     SchemaVersion: string;
@@ -61,12 +61,17 @@ export type SecurityHubFindingsImportedEventDetail = {
       Partition: string;
       Type: string;
       Details: {
+        AwsEcrRepository?: {
+          RepositoryName: string;
+          Arn: string;
+        };
         Other: {
           [key: string]: string;
         };
       };
       Region: string;
       Id: string;
+      Tags?: Record<string, string>;
     }>;
     ProcessedAt: string;
   }>;

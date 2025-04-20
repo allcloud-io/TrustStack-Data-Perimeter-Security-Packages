@@ -74,11 +74,13 @@ export class ECR_ImageLayerAccessStack extends cdk.Stack {
         ),
         initialPolicy: [
           new iam.PolicyStatement({
+            sid: "AllowGetSolutionConfiguration",
             effect: iam.Effect.ALLOW,
             actions: ["ssm:GetParameter"],
             resources: [this.solutionConfigSSMParameter.parameterArn],
           }),
           new iam.PolicyStatement({
+            sid: "AllowImportSecurityHubFindings",
             effect: iam.Effect.ALLOW,
             actions: ["securityhub:BatchImportFindings"],
             resources: ["*"],
@@ -93,7 +95,7 @@ export class ECR_ImageLayerAccessStack extends cdk.Stack {
         detailType: ["AWS API Call via CloudTrail"],
         detail: {
           eventSource: ["ecr.amazonaws.com"],
-          eventName: ["GetDownloadUrlForLayer"],
+          eventName: ["BatchGetImage"],
         },
       },
       targets: [new eventsTargets.LambdaFunction(lambdaHandler)],

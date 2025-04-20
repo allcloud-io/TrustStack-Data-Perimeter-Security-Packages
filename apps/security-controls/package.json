@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest",
+    "test": "NODE_OPTIONS=--experimental-vm-modules POWERTOOLS_DEV=true jest --silent",
     "cdk": "cdk",
     "lint": "eslint .",
     "format": "eslint --fix && prettier --write \"**/*.{ts,js,json,yml,yaml}\"",
@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/js": "catalog:",
+    "@jest/globals": "catalog:",
     "@swc/core": "catalog:",
     "@swc/jest": "catalog:",
     "@types/aws-lambda": "catalog:",
@@ -50,6 +51,7 @@
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
+    "immer": "catalog:",
     "jest": "catalog:",
     "prettier": "catalog:",
     "tsx": "catalog:",

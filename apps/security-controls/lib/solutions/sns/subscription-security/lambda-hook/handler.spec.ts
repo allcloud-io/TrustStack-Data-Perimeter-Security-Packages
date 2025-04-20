@@ -1,8 +1,30 @@
+import { jest } from "@jest/globals";
+import type { SNSSubscriptionSecuritySolutionConfig } from "@trust-stack/schema";
 import type { Context } from "aws-lambda";
 import type { CloudFormationHookEvent } from "../../../../../../../types/cfn-hooks";
 import type { AWS_Lambda_Function } from "../../../../../../../types/cfn-resources/aws-lambda-function";
 import type { AWS_SNS_Subscription } from "../../../../../../../types/cfn-resources/aws-sns-subscription";
-import { handler } from "./handler";
+
+const mockGetValidatedSolutionConfig =
+  jest.fn<
+    (...args: unknown[]) => Promise<SNSSubscriptionSecuritySolutionConfig>
+  >();
+
+jest.unstable_mockModule("@trust-stack/utils", () => ({
+  getValidatedSolutionConfig: mockGetValidatedSolutionConfig,
+}));
+
+// Variables to hold dynamically imported modules
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+let handler: typeof import("./handler").handler;
+
+// Load the handler module dynamically before tests to ensure all ESM module mocks are applied
+// See https://jestjs.io/docs/ecmascript-modules#module-mocking-in-esm
+beforeAll(async () => {
+  const handlerModule = await import("./handler");
+
+  handler = handlerModule.handler;
+});
 
 describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
   // Mock Lambda context
@@ -65,6 +87,12 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
 
   // Test case for a valid SNS subscription with trusted email endpoint
   test("should return SUCCESS for SNS subscription with trusted email endpoint", async () => {
+    mockGetValidatedSolutionConfig.mockResolvedValueOnce({
+      trustedProtocols: ["email"],
+      trustedEmailDomains: ["example.com"],
+      trustedHttpDomains: [],
+    });
+
     const event = createHookEvent(
       "MyEmailSubscription",
       "AWS::SNS::Subscription",
@@ -82,6 +110,12 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
 
   // Test case for an invalid SNS subscription with untrusted email endpoint
   test("should return FAILURE for SNS subscription with untrusted email endpoint", async () => {
+    mockGetValidatedSolutionConfig.mockResolvedValueOnce({
+      trustedProtocols: ["email"],
+      trustedEmailDomains: ["example.com"],
+      trustedHttpDomains: [],
+    });
+
     const event = createHookEvent(
       "MyEmailSubscription",
       "AWS::SNS::Subscription",
@@ -100,6 +134,12 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
 
   // Test case for a valid SNS subscription with trusted HTTP endpoint
   test("should return SUCCESS for SNS subscription with trusted HTTP endpoint", async () => {
+    mockGetValidatedSolutionConfig.mockResolvedValueOnce({
+      trustedProtocols: ["http", "https"],
+      trustedEmailDomains: [],
+      trustedHttpDomains: ["example.com"],
+    });
+
     const event = createHookEvent(
       "MyHttpSubscription",
       "AWS::SNS::Subscription",
@@ -117,6 +157,12 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
 
   // Test case for an invalid SNS subscription with untrusted HTTP endpoint
   test("should return FAILURE for SNS subscription with untrusted HTTP endpoint", async () => {
+    mockGetValidatedSolutionConfig.mockResolvedValueOnce({
+      trustedProtocols: ["http", "https"],
+      trustedEmailDomains: [],
+      trustedHttpDomains: ["example.com"],
+    });
+
     const event = createHookEvent(
       "MyHttpSubscription",
       "AWS::SNS::Subscription",
@@ -135,6 +181,12 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
 
   // Test case for a valid SNS subscription with trusted AWS service protocol
   test("should return SUCCESS for SNS subscription with trusted AWS service protocol", async () => {
+    mockGetValidatedSolutionConfig.mockResolvedValueOnce({
+      trustedProtocols: ["sqs"],
+      trustedEmailDomains: [],
+      trustedHttpDomains: [],
+    });
+
     const event = createHookEvent(
       "MySqsSubscription",
       "AWS::SNS::Subscription",
@@ -170,6 +222,12 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
 
   // Test case for an invalid SNS subscription with missing Endpoint
   test("should return FAILURE for SNS subscription with missing Endpoint", async () => {
+    mockGetValidatedSolutionConfig.mockResolvedValueOnce({
+      trustedProtocols: ["email"],
+      trustedEmailDomains: [],
+      trustedHttpDomains: [],
+    });
+
     const event = createHookEvent(
       "MyInvalidSubscription",
       "AWS::SNS::Subscription",
@@ -188,6 +246,12 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
 
   // Test case for an invalid SNS subscription with invalid email format
   test("should return FAILURE for SNS subscription with invalid email format", async () => {
+    mockGetValidatedSolutionConfig.mockResolvedValueOnce({
+      trustedProtocols: ["email"],
+      trustedEmailDomains: [],
+      trustedHttpDomains: [],
+    });
+
     const event = createHookEvent(
       "MyInvalidSubscription",
       "AWS::SNS::Subscription",
@@ -206,6 +270,12 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
 
   // Test case for an invalid SNS subscription with invalid URL format
   test("should return FAILURE for SNS subscription with invalid URL format", async () => {
+    mockGetValidatedSolutionConfig.mockResolvedValueOnce({
+      trustedProtocols: ["http", "https"],
+      trustedEmailDomains: [],
+      trustedHttpDomains: [],
+    });
+
     const event = createHookEvent(
       "MyInvalidSubscription",
       "AWS::SNS::Subscription",
