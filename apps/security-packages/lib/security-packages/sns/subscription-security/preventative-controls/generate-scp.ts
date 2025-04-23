@@ -56,7 +56,9 @@ export function generateSCP(
             "sns:Protocol": ["email", "email-json"],
           },
           StringNotLike: {
-            "sns:Endpoint": config.trustedEmailDomains,
+            "sns:Endpoint": config.trustedEmailDomains.map(
+              (domain) => `*@${domain}`,
+            ),
           },
         },
       },
@@ -70,7 +72,12 @@ export function generateSCP(
             "sns:Protocol": ["http", "https"],
           },
           StringNotLike: {
-            "sns:Endpoint": config.trustedHttpDomains,
+            "sns:Endpoint": config.trustedHttpDomains.flatMap((domain) => [
+              domain,
+              `${domain}/*`,
+              `*.${domain}`,
+              `*.${domain}/*`,
+            ]),
           },
         },
       },
