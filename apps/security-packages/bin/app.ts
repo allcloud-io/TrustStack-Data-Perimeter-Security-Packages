@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+import { ConfigurationSchema, parseManifestFile } from "@trust-stack/schema";
+import * as cdk from "aws-cdk-lib";
+import * as path from "node:path";
+import {
+  ECR_ImageLayerAccessStack,
+  SNS_SubscriptionSecurityStack,
+} from "../lib";
+
+const securityPackagesDir = path.join(
+  __dirname,
+  "..",
+  "lib",
+  "security-packages",
+);
+
+const {
+  spec: { securityPackages },
+} = parseManifestFile(
+  ConfigurationSchema,
+  path.join(__dirname, "..", "..", "..", "deployment-manifest.yml"),
+);
+
+const app = new cdk.App({
+  analyticsReporting: false,
+  treeMetadata: false,
+  stackTraces: false,
+  // Use the BootstraplessSynthesizer to exclude AWS-specific metadata (such as "aws:cdk:path") from the synthesized templates.
+  defaultStackSynthesizer: new cdk.BootstraplessSynthesizer(),
+});
+
+if (securityPackages.snsSubscriptionSecurity?.enabled) {
+  new SNS_SubscriptionSecurityStack(app, "SNSSubscriptionSecurity", {
+    securityPackagesDir: securityPackagesDir,
+    config: securityPackages.snsSubscriptionSecurity.configuration,
+    tags: {
+      "TrustStack:SecurityPackage": "SNSSubscriptionSecurity",
+    },
+  });
+}
+
+if (securityPackages.ecrImageLayerAccess?.enabled) {
+  new ECR_ImageLayerAccessStack(app, "ECRImageLayerAccess", {
+    securityPackagesDir: securityPackagesDir,
+    config: securityPackages.ecrImageLayerAccess.configuration,
+    tags: {
+      "TrustStack:SecurityPackage": "ECRImageLayerAccess",
+    },
+  });
+}
+
+cdk.Tags.of(app).add("Project", "TrustStack");

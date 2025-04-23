@@ -27,7 +27,7 @@ tasks:
     cmd: pnpm cdk destroy {{ .CLI_ARGS }}
 
   "cdk:diff":
-    desc: "Present a diff of the TrustStack engine code against the deployed stack"
+    desc: "Present a diff of the TrustStack engine code against the deployed stacks"
     dir: "apps/engine"
     cmd: pnpm cdk diff {{ .CLI_ARGS }}
 

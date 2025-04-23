@@ -48,4 +48,4 @@ __pycache__/
 devfile.yaml
 
 # TrustStack configuration
-trust-stack.yml
+deployment-manifest.yml

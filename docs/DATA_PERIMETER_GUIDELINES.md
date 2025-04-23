@@ -35,15 +35,15 @@ Certain AWS services require additional considerations to meet data perimeter co
 
 2. **Proactive controls** - security controls designed to prevent resource configurations that lead to deviations from the data perimeter baseline. These controls are implemented through automated checks within deployment pipelines, such as those supported with [AWS CloudFormation hooks](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/hooks.html). While we primarily use AWS CloudFormation hooks in the prescriptive guidance, customers can implement policy-as-code checks using customer preferred Infrastructure as Code (IaC) tooling.
 
-3. **Detective** - security controls designed to detect actions or resource configurations that lead to deviations from the data perimeter baseline. These controls can be implemented using AWS Config and the preferred log analysis tools. If necessary, detected deviations should be remediated with Responsive controls.
+3. **Detective** - security controls designed to detect actions or resource configurations that lead to deviations from the data perimeter baseline. If necessary, detected deviations should be remediated with Responsive controls.
 
 4. **Responsive controls** - security controls designed to remediate deviations from the data perimeter baseline. Customers should implement these controls alongside the detective controls, in accordance with their risk mitigation strategy.
 
-For each consideration, we provide security controls customers may want to use to better protect their AWS resources and data. Please refer to [TrustStack Security Controls](../apps/security-controls/README.md) for detailed information about the security controls offered by TrustStack.
+For each consideration, we provide security packages customers may want to use to better protect their AWS resources and data. Each security package consist of a set of security contorls you can deploy in your AWS organization. Please refer to [TrustStack Security Packages](../apps/security-packages/README.md) for detailed information about the security packages offered by TrustStack.
 
 ## Best Practices for Data Perimeter Implementation
 
-- Implement a layered approach with preventative, proactive, and detective controls
+- Implement a layered approach with preventative, proactive, detective, and responsive controls
 - Leverage automated checks in deployment pipelines to ensure continuous compliance
 - Conduct regular policy reviews and updates to address emerging services and use cases
 - Develop service-specific control strategies based on each service's unique characteristics

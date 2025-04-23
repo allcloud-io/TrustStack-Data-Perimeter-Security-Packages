@@ -1,8 +1,8 @@
 import { SSM } from "@aws-sdk/client-ssm";
 import {
-  ECRImageLayerAccessSolutionConfig,
-  SNSSubscriptionSecuritySolutionConfig,
-  type SecuritySolutionSlug,
+  ECRImageLayerAccessPackageConfig,
+  SNSSubscriptionSecurityPackageConfig,
+  type SecurityPackageSlug,
 } from "@trust-stack/schema";
 import type { ZodSchema } from "zod";
 
@@ -15,37 +15,37 @@ export type SharedSSMParameterName =
   | "/trust-stack/sns/subscription-security/config";
 
 /**
- * Retrieves and validates a solution configuration from SSM Parameter Store
+ * Retrieves and validates a security package configuration from SSM Parameter Store
  *
- * @param solution - The security solution slug
+ * @param securityPackage - The security package slug
  * @returns The validated configuration object
  * @throws Error if the configuration cannot be retrieved or is invalid
  */
-export async function getValidatedSolutionConfig(
-  solution: "ecr-image-layer-access",
-): Promise<ECRImageLayerAccessSolutionConfig>;
-export async function getValidatedSolutionConfig(
-  solution: "sns-subscription-security",
-): Promise<SNSSubscriptionSecuritySolutionConfig>;
-export async function getValidatedSolutionConfig(
-  solution: SecuritySolutionSlug,
+export async function getValidatedPackageConfig(
+  securityPackage: "ecr-image-layer-access",
+): Promise<ECRImageLayerAccessPackageConfig>;
+export async function getValidatedPackageConfig(
+  securityPackage: "sns-subscription-security",
+): Promise<SNSSubscriptionSecurityPackageConfig>;
+export async function getValidatedPackageConfig(
+  securityPackage: SecurityPackageSlug,
 ): Promise<
-  ECRImageLayerAccessSolutionConfig | SNSSubscriptionSecuritySolutionConfig
+  ECRImageLayerAccessPackageConfig | SNSSubscriptionSecurityPackageConfig
 > {
   let parameterName: string;
   let schema: ZodSchema;
 
-  switch (solution) {
+  switch (securityPackage) {
     case "ecr-image-layer-access":
       parameterName = "/trust-stack/ecr/image-layer-access/config";
-      schema = ECRImageLayerAccessSolutionConfig;
+      schema = ECRImageLayerAccessPackageConfig;
       break;
     case "sns-subscription-security":
       parameterName = "/trust-stack/sns/subscription-security/config";
-      schema = SNSSubscriptionSecuritySolutionConfig;
+      schema = SNSSubscriptionSecurityPackageConfig;
       break;
     default:
-      throw new Error(`Unsupported solution: ${solution}`);
+      throw new Error(`Unsupported package: ${securityPackage}`);
   }
 
   const getParameterResult = await ssm.getParameter({

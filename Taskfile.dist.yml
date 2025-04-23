@@ -10,15 +10,12 @@ includes:
     aliases:
       - "e"
 
-  security-controls:
-    taskfile: ./tasks/Taskfile.security-controls.yml
+  security-packages:
+    taskfile: ./tasks/Taskfile.security-packages.yml
     aliases:
-      - "sc"
+      - "sp"
 
   scripts: ./tasks/Taskfile.scripts.yml
-
-  ci:
-    taskfile: ./tasks/Taskfile.ci.yml
 
   e2e:
     taskfile: ./tasks/Taskfile.e2e.yml

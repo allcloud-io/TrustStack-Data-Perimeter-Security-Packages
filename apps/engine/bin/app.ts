@@ -8,10 +8,10 @@ import {
 } from "../lib";
 
 const {
-  spec: { awsOrganizationARN, sharedServicesAccountID },
+  spec: { awsOrganizationARN, awsOrganizationID, sharedServicesAccountID },
 } = parseManifestFile(
   ConfigurationSchema,
-  path.join(__dirname, "..", "..", "..", "trust-stack.yml"),
+  path.join(__dirname, "..", "..", "..", "deployment-manifest.yml"),
 );
 
 const app = new cdk.App({
@@ -28,6 +28,7 @@ new AssetsBucketStack(app, "AssetsBucket", {
     account: sharedServicesAccountID,
   },
   awsOrganizationARN,
+  awsOrganizationID,
 });
 
 // Should be deployed into all accounts

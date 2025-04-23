@@ -50,9 +50,9 @@ This prevention-first approach ensures that sensitive workloads remain secure wh
 
 The [Data Perimeter Guidelines](docs/DATA_PERIMETER_GUIDELINES.md) document provides comprehensive guidance on implementing data perimeter controls in AWS environments to establish clear boundaries that protect your AWS resources and data.
 
-## Security Controls Offered By TrustStack
+## Security Packages Offered By TrustStack
 
-TrustStack offers a comprehensive set of security controls that protect sensitive workloads while maintaining developer agility. Refer to [TrustStack Security Controls](apps/security-controls/README.md) for detailed information about the security controls offered by TrustStack.
+TrustStack offers a comprehensive set of security packages that protect sensitive workloads while maintaining developer agility. Refer to [TrustStack Security Packages](apps/security-packages/README.md) for detailed information about the security controls offered by TrustStack.
 
 ## Local Development Guide
 

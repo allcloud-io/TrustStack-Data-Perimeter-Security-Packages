@@ -1,0 +1,39 @@
+version: v1
+
+spec:
+  awsOrganizationARN: "arn:aws:organizations::012345678901:organization/o-88ouygy8db"
+
+  awsOrganizationID: "o-88ouygy8db"
+
+  sharedServicesAccountID: "123456789012"
+
+  securityPackages:
+    ecrImageLayerAccess:
+      enabled: true
+      configuration:
+        allowedRolePatterns:
+          - TrustedRole
+          - TrustedRole2
+        allowedNetworks:
+          - 192.168.1.0/24
+          - 192.168.2.0/24
+        allowedVPCEndpoints:
+          - vpce-0123456789abcdefg
+          - vpce-0123456789abcdefh
+
+    snsSubscriptionSecurity:
+      enabled: true
+      configuration:
+        trustedEmailDomains:
+          - example.com
+          - example.org
+          - amazonaws.com
+        trustedHttpDomains:
+          - example.com
+          - example.org
+          - amazonaws.com
+        trustedProtocols:
+          - sqs
+          - lambda
+          - firehose
+          - application

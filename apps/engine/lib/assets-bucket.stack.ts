@@ -8,15 +8,15 @@ import type { Construct } from "constructs";
 
 export type AssetsBucketStackProps = cdk.StackProps &
   Readonly<{
-    awsOrganizationID: string;
     awsOrganizationARN: string;
+    awsOrganizationID: string;
   }>;
 
 export class AssetsBucketStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AssetsBucketStackProps) {
     super(scope, id, props);
 
-    const { awsOrganizationID, awsOrganizationARN } = props;
+    const { awsOrganizationARN, awsOrganizationID } = props;
 
     const assetsBucket = new s3.Bucket(this, "AssetsBucket", {
       bucketName: `trust-stack-assets-${this.account}-${this.region}`,

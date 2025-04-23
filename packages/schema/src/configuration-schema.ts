@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 /**
- * Configuration for the ECR image layer access solution
+ * Configuration for the ECR image layer access package
  */
-export const ECRImageLayerAccessSolutionConfig = z.object({
+export const ECRImageLayerAccessPackageConfig = z.object({
   /**
    * List of allowed role patterns
    */
@@ -22,8 +22,8 @@ export const ECRImageLayerAccessSolutionConfig = z.object({
   allowedVPCEndpoints: z.array(z.string()).optional(),
 });
 
-export type ECRImageLayerAccessSolutionConfig = z.infer<
-  typeof ECRImageLayerAccessSolutionConfig
+export type ECRImageLayerAccessPackageConfig = z.infer<
+  typeof ECRImageLayerAccessPackageConfig
 >;
 
 const SNSSupportedProtocols = z.enum([
@@ -40,9 +40,9 @@ const SNSSupportedProtocols = z.enum([
 export type SNSSupportedProtocols = z.infer<typeof SNSSupportedProtocols>;
 
 /**
- * Configuration for the SNS subscription security solution
+ * Configuration for the SNS subscription security package
  */
-export const SNSSubscriptionSecuritySolutionConfig = z.object({
+export const SNSSubscriptionSecurityPackageConfig = z.object({
   /**
    * List of trusted email domains
    */
@@ -59,16 +59,16 @@ export const SNSSubscriptionSecuritySolutionConfig = z.object({
   trustedProtocols: SNSSupportedProtocols.array(),
 });
 
-export type SNSSubscriptionSecuritySolutionConfig = z.infer<
-  typeof SNSSubscriptionSecuritySolutionConfig
+export type SNSSubscriptionSecurityPackageConfig = z.infer<
+  typeof SNSSubscriptionSecurityPackageConfig
 >;
 
-export const SecuritySolutionSlug = z.enum([
+export const SecurityPackageSlug = z.enum([
   "ecr-image-layer-access",
   "sns-subscription-security",
 ]);
 
-export type SecuritySolutionSlug = z.infer<typeof SecuritySolutionSlug>;
+export type SecurityPackageSlug = z.infer<typeof SecurityPackageSlug>;
 
 /**
  * The configuration schema for the TrustStack security framework.
@@ -85,18 +85,23 @@ export const ConfigurationSchema = z.object({
       .describe(
         "ARN of the AWS organization to use for provisioning TrustStack's components",
       ),
+    awsOrganizationID: z
+      .string()
+      .describe(
+        "ID of the AWS organization to use for provisioning TrustStack's components",
+      ),
     sharedServicesAccountID: z
       .string()
       .describe(
         "ID of an AWS account to use for provisioning TrustStack's shared components",
       ),
-    solutions: z
+    securityPackages: z
       .object({
         ecrImageLayerAccess: z
           .union([
             z.object({
               enabled: z.literal(true),
-              configuration: ECRImageLayerAccessSolutionConfig,
+              configuration: ECRImageLayerAccessPackageConfig,
             }),
             z.object({
               enabled: z.literal(false),
@@ -107,7 +112,7 @@ export const ConfigurationSchema = z.object({
           .union([
             z.object({
               enabled: z.literal(true),
-              configuration: SNSSubscriptionSecuritySolutionConfig,
+              configuration: SNSSubscriptionSecurityPackageConfig,
             }),
             z.object({
               enabled: z.literal(false),
@@ -115,7 +120,7 @@ export const ConfigurationSchema = z.object({
           ])
           .optional(),
       })
-      .describe("The solutions to deploy"),
+      .describe("The security packages to deploy"),
   }),
 });
 
