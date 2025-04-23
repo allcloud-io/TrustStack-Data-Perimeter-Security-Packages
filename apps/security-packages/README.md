@@ -7,7 +7,6 @@ TrustStack provides a comprehensive suite of security packages designed to prote
 - [TrustStack Security Packages](#truststack-security-packages)
   - [Security Benefits](#security-benefits)
   - [Packages](#packages)
-    - [S3 Block Public Access Security Package](#s3-block-public-access-security-package)
     - [SNS Subscription Security Package](#sns-subscription-security-package)
     - [ECR Image Layer Access Security Package](#ecr-image-layer-access-security-package)
 
@@ -25,17 +24,6 @@ TrustStack security controls provide several key benefits for organizations runn
 8. **Data Protection**: Implements strong data perimeter controls to prevent unauthorized access to sensitive information.
 
 ## Packages
-
-### S3 Block Public Access Security Package
-
-The S3 Block Public Access Security Package addresses the risk of accidental or intentional public exposure of S3 buckets by implementing a comprehensive set of controls:
-
-1. **Preventative Controls**: Service Control Policies (SCPs) that enforce Block Public Access settings at the AWS Organizations level.
-2. **Proactive Controls**: CloudFormation hooks that validate S3 bucket configurations during deployment to ensure Block Public Access settings are enabled.
-3. **Detective Controls**: CloudTrail monitoring to detect any changes to S3 bucket configurations that may expose data publicly.
-4. **Responsive Controls**: Automated remediation to correct any non-compliant S3 bucket configurations.
-
-For detailed implementation details, see the [S3 Block Public Access Security Package documentation](lib/security-packages/s3/block-public-access/README.md).
 
 ### SNS Subscription Security Package
 
