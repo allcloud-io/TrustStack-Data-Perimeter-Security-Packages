@@ -3,7 +3,6 @@
 **Table of Contents:**
 
 - [Data Perimeter Accelerator: Guidelines and Considerations](#data-perimeter-accelerator-guidelines-and-considerations)
-  - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Policy Types for Data Perimeter Objectives](#policy-types-for-data-perimeter-objectives)
   - [Data Perimeter Control Objectives](#data-perimeter-control-objectives)

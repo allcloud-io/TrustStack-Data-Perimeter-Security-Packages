@@ -194,9 +194,9 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     expect(mockSecurityHubInstance.batchImportFindings).not.toHaveBeenCalled();
   });
 
-  test("should allow access if role pattern matches", async () => {
+  test("should allow access if role name matches", async () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
-      allowedRolePatterns: ["AWSControlTowerExecution"],
+      allowedRoleNames: ["AWSControlTowerExecution"],
     });
 
     await handler(mockEvent, mockContext);
@@ -210,9 +210,9 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     expect(mockSecurityHubInstance.batchImportFindings).not.toHaveBeenCalled();
   });
 
-  test("should create Security Hub finding if role pattern does not match", async () => {
+  test("should create Security Hub finding if role name does not match", async () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
-      allowedRolePatterns: ["NonMatchingPattern"],
+      allowedRoleNames: ["NonMatchingRoleName"],
     });
 
     await handler(mockEvent, mockContext);
@@ -221,10 +221,10 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
       "ecr-image-layer-access",
     );
     expect(mockLoggerInstance.warn).toHaveBeenCalledWith(
-      "Access is not authorized by role pattern",
+      "Access is not authorized by role name",
       {
-        roleName: "AWSControlTowerExecution/botocore-session-8473921564",
-        allowedRolePatterns: ["NonMatchingPattern"],
+        roleName: "AWSControlTowerExecution",
+        allowedRoleNames: ["NonMatchingRoleName"],
       },
     );
     expect(mockLoggerInstance.info).toHaveBeenCalledWith(
@@ -289,6 +289,33 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
       mockSecurityHubInstance.batchImportFindings.mock.calls[0][0];
 
     expect(batchImportFindingsInput.Findings).toHaveLength(1);
+  });
+
+  test("should allow access if VPC endpoint ID is in the allowed VPC endpoints", async () => {
+    const vpcEndpointEvent = createEventWithModifications({
+      vpcEndpointId: "vpce-0123456789abcdefg",
+    });
+
+    mockGetValidatedPackageConfig.mockResolvedValueOnce({
+      allowedVPCEndpoints: ["vpce-0123456789abcdefg"],
+    });
+
+    await handler(vpcEndpointEvent, mockContext);
+
+    expect(mockGetValidatedPackageConfig).toHaveBeenCalledWith(
+      "ecr-image-layer-access",
+    );
+    expect(mockLoggerInstance.info).toHaveBeenCalledWith(
+      "VPC endpoint ID is in the allowed VPC endpoints",
+      {
+        vpcEndpointID: "vpce-0123456789abcdefg",
+        allowedVPCEndpoints: ["vpce-0123456789abcdefg"],
+      },
+    );
+    expect(mockLoggerInstance.info).toHaveBeenLastCalledWith(
+      "Access is authorized, skipping",
+    );
+    expect(mockSecurityHubInstance.batchImportFindings).not.toHaveBeenCalled();
   });
 
   test("should throw error if Security Hub finding creation fails", async () => {
@@ -388,7 +415,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     });
 
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
-      allowedRolePatterns: ["AWSControlTowerExecution"],
+      allowedRoleNames: ["AWSControlTowerExecution"],
       allowedNetworks: ["192.168.1.0/24"],
     });
 

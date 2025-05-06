@@ -72,7 +72,7 @@ export function generateSCP(
             "sns:Protocol": ["http", "https"],
           },
           StringNotLike: {
-            "sns:Endpoint": config.trustedHttpDomains.flatMap((domain) => [
+            "sns:Endpoint": config.trustedHTTPDomains.flatMap((domain) => [
               domain,
               `${domain}/*`,
               `*.${domain}`,

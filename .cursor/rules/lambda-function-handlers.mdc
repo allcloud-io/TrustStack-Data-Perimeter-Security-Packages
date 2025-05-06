@@ -3,35 +3,416 @@ description:
 globs: *.handler.ts
 alwaysApply: false
 ---
-# Generating Lambda functions using TypeScript
+# Lambda Function Handlers for Security Controls
 
-Don't use a `const` variable for the handler function.
+This rule provides guidance on implementing Lambda function handlers for security controls in the TrustStack framework.
 
-Bad:
+## Overview
+
+TrustStack implements a prevention-first security approach through multiple layers of controls:
+
+- **Preventative Controls**: Block unauthorized actions before they occur
+- **Proactive Controls**: Validate configurations during deployment
+- **Detective Controls**: Monitor and alert on suspicious or non-compliant activities
+- **Responsive Controls**: Automatically remediate security issues when detected
+
+Lambda functions are a key component of the detective and responsive control layers, implementing the monitoring, alerting, and remediation logic.
+
+## Handler Structure
+
+### Basic Handler Pattern
+
 ```typescript
-import type { APIGatewayProxyHandler } from "aws-lambda";
+import { Logger } from "@aws-lambda-powertools/logger";
+import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
+import middy from "@middy/core";
+import type { EventType } from "path/to/event/types";
+import { SECURITY_PACKAGE_NAME } from "../shared";
 
-export const handler: APIGatewayProxyHandler = async (event) => {
+// Initialize logger with service name matching the control
+const logger = new Logger({
+  serviceName: `${SECURITY_PACKAGE_NAME}ControlType`,
+});
+
+// Initialize AWS SDK clients
+const serviceClient = new ServiceClient({});
+
+// Export a wrapped handler using Powertools Logger
+export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
+
+/**
+ * Lambda handler for processing security control events.
+ *
+ * Include a detailed description of what the handler does, its role in the
+ * security architecture, and its expected inputs and outputs.
+ */
+async function lambdaHandler(event: EventType) {
+  logger.appendKeys({ event });
+  logger.info("Received event");
+
+  // Implementation logic
+  
   return {
     statusCode: 200,
-    body: JSON.stringify({ message: "SNS subscription confirmation received" }),
+    body: JSON.stringify("Operation completed successfully"),
   };
-};
+}
+
+// Helper functions
 ```
 
-Good:
-```typescript
-import type {
-  APIGatewayProxyEventV2,
-  APIGatewayProxyResultV2,
-} from "aws-lambda";
+### Standard Components
 
-export async function handler(
-  event: APIGatewayProxyEventV2,
-): Promise<APIGatewayProxyResultV2> {
+1. **Imports**:
+   - `@aws-lambda-powertools/logger` for consistent logging
+   - `middy` for middleware pattern
+   - AWS SDK clients for interacting with AWS services
+   - Type definitions for event sources
+
+2. **Logging**:
+   - Always use AWS Lambda Powertools Logger
+   - Set service name following `ServiceNameControlType` pattern
+   - Use structured logging with `appendKeys`
+
+3. **Handler Function**:
+   - Properly type the event parameter based on the event source
+   - Include comprehensive JSDoc comments explaining the handler's purpose
+   - Return appropriate response objects
+
+4. **Middleware**:
+   - Use `middy` for middleware composition
+   - Always include `injectLambdaContext` from Lambda Powertools
+
+## Implementation Patterns
+
+### Proactive Controls
+
+Proactive controls validate resource configurations during deployment time, before resources are created:
+
+```typescript
+import { Logger } from "@aws-lambda-powertools/logger";
+import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
+import middy from "@middy/core";
+import type { YourNewPackageConfig } from "@trust-stack/schema";
+import { getValidatedPackageConfig } from "@trust-stack/utils";
+
+const logger = new Logger({
+  serviceName: "YourPackageNameProactiveControl",
+});
+
+export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
+
+/**
+ * CloudFormation hook handler for validating SNS subscription configurations
+ * before they are deployed to AWS.
+ */
+async function lambdaHandler(event: CloudFormationHookEvent) {
+  logger.appendKeys({ event });
+  logger.info("Received CloudFormation hook event");
+
+  let config: YourNewPackageConfig;
+  try {
+    logger.info("Retrieving configuration from SSM Parameter Store");
+    config = await getValidatedPackageConfig("your-package-slug");
+    logger.info("Configuration retrieved successfully");
+  } catch (error) {
+    const errorMessage =
+      "Failed to retrieve configuration from SSM Parameter Store";
+
+    logger.error(errorMessage, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return {
+      hookStatus: "FAILURE",
+      errorCode: "InternalFailure",
+      message: `${errorMessage}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      clientRequestToken,
+    };
+  }
+
+  // Extract resource properties from the CloudFormation template
+  const resourceProperties = event.resource.resourceProperties;
+  
+  try {
+    // Validate the configuration
+    const validationResult = validateResourceConfiguration(
+      resourceProperties,
+      config
+    );
+    
+    if (!validationResult.isValid) {
+      // Return failure response to prevent deployment
+      return {
+        status: "FAILED",
+        errorCode: "SecurityViolation",
+        message: validationResult.reason,
+      };
+    }
+    
+    // Configuration is valid, allow deployment to proceed
+    return {
+      status: "SUCCESS",
+    };
+  } catch (error) {
+    // Log error and prevent deployment on validation failure
+    logger.error("Error validating resource configuration", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    
+    return {
+      status: "FAILED",
+      errorCode: "InternalError",
+      message: "Failed to validate resource configuration",
+    };
+  }
+}
+
+/**
+ * Validates a resource configuration against security policies
+ */
+function validateResourceConfiguration(properties: Record<string, any>) {
+  // Example: Validating SNS subscription endpoint against allowed domains
+  if (properties.Protocol === "https" || properties.Protocol === "http") {
+    const endpoint = properties.Endpoint;
+    const allowedDomains = ["example.com", "trusted-domain.org"];
+    
+    // Check if endpoint domain is in the allowed list
+    const isAllowedDomain = allowedDomains.some(domain => 
+      endpoint.toLowerCase().endsWith(`.${domain}`) || 
+      endpoint.toLowerCase() === domain
+    );
+    
+    if (!isAllowedDomain) {
+      return {
+        isValid: false,
+        reason: `Endpoint ${endpoint} is not in the list of allowed domains`,
+      };
+    }
+  }
+  
+  return { isValid: true };
+}
+```
+
+Reference implementations of proactive controls:
+- [handler.ts](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/proactive-control/handler.ts)
+
+### Detective Controls
+
+Detective controls monitor for policy violations and create Security Hub findings:
+
+```typescript
+// Example for SecurityHub finding creation
+function createSecurityHubFinding(
+  event: EventDetails,
+  reason: string,
+  accountID: string,
+  region: string
+): AwsSecurityFinding {
+  const timestamp = new Date().toISOString();
+  
   return {
-    statusCode: 200,
-    body: JSON.stringify({ message: "SNS subscription confirmation received" }),
+    SchemaVersion: "2018-10-08",
+    Id: generateUniqueId(event),
+    ProductArn: `arn:aws:securityhub:${region}:${accountID}:product/${accountID}/default`,
+    GeneratorId: "SecurityControlIdentifier",
+    AwsAccountId: accountID,
+    Types: ["Software and Configuration Checks/AWS Security Best Practices"],
+    FirstObservedAt: timestamp,
+    CreatedAt: timestamp,
+    UpdatedAt: timestamp,
+    Severity: {
+      Label: SeverityLabel.HIGH,
+    },
+    Title: "Security violation detected",
+    Description: reason,
+    // Additional required fields...
   };
 }
 ```
+
+Reference implementations of detective controls:
+- [handler.ts](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/detective-control/handler.ts)
+- [handler.ts](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/detective-control/handler.ts)
+
+### Responsive Controls
+
+Responsive controls receive Security Hub findings or CloudTrail events and perform remediation:
+
+```typescript
+// Handling Security Hub Findings
+async function handleSecurityHubFinding(finding: AwsSecurityFinding) {
+  // Extract resource information
+  const resourceInfo = extractResourceInfo(finding);
+  
+  // Perform remediation action
+  await performRemediationAction(resourceInfo);
+  
+  // Update finding status
+  await updateFindingStatus(finding.Id, "RESOLVED");
+}
+
+// Remediation action implementation
+async function performRemediationAction(resourceInfo: ResourceInfo) {
+  try {
+    // Implement remediation logic here
+    logger.info("Remediation action completed", { resourceInfo });
+  } catch (error) {
+    logger.error("Remediation action failed", {
+      error: error instanceof Error ? error.message : String(error),
+      resourceInfo,
+    });
+    throw error;
+  }
+}
+```
+
+Reference implementations of responsive controls:
+- [handler.ts](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/responsive-control/handler.ts)
+- [handler.ts](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/responsive-control/handler.ts)
+
+## Error Handling
+
+Always implement robust error handling:
+
+```typescript
+try {
+  // Operation that might fail
+} catch (error) {
+  // Log with structured format
+  logger.error("Operation failed", {
+    error: error instanceof Error ? error.message : String(error),
+    context: { relevant: "information" },
+  });
+  
+  // Determine if error should be rethrown or handled
+  if (isRetryableError(error)) {
+    throw error; // Will trigger Lambda retry
+  } else {
+    // Handle gracefully
+  }
+}
+```
+
+## Testing
+
+### Test Structure
+
+Each Lambda handler should have corresponding test files that verify:
+1. Normal operation path
+2. Error handling
+3. Integration with AWS services
+
+```typescript
+import { beforeAll, describe, jest, test } from "@jest/globals";
+import type { Context } from "aws-lambda";
+import type { EventType } from "path/to/event/types";
+
+// Mock AWS client dependencies
+const mockClientInstance = {
+  methodName: jest.fn(),
+};
+
+// Mock logger
+const mockLoggerInstance = {
+  appendKeys: jest.fn(),
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+};
+
+// Setup mocks before imports
+jest.unstable_mockModule("@aws-sdk/client-service", () => ({
+  Service: jest.fn().mockImplementation(() => mockClientInstance),
+}));
+
+jest.unstable_mockModule("@aws-lambda-powertools/logger", () => ({
+  Logger: jest.fn().mockImplementation(() => mockLoggerInstance),
+  injectLambdaContext: jest.fn().mockImplementation(() => {
+    return jest.fn().mockImplementation((handler) => handler);
+  }),
+}));
+
+// Variables for dynamically imported modules
+let handler: typeof import("./handler").handler;
+
+// Load the handler module dynamically
+beforeAll(async () => {
+  const handlerModule = await import("./handler");
+  handler = handlerModule.handler;
+});
+
+describe("[Control Type] Handler", () => {
+  const mockEvent: EventType = {
+    // Mock event data
+  };
+  
+  const mockContext = {} as Context;
+  
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  
+  test("should handle successful execution", async () => {
+    // Setup mock responses
+    mockClientInstance.methodName.mockResolvedValueOnce({
+      // Mock successful response
+    });
+    
+    // Call handler
+    await handler(mockEvent, mockContext);
+    
+    // Assertions
+    expect(mockClientInstance.methodName).toHaveBeenCalledWith({
+      // Expected parameters
+    });
+  });
+  
+  test("should handle error conditions", async () => {
+    // Setup mock error
+    mockClientInstance.methodName.mockRejectedValueOnce(
+      new Error("Service error")
+    );
+    
+    // Call handler and assert error is handled
+    await expect(handler(mockEvent, mockContext)).rejects.toThrow();
+    
+    // Additional assertions
+    expect(mockLoggerInstance.error).toHaveBeenCalled();
+  });
+});
+```
+
+Reference test files:
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/detective-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/responsive-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/proactive-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/responsive-control/handler.spec.ts)
+
+### Testing Best Practices
+
+1. **Mock AWS SDK Clients**: Never call real AWS services in tests
+2. **Test Edge Cases**: Include tests for different event types and error scenarios
+3. **Use Dynamic Imports**: Ensure mocks are established before importing the handler
+4. **Mock Middlewares**: Ensure middleware functions don't interfere with tests
+5. **Verify Logging**: Check that appropriate log statements are generated
+
+## Security Considerations
+
+1. **Least Privilege**: Ensure Lambda IAM roles follow least privilege principles
+2. **Input Validation**: Always validate and sanitize input data
+3. **Secrets Management**: Never hardcode credentials or sensitive values
+4. **Logging**: Don't log sensitive data; use appropriate log levels
+5. **Timeouts**: Set appropriate timeouts for Lambda functions
+6. **Error Handling**: Handle errors gracefully without exposing internal details
+7. **Idempotency**: Design handlers to be idempotent when possible
+
+## Design Considerations
+
+1. Every lambda function implementation must have unit tests.
+2. For CloudFormation Lambda hooks always generate two deployable sample CloudFormation templates, the first file is named `compliant-<resource type in plural form>.yaml` for provisioning compliant resources that should pass the check and the second file is named `compliant-<resource type in plural form>.yaml` for provisioning non-compliant resources that should fail the check. The template files should be in a `sample-templates` sub-directory of the proactive control directory.
+
+## TypeScript Style Guide
+
+Follow [typescript-style-guide.mdc](mdc:.cursor/rules/typescript-style-guide.mdc) when writing TypeScript code.

@@ -1,6 +1,7 @@
 import { SSM } from "@aws-sdk/client-ssm";
 import {
   ECRImageLayerAccessPackageConfig,
+  LambdaVPCSecurityConfig,
   SNSSubscriptionSecurityPackageConfig,
   type SecurityPackageSlug,
 } from "@trust-stack/schema";
@@ -12,6 +13,7 @@ export type SharedSSMParameterName =
   | "/trust-stack/assets-bucket/name"
   | "/trust-stack/cloudformation-hook-execution-role-arn"
   | "/trust-stack/ecr/image-layer-access/config"
+  | "/trust-stack/lambda/vpc-security/config"
   | "/trust-stack/sns/subscription-security/config";
 
 /**
@@ -25,12 +27,17 @@ export async function getValidatedPackageConfig(
   securityPackage: "ecr-image-layer-access",
 ): Promise<ECRImageLayerAccessPackageConfig>;
 export async function getValidatedPackageConfig(
+  securityPackage: "lambda-vpc-security",
+): Promise<LambdaVPCSecurityConfig>;
+export async function getValidatedPackageConfig(
   securityPackage: "sns-subscription-security",
 ): Promise<SNSSubscriptionSecurityPackageConfig>;
 export async function getValidatedPackageConfig(
   securityPackage: SecurityPackageSlug,
 ): Promise<
-  ECRImageLayerAccessPackageConfig | SNSSubscriptionSecurityPackageConfig
+  | ECRImageLayerAccessPackageConfig
+  | LambdaVPCSecurityConfig
+  | SNSSubscriptionSecurityPackageConfig
 > {
   let parameterName: string;
   let schema: ZodSchema;
@@ -39,6 +46,10 @@ export async function getValidatedPackageConfig(
     case "ecr-image-layer-access":
       parameterName = "/trust-stack/ecr/image-layer-access/config";
       schema = ECRImageLayerAccessPackageConfig;
+      break;
+    case "lambda-vpc-security":
+      parameterName = "/trust-stack/lambda/vpc-security/config";
+      schema = LambdaVPCSecurityConfig;
       break;
     case "sns-subscription-security":
       parameterName = "/trust-stack/sns/subscription-security/config";

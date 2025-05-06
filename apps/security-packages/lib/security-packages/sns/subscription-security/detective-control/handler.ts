@@ -15,12 +15,15 @@ import type { SNSSupportedProtocols } from "@trust-stack/schema";
 import { getValidatedPackageConfig } from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type { SNSSubscribeEventDetail } from "../../../../../../../types/cloudtrail-events";
-import { validateSnsSubscriptionEndpoint } from "../shared";
+import {
+  SECURITY_PACKAGE_NAME,
+  validateSnsSubscriptionEndpoint,
+} from "../shared";
 
 const sns = new SNS();
 
 const logger = new Logger({
-  serviceName: "SNSSubscriptionSecurityDetectiveControlHandler",
+  serviceName: `${SECURITY_PACKAGE_NAME}DetectiveControlHandler`,
 });
 
 export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));

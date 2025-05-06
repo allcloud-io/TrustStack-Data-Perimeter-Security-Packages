@@ -30,6 +30,7 @@ export type ECRBatchGetImageEventDetail = {
   eventName: string;
   awsRegion: string;
   sourceIPAddress: string;
+  vpcEndpointId?: string;
   userAgent: string;
   requestParameters: {
     registryId: string;
@@ -57,6 +58,163 @@ export type ECRBatchGetImageEventDetail = {
 };
 
 /**
+ * CloudTrail event detail for Lambda CreateFunction API call
+ */
+export type LambdaFunctionCreateEventDetail = {
+  eventSource: "lambda.amazonaws.com";
+  eventName: "CreateFunction20150331";
+  awsRegion: string;
+  sourceIPAddress: string;
+  userAgent: string;
+  userIdentity: {
+    type: string;
+    principalId: string;
+    arn: string;
+    accountId: string;
+    accessKeyId: string;
+    sessionContext: {
+      sessionIssuer: {
+        type: string;
+        principalId: string;
+        arn: string;
+        accountId: string;
+        userName: string;
+      };
+      attributes: {
+        creationDate: string;
+        mfaAuthenticated: string;
+      };
+    };
+  };
+  requestParameters: {
+    functionName: string;
+    runtime: string;
+    role: string;
+    handler: string;
+    code: Record<string, unknown>;
+    publish: boolean;
+    vpcConfig?: {
+      subnetIds: string[];
+      securityGroupIds: string[];
+    };
+    environment: Record<string, any>;
+  };
+  responseElements: {
+    functionName: string;
+    functionArn: string;
+    runtime: string;
+    role: string;
+    handler: string;
+    codeSize: number;
+    description: string;
+    timeout: number;
+    memorySize: number;
+    lastModified: string;
+    codeSha256: string;
+    version: string;
+    vpcConfig?: {
+      subnetIds: string[];
+      securityGroupIds: string[];
+      vpcId: string;
+      ipv6AllowedForDualStack: boolean;
+    };
+    environment: Record<string, any>;
+    tracingConfig: {
+      mode: string;
+    };
+    revisionId: string;
+    state: string;
+    stateReason: string;
+    stateReasonCode: string;
+    packageType: string;
+    architectures: string[];
+    ephemeralStorage: {
+      size: number;
+    };
+    snapStart: {
+      applyOn: string;
+      optimizationStatus: string;
+    };
+    runtimeVersionConfig: {
+      runtimeVersionArn: string;
+    };
+    loggingConfig: {
+      logFormat: string;
+      logGroup: string;
+    };
+  };
+  requestID: string;
+  eventID: string;
+  readOnly: boolean;
+  eventType: string;
+  managementEvent: boolean;
+  recipientAccountId: string;
+  eventCategory: string;
+  tlsDetails: {
+    tlsVersion: string;
+    cipherSuite: string;
+  };
+};
+
+/**
+ * CloudTrail event detail for Lambda UpdateFunctionConfiguration API call
+ */
+export type LambdaFunctionUpdateConfigurationEventDetail = {
+  eventSource: "lambda.amazonaws.com";
+  eventName: "UpdateFunctionConfiguration20150331v2";
+  awsRegion: string;
+  sourceIPAddress: string;
+  userAgent: string;
+  userIdentity: {
+    type: string;
+    principalId: string;
+    arn: string;
+    accountId: string;
+    accessKeyId: string;
+    sessionContext: {
+      sessionIssuer: {
+        type: string;
+        principalId: string;
+        arn: string;
+        accountId: string;
+        userName: string;
+      };
+      attributes: {
+        creationDate: string;
+        mfaAuthenticated: string;
+      };
+    };
+    inScopeOf: {
+      issuerType: string;
+      credentialsIssuedTo: string;
+    };
+  };
+  requestParameters: {
+    functionName: string;
+    vpcConfig?: {
+      subnetIds: string[];
+      securityGroupIds: string[];
+    };
+    environment: Record<string, any>;
+  };
+  responseElements: null;
+  requestID: string;
+  eventID: string;
+  readOnly: boolean;
+  eventType: string;
+  managementEvent: boolean;
+  recipientAccountId: string;
+  eventCategory: string;
+  tlsDetails: {
+    tlsVersion: string;
+    cipherSuite: string;
+    clientProvidedHostHeader: string;
+  };
+  errorCode?: string;
+  errorMessage?: string;
+};
+
+/**
  * CloudTrail event detail for SNS subscription creation
  */
 export type SNSSubscribeEventDetail = {
@@ -64,6 +222,7 @@ export type SNSSubscribeEventDetail = {
   eventName: "Subscribe";
   awsRegion: string;
   sourceIPAddress: string;
+  vpcEndpointId?: string;
   userIdentity: {
     type: string;
     principalId: string;

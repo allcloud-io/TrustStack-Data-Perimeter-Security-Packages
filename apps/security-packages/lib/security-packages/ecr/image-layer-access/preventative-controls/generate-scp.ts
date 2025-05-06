@@ -13,36 +13,49 @@ import type {
 export function generateSCP(
   config: ECRImageLayerAccessPackageConfig,
 ): ServiceControlPolicy {
-  const policyStatement: SCPStatement = {
-    Sid: "DenyGetDownloadUrlForLayerExceptAllowed",
+  const allowedPrincipalsPolicyStatement: SCPStatement = {
+    Sid: "DenyGetDownloadUrlForLayerExceptAllowedPrincipals",
     Effect: "Deny",
     Action: ["ecr:GetDownloadUrlForLayer"],
     Resource: "*",
   };
 
-  if (config.allowedRolePatterns && config.allowedRolePatterns.length > 0) {
-    policyStatement.Condition ??= {};
-    policyStatement.Condition.StringNotLike ??= {};
-    policyStatement.Condition.StringNotLike["aws:PrincipalARN"] =
-      config.allowedRolePatterns;
+  if (config.allowedRoleNames && config.allowedRoleNames.length > 0) {
+    allowedPrincipalsPolicyStatement.Condition ??= {};
+    allowedPrincipalsPolicyStatement.Condition.StringNotLike ??= {};
+    allowedPrincipalsPolicyStatement.Condition.StringNotLike[
+      "aws:PrincipalARN"
+    ] = config.allowedRoleNames.map(
+      (roleName) => `arn:aws:iam::*:role/${roleName}`,
+    );
   }
 
+  const allowedNetworksPolicyStatement: SCPStatement = {
+    Sid: "DenyGetDownloadUrlForLayerExceptAllowedNetworks",
+    Effect: "Deny",
+    Action: ["ecr:GetDownloadUrlForLayer"],
+    Resource: "*",
+  };
+
   if (config.allowedNetworks && config.allowedNetworks.length > 0) {
-    policyStatement.Condition ??= {};
-    policyStatement.Condition.NotIpAddress ??= {};
-    policyStatement.Condition.NotIpAddress["aws:SourceIp"] =
+    allowedNetworksPolicyStatement.Condition ??= {};
+    allowedNetworksPolicyStatement.Condition.NotIpAddress ??= {};
+    allowedNetworksPolicyStatement.Condition.NotIpAddress["aws:SourceIp"] =
       config.allowedNetworks;
   }
 
   if (config.allowedVPCEndpoints && config.allowedVPCEndpoints.length > 0) {
-    policyStatement.Condition ??= {};
-    policyStatement.Condition.StringNotLike ??= {};
-    policyStatement.Condition.StringNotLike["aws:SourceVpce"] =
+    allowedNetworksPolicyStatement.Condition ??= {};
+    allowedNetworksPolicyStatement.Condition.StringNotLike ??= {};
+    allowedNetworksPolicyStatement.Condition.StringNotLike["aws:SourceVpce"] =
       config.allowedVPCEndpoints;
   }
 
   return {
     Version: "2012-10-17",
-    Statement: [policyStatement],
+    Statement: [
+      allowedPrincipalsPolicyStatement,
+      allowedNetworksPolicyStatement,
+    ],
   };
 }

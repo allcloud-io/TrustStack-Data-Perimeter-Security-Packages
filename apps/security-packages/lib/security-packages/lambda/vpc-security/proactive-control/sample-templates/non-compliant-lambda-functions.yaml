@@ -1,0 +1,182 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Sample template with non-compliant Lambda functions that have missing or improper VPC configurations"
+
+Parameters:
+  LambdaRoleARN:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ARN of IAM role for Lambda execution
+    Default: "/trust-stack/e2e-tests/lambda-role-arn"
+
+  UnapprovedVPCID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of an unapproved VPC
+    Default: "/trust-stack/e2e-tests/unauthorized-lambda-vpc-id"
+
+  SubnetID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of a subnet
+    Default: "/trust-stack/e2e-tests/unauthorized-lambda-subnet-id-1"
+
+  SecurityGroupID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of the security group to use for Lambda functions
+    Default: "/trust-stack/e2e-tests/lambda-security-group-id"
+
+Resources:
+  # Non-compliant Lambda function with no VPC configuration
+  NoVPCLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "no-vpc-lambda-function"
+      Runtime: "nodejs18.x"
+      Handler: "index.handler"
+      Role: !Ref LambdaRoleARN
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            console.log('Event:', JSON.stringify(event, null, 2));
+            return {
+              statusCode: 200,
+              body: JSON.stringify('Hello from Lambda!'),
+            };
+          };
+      Description: "A non-compliant Lambda function with no VPC configuration"
+      Timeout: 30
+      MemorySize: 128
+      # Missing VpcConfig property
+      Tags:
+        - Key: Purpose
+          Value: SecurityComplianceTest
+
+  # Non-compliant Lambda function with empty VPC configuration
+  EmptyVPCConfigLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "empty-vpc-config-lambda-function"
+      Runtime: "python3.9"
+      Handler: "index.handler"
+      Role: !Ref LambdaRoleARN
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              print('Event:', event)
+              return {
+                  'statusCode': 200,
+                  'body': 'Hello from Lambda!'
+              }
+      Description: "A non-compliant Lambda function with empty VPC configuration"
+      Timeout: 30
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds: []
+        SubnetIds: []
+      Tags:
+        - Key: Purpose
+          Value: SecurityComplianceTest
+
+  # Non-compliant Lambda function with missing security groups
+  MissingSecurityGroupsLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "missing-security-groups-lambda-function"
+      Runtime: "python3.9"
+      Handler: "index.handler"
+      Role: !Ref LambdaRoleARN
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              print('Event:', event)
+              return {
+                  'statusCode': 200,
+                  'body': 'Hello from Lambda!'
+              }
+      Description: "A non-compliant Lambda function with missing security groups"
+      Timeout: 30
+      MemorySize: 128
+      VpcConfig:
+        # Missing SecurityGroupIds
+        SubnetIds:
+          - !Ref SubnetID
+      Tags:
+        - Key: Purpose
+          Value: SecurityComplianceTest
+
+  # Non-compliant Lambda function with missing subnet IDs
+  MissingSubnetIDsLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "missing-subnet-ids-lambda-function"
+      Runtime: "nodejs18.x"
+      Handler: "index.handler"
+      Role: !Ref LambdaRoleARN
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            console.log('Event:', JSON.stringify(event, null, 2));
+            return {
+              statusCode: 200,
+              body: JSON.stringify('Hello from Lambda!'),
+            };
+          };
+      Description: "A non-compliant Lambda function with missing subnet IDs"
+      Timeout: 30
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupID
+        # Missing SubnetIds
+      Tags:
+        - Key: Purpose
+          Value: SecurityComplianceTest
+
+  # Non-compliant Lambda function with an unapproved VPC
+  UnapprovedVPCLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "unapproved-vpc-lambda-function"
+      Runtime: "nodejs18.x"
+      Handler: "index.handler"
+      Role: !Ref LambdaRoleARN
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            console.log('Event:', JSON.stringify(event, null, 2));
+            return {
+              statusCode: 200,
+              body: JSON.stringify('Hello from Lambda!'),
+            };
+          };
+      Description: "A non-compliant Lambda function in an unapproved VPC"
+      Timeout: 30
+      MemorySize: 256
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupID
+        SubnetIds:
+          - !Ref SubnetID
+      Tags:
+        - Key: Purpose
+          Value: SecurityComplianceTest
+        - Key: VpcID
+          Value: !Ref UnapprovedVPCID
+
+Outputs:
+  NoVPCLambdaFunctionARN:
+    Description: ARN of the Lambda function with no VPC configuration
+    Value: !GetAtt NoVPCLambdaFunction.Arn
+
+  EmptyVPCConfigLambdaFunctionARN:
+    Description: ARN of the Lambda function with empty VPC configuration
+    Value: !GetAtt EmptyVPCConfigLambdaFunction.Arn
+
+  MissingSecurityGroupsLambdaFunctionARN:
+    Description: ARN of the Lambda function with missing security groups
+    Value: !GetAtt MissingSecurityGroupsLambdaFunction.Arn
+
+  MissingSubnetIDsLambdaFunctionARN:
+    Description: ARN of the Lambda function with missing subnet IDs
+    Value: !GetAtt MissingSubnetIDsLambdaFunction.Arn
+
+  UnapprovedVPCLambdaFunctionARN:
+    Description: ARN of the Lambda function in an unapproved VPC
+    Value: !GetAtt UnapprovedVPCLambdaFunction.Arn

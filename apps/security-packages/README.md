@@ -8,6 +8,7 @@ TrustStack provides a comprehensive suite of security packages designed to prote
   - [Security Benefits](#security-benefits)
   - [Packages](#packages)
     - [SNS Subscription Security Package](#sns-subscription-security-package)
+    - [Lambda VPC Security Package](#lambda-vpc-security-package)
     - [ECR Image Layer Access Security Package](#ecr-image-layer-access-security-package)
 
 ## Security Benefits
@@ -37,6 +38,19 @@ The [SNS Subscription Security Package](lib/security-packages/sns/subscription-s
 4. **Responsive Controls**: Automated remediation to remove unauthorized subscriptions
 
 For detailed implementation details, see the [SNS Subscription Security Package documentation](lib/security-packages/sns/subscription-security/README.md).
+
+### Lambda VPC Security Package
+
+The Lambda VPC Security package addresses the risk of AWS Lambda functions operating outside of customer-managed VPCs, which can expose functions to unauthorized network access or enable data exfiltration to untrusted networks. This package helps implement AWS data perimeter controls by ensuring Lambda functions are deployed only within approved VPCs with proper network configurations.
+
+The package implements a comprehensive set of controls:
+
+1. **Preventative Controls**: Service Control Policies (SCPs) that restrict Lambda function creation without VPC configurations using the `lambda:VpcIds` condition key
+2. **Proactive Controls**: CloudFormation hooks that validate AWS::Lambda::Function resources specify proper VPC configurations during deployment
+3. **Detective Controls**: CloudTrail monitoring to identify Lambda functions created without VPC configurations and create Security Hub findings for non-compliant resources
+4. **Responsive Controls**: Automated remediation to update non-compliant Lambda functions to use approved VPC configurations
+
+For detailed implementation details, see the [Lambda VPC Security Package documentation](lib/security-packages/lambda/vpc-security/README.md).
 
 ### ECR Image Layer Access Security Package
 

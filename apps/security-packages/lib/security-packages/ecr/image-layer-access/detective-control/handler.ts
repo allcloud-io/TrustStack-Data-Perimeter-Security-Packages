@@ -14,9 +14,10 @@ import { getValidatedPackageConfig } from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import ipaddr from "ipaddr.js";
 import type { ECRBatchGetImageEventDetail } from "../../../../../../../types/cloudtrail-events";
+import { SECURITY_PACKAGE_NAME } from "../shared";
 
 const logger = new Logger({
-  serviceName: "ECRImageLayerAccessDetectiveControlHandler",
+  serviceName: `${SECURITY_PACKAGE_NAME}DetectiveControlHandler`,
 });
 
 const securityHub = new SecurityHub({});
@@ -53,7 +54,7 @@ async function lambdaHandler(
     return;
   }
 
-  const { allowedRolePatterns, allowedNetworks } =
+  const { allowedRoleNames, allowedNetworks, allowedVPCEndpoints } =
     await getValidatedPackageConfig("ecr-image-layer-access");
 
   const accountID = eventDetail.recipientAccountId;
@@ -65,8 +66,9 @@ async function lambdaHandler(
 
   const checkResult = isAuthorizedAccess({
     eventDetail,
-    allowedRolePatterns,
+    allowedRoleNames,
     allowedNetworks,
+    allowedVPCEndpoints,
   });
 
   // Check if this is an authorized access
@@ -102,12 +104,14 @@ async function lambdaHandler(
  */
 function isAuthorizedAccess({
   eventDetail,
-  allowedRolePatterns,
+  allowedRoleNames,
   allowedNetworks,
+  allowedVPCEndpoints,
 }: Readonly<{
   eventDetail: ECRBatchGetImageEventDetail;
-  allowedRolePatterns?: string[];
+  allowedRoleNames?: string[];
   allowedNetworks?: string[];
+  allowedVPCEndpoints?: string[];
 }>):
   | {
       isAuthorized: true;
@@ -143,45 +147,45 @@ function isAuthorizedAccess({
 
     // Check if it's from an allowed role
     if (
-      allowedRolePatterns &&
-      allowedRolePatterns.length > 0 &&
+      allowedRoleNames &&
+      allowedRoleNames.length > 0 &&
       identityType === "AssumedRole" &&
       principalARN
     ) {
-      logger.info("Checking if access is authorized by role", {
+      logger.info("Checking if access is authorized by role name", {
         principalARN,
-        allowedRolePatterns,
+        allowedRoleNames,
       });
 
       const principalARNParts = principalARN.split("/");
 
       const roleName =
         principalARNParts.length > 2
-          ? principalARNParts.slice(-2).join("/")
-          : (principalARNParts.pop() ?? "");
+          ? (principalARNParts.at(-2) ?? "")
+          : (principalARNParts.at(-1) ?? "");
 
-      if (!allowedRolePatterns.some((pattern) => roleName.includes(pattern))) {
-        logger.warn("Access is not authorized by role pattern", {
+      if (!allowedRoleNames.includes(roleName)) {
+        logger.warn("Access is not authorized by role name", {
           roleName,
-          allowedRolePatterns,
+          allowedRoleNames,
         });
 
         return {
           isAuthorized: false,
           reason:
-            `Access is not authorized by role pattern: ${roleName} does not match any ` +
-            `of the allowed patterns: ${allowedRolePatterns.join(", ")}`,
+            `Access is not authorized by role name: ${roleName} does not match any ` +
+            `of the allowed names: ${allowedRoleNames.join(", ")}`,
         };
       } else {
-        logger.info("Access is authorized by role pattern", {
+        logger.info("Access is authorized by role name", {
           roleName,
-          allowedPattern: allowedRolePatterns,
+          allowedRoleNames,
         });
       }
     }
 
     // Check if access is from an allowed network
-    if (allowedNetworks && allowedNetworks.length > 0) {
+    allowedNetworksCheck: if (allowedNetworks && allowedNetworks.length > 0) {
       if (!isValidIPAddress(sourceIP)) {
         logger.warn("Source IP address is not a valid IP address", {
           sourceIP,
@@ -192,9 +196,7 @@ function isAuthorizedAccess({
             sourceIP,
           });
 
-          return {
-            isAuthorized: true,
-          };
+          break allowedNetworksCheck;
         }
 
         return {
@@ -230,6 +232,40 @@ function isAuthorizedAccess({
         logger.info("Source IP address is in the allowed networks", {
           sourceIP,
           allowedNetworks,
+        });
+      }
+    }
+
+    // Check if access is from an allowed VPC endpoint
+    if (allowedVPCEndpoints && allowedVPCEndpoints.length > 0) {
+      const vpcEndpointID = eventDetail.vpcEndpointId;
+
+      if (!vpcEndpointID) {
+        logger.warn("VPC endpoint ID is not present in the event", {
+          eventDetail,
+        });
+
+        return {
+          isAuthorized: false,
+          reason: "VPC endpoint ID is not present in the event",
+        };
+      }
+
+      if (!allowedVPCEndpoints.includes(vpcEndpointID)) {
+        logger.warn("VPC endpoint ID is not in the allowed VPC endpoints", {
+          eventDetail,
+        });
+
+        return {
+          isAuthorized: false,
+          reason:
+            `VPC endpoint ID ${vpcEndpointID} is not in any of the allowed ` +
+            `VPC endpoints: ${allowedVPCEndpoints.join(", ")}`,
+        };
+      } else {
+        logger.info("VPC endpoint ID is in the allowed VPC endpoints", {
+          vpcEndpointID,
+          allowedVPCEndpoints,
         });
       }
     }

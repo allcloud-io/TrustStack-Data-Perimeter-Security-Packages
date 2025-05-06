@@ -1,0 +1,761 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Adding a Security Package to TrustStack
+
+This rule provides guidance on how to add a new security package to the TrustStack framework. Security packages in TrustStack implement comprehensive prevention-first security controls for specific AWS services or security concerns.
+
+## Overview
+
+TrustStack security packages follow a consistent structure and implement multiple layers of controls:
+
+- **Preventative Controls**: Service Control Policies (SCPs) that block unauthorized actions
+- **Proactive Controls**: CloudFormation hooks that validate configurations during deployment
+- **Detective Controls**: CloudTrail monitoring to detect non-compliant activities
+- **Responsive Controls**: Automatically remediate security issues when detected
+
+## Security Package Directory Structure
+
+Create a new directory for your security package following this structure:
+
+```
+lib/security-packages/<service>/<package-name>/
+├── README.md                   # Package documentation
+├── stack.ts                    # CDK stack definition
+├── index.ts                    # Exports for the package
+├── shared/                     # Shared code and utilities
+├── preventative-controls/      # SCP generation and related code
+│   └── generate-scp.ts         # SCP generation logic
+├── proactive-control/          # CloudFormation hook implementation
+│   ├── handler.ts              # Lambda handler for CloudFormation hook
+│   └── handler.spec.ts         # Tests for CloudFormation hook handler
+├── detective-control/          # Monitoring and alerting implementation
+│   ├── handler.ts              # Lambda handler for detective control
+│   └── handler.spec.ts         # Tests for detective control handler
+└── responsive-control/         # Remediation implementation
+    ├── handler.ts              # Lambda handler for responsive control
+    └── handler.spec.ts         # Tests for responsive control handler
+```
+
+## Step 1: Create Package Documentation
+
+Create a README.md file that explains the security risk addressed by your package and how the controls mitigate it:
+
+```markdown
+# [Service Name] [Security Package Name]
+
+## Overview
+
+Brief description of the security risk addressed by this package.
+
+## Security Controls
+
+### Preventative Controls
+
+Describe the preventative controls (SCPs) that block unauthorized actions.
+
+### Proactive Controls
+
+Describe the proactive controls that validate configurations during deployment.
+
+### Detective Controls
+
+Describe the detective controls that monitor for non-compliant resources.
+
+### Responsive Controls
+
+Describe the responsive controls that automatically remediate issues.
+
+## Configuration
+
+Document the configuration options for this security package.
+```
+
+## Step 2: Define Package Configuration Schema
+
+First, define a dedicated Zod schema and TypeScript type for your security package configuration in the `packages/schema/src/configuration-schema.ts` file:
+
+```typescript
+/**
+ * Configuration for the Your New Package
+ */
+export const YourNewPackageConfig = z.object({
+  /**
+   * Document each configuration property with JSDoc comments
+   */
+  allowedResources: z.array(z.string()).describe("List of allowed resources"),
+
+  /**
+   * Add validation rules using Zod's validation methods
+   */
+  maxRetries: z.number().min(1).max(10).default(3),
+
+  /**
+   * Use appropriate Zod types for each configuration property
+   */
+  isStrictMode: z.boolean().default(false),
+
+  /**
+   * For object properties, nest Zod schemas
+   */
+  advancedSettings: z
+    .object({
+      timeout: z.number().min(1).max(300).default(30),
+      logLevel: z.enum(["DEBUG", "INFO", "WARN", "ERROR"]).default("INFO"),
+    })
+    .optional(),
+});
+
+/**
+ * Export the inferred TypeScript type from the Zod schema
+ */
+export type YourNewPackageConfig = z.infer<typeof YourNewPackageConfig>;
+```
+
+Then, add your package to the `SecurityPackageSlug` enum (maintain alphabetical order):
+
+```typescript
+export const SecurityPackageSlug = z.enum([
+  "ecr-image-layer-access",
+  "sns-subscription-security",
+  "your-new-package-slug", // Add your new package slug here (maintain alphabetical order)
+]);
+
+export type SecurityPackageSlug = z.infer<typeof SecurityPackageSlug>;
+```
+
+Finally, update the `ConfigurationSchema` to include your new security package:
+
+```typescript
+export const ConfigurationSchema = z.object({
+  version: z.enum(["v1"]),
+  spec: z.object({
+    // Existing fields...
+    securityPackages: z
+      .object({
+        // Existing packages...
+
+        // Add your new package
+        yourNewPackage: z
+          .union([
+            z.object({
+              enabled: z.literal(true),
+              configuration: YourNewPackageConfig,
+            }),
+            z.object({
+              enabled: z.literal(false),
+            }),
+          ])
+          .optional(),
+      })
+      .describe("The security packages to deploy"),
+  }),
+});
+```
+
+### Best Practices for Schema Definition
+
+1. **Documentation**: Add JSDoc comments to explain each configuration property
+2. **Validation**: Use Zod's validation methods to enforce constraints on values
+3. **Defaults**: Provide sensible default values where appropriate
+4. **Type Exports**: Always export the inferred TypeScript type using `z.infer<typeof ...>`
+5. **Naming Conventions**: Follow the existing naming pattern for consistency:
+   - Schema: `YourNewPackageConfig`
+   - Type: `YourNewPackageConfig` (same name)
+   - Slug: `your-new-package-slug` (kebab-case)
+   - Object property: `yourNewPackage` (camelCase)
+6. **Ordering**: Keep enums and lists in alphabetical order
+7. **Optionality**: Use `.optional()` for optional fields and provide defaults where appropriate
+
+### Example of a Complete Configuration Schema
+
+Here's a complete example from an existing package (SNS Subscription Security):
+
+```typescript
+// Define any supporting enums
+const SNSSupportedProtocols = z.enum([
+  "email",
+  "email-json",
+  "http",
+  "https",
+  "sqs",
+  "lambda",
+  "firehose",
+  "application",
+]);
+
+export type SNSSupportedProtocols = z.infer<typeof SNSSupportedProtocols>;
+
+// Define the main configuration schema
+export const SNSSubscriptionSecurityPackageConfig = z.object({
+  /**
+   * List of trusted email domains
+   */
+  trustedEmailDomains: z.string().array(),
+
+  /**
+   * List of trusted HTTP/HTTPS domains
+   */
+  trustedHTTPDomains: z.string().array(),
+
+  /**
+   * List of trusted AWS service protocols
+   */
+  trustedProtocols: SNSSupportedProtocols.array(),
+});
+
+export type SNSSubscriptionSecurityPackageConfig = z.infer<
+  typeof SNSSubscriptionSecurityPackageConfig
+>;
+```
+
+## Step 3: Update Utils Package Types
+
+Update the `SharedSSMParameterName` type in the `packages/utils/src/shared-ssm-parameters.ts` file to include your security package's configuration parameter path:
+
+```typescript
+export type SharedSSMParameterName =
+  | "/trust-stack/assets-bucket/name"
+  | "/trust-stack/cloudformation-hook-execution-role-arn"
+  | "/trust-stack/ecr/image-layer-access/config"
+  | "/trust-stack/sns/subscription-security/config"
+  | "/trust-stack/your-service/your-package-name/config";  // Add your package's config path(maintain alphabetical order)
+```
+
+Also, update the `getValidatedPackageConfig` function to handle your new package:
+
+```typescript
+export async function getValidatedPackageConfig(
+  securityPackage: "your-new-package-slug",
+): Promise<YourNewPackageConfig>;
+// ... existing overloads, the new function signature overload must be placed in alphabetical order based on the security packages'slugs. 
+
+export async function getValidatedPackageConfig(
+  securityPackage: SecurityPackageSlug,
+): Promise<
+  ECRImageLayerAccessPackageConfig | 
+  SNSSubscriptionSecurityPackageConfig | 
+  YourNewPackageConfig  // Add your package's config type(maintain alphabetical order)
+> {
+  let parameterName: string;
+  let schema: ZodSchema;
+
+  switch (securityPackage) {
+    // ... existing cases
+    case "your-new-package-slug":
+      parameterName = "/trust-stack/your-service/your-package-name/config";
+      schema = YourNewPackageConfig;
+      break;
+    default:
+      throw new Error(`Unsupported package: ${securityPackage}`);
+  }
+  
+  // ... rest of the function
+}
+```
+
+## Step 4: Implement CDK Stack
+
+Create a `stack.ts` file that defines the CloudFormation resources for your security package. Your stack should follow the TrustStack patterns for security packages:
+
+```typescript
+import type { YourNewPackageConfig } from "@trust-stack/schema";
+import type { SharedSSMParameterName } from "@trust-stack/utils";
+import * as cdk from "aws-cdk-lib";
+import * as events from "aws-cdk-lib/aws-events";
+import * as eventsTargets from "aws-cdk-lib/aws-events-targets";
+import * as iam from "aws-cdk-lib/aws-iam";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import * as ssm from "aws-cdk-lib/aws-ssm";
+import type { Construct } from "constructs";
+import { BUILD_HASH } from "../../../shared/build-configuration";
+import {
+  CloudFormationLambdaHook,
+  createNodejsLambdaFunction,
+} from "../../../shared/constructs";
+import { SECURITY_PACKAGE_NAME, SECURITY_PACKAGE_SLUG } from "./shared";
+
+export type [Service Name]_YourNewPackageStackProps = cdk.StackProps &
+  Readonly<{
+    securityPackagesDir: string;
+    config: YourNewPackageConfig;
+  }>;
+
+/**
+ * Stack for the Your New Package
+ */
+export class [Service Name]_YourNewPackageStack extends cdk.Stack {
+  private readonly assetsBucket: s3.IBucket;
+  private readonly packageConfigSSMParameter: ssm.StringParameter;
+  private readonly hookExecutionRole?: iam.IRole;
+
+  constructor(
+    scope: Construct,
+    id: string,
+    props: [Service Name]_YourNewPackageStackProps
+  ) {
+    super(scope, id, props);
+
+    const { config } = props;
+
+    // Get assets bucket from SSM parameter
+    const assetsBucketName = ssm.StringParameter.valueForStringParameter(
+      this,
+      "/trust-stack/assets-bucket/name" satisfies SharedSSMParameterName,
+    );
+
+    this.assetsBucket = s3.Bucket.fromBucketName(
+      this,
+      "AssetsBucket",
+      assetsBucketName,
+    );
+
+    // Store configuration in SSM Parameter Store
+    this.packageConfigSSMParameter = new ssm.StringParameter(
+      this,
+      "PackageConfigurationSSMParameter",
+      {
+        parameterName:
+          "/trust-stack/your-service/your-package-name/config" satisfies SharedSSMParameterName,
+        stringValue: JSON.stringify(config),
+      },
+    );
+
+    // If implementing proactive controls, get hook execution role from SSM
+    if (this.shouldCreateProactiveControl()) {
+      const hookExecutionRoleARN = ssm.StringParameter.valueForStringParameter(
+        this,
+        "/trust-stack/cloudformation-hook-execution-role-arn" satisfies SharedSSMParameterName,
+      );
+
+      this.hookExecutionRole = iam.Role.fromRoleArn(
+        this,
+        "HookExecutionRole",
+        hookExecutionRoleARN,
+      );
+    }
+
+    // Create each control type as needed
+    this.createProactiveControl();
+    this.createDetectiveControl();
+    this.createResponsiveControl();
+  }
+
+  private createProactiveControl() {
+    return new CloudFormationLambdaHook(this, "ProactiveControl", {
+      securityPackageName: SECURITY_PACKAGE_NAME,
+      description:
+        "CloudFormation hook handler to validate resource configurations",
+      hookExecutionRole: this.hookExecutionRole,
+      targetOperations: ["RESOURCE"],
+      targetNames: ["AWS::Service::Resource"], // Replace with actual resource type
+      failureMode: "FAIL",
+      code: lambda.Code.fromBucketV2(
+        this.assetsBucket,
+        `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/proactive-control/lambda.zip`,
+      ),
+      initialPolicy: [
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: ["ssm:GetParameter"],
+          resources: [this.packageConfigSSMParameter.parameterArn],
+        }),
+        // Add additional permissions needed for the hook
+      ],
+    });
+  }
+
+  private createDetectiveControl() {
+    // Create Lambda function using the shared construct
+    const lambdaHandler = createNodejsLambdaFunction(
+      this,
+      "DetectiveControlHandler",
+      {
+        functionName: `${SECURITY_PACKAGE_NAME}-MonitorService`,
+        description: "Monitor CloudTrail events and validate compliance",
+        code: lambda.Code.fromBucketV2(
+          this.assetsBucket,
+          `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/detective-control/lambda.zip`,
+        ),
+        initialPolicy: [
+          new iam.PolicyStatement({
+            sid: "AllowGetPackageConfiguration",
+            effect: iam.Effect.ALLOW,
+            actions: ["ssm:GetParameter"],
+            resources: [this.packageConfigSSMParameter.parameterArn],
+          }),
+          new iam.PolicyStatement({
+            sid: "AllowImportSecurityHubFindings",
+            effect: iam.Effect.ALLOW,
+            actions: ["securityhub:BatchImportFindings"],
+            resources: ["*"],
+          }),
+          // Add additional permissions as needed
+        ],
+      },
+    );
+
+    // Create EventBridge rule to trigger the Lambda function
+    new events.Rule(this, "ServiceEventRule", {
+      eventPattern: {
+        source: ["aws.service"], // Replace with actual service
+        detailType: ["AWS API Call via CloudTrail"],
+        detail: {
+          eventSource: ["service.amazonaws.com"], // Replace with actual service
+          eventName: ["ApiOperation"], // Replace with actual API operation
+        },
+      },
+      targets: [new eventsTargets.LambdaFunction(lambdaHandler)],
+    });
+  }
+
+  private createResponsiveControl() {
+    // Create Lambda function using the shared construct
+    const lambdaHandler = createNodejsLambdaFunction(
+      this,
+      "ResponsiveControlHandler",
+      {
+        functionName: `${SECURITY_PACKAGE_NAME}-RemediateViolations`,
+        description: "Automatically remediate compliance violations",
+        code: lambda.Code.fromBucketV2(
+          this.assetsBucket,
+          `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/responsive-control/lambda.zip`,
+        ),
+        timeout: cdk.Duration.minutes(1),
+        initialPolicy: [
+          // Add required IAM permissions for remediation actions
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              "securityhub:GetFindings",
+              "securityhub:BatchUpdateFindings",
+            ],
+            resources: ["*"],
+          }),
+          // Add service-specific permissions as needed
+        ],
+      },
+    );
+
+    // Create EventBridge rule to trigger the Lambda function on Security Hub findings
+    new events.Rule(this, "SecurityHubFindingRule", {
+      eventPattern: {
+        source: ["aws.securityhub"],
+        detailType: ["Security Hub Findings - Imported"],
+        detail: {
+          findings: {
+            GeneratorId: ["YourGeneratorId"], // Match your detective control's generator ID
+            Workflow: {
+              Status: ["NEW"],
+            },
+          },
+        },
+      },
+      targets: [new eventsTargets.LambdaFunction(lambdaHandler)],
+    });
+  }
+}
+```
+
+### Define Package-Specific Constants
+
+Create a `shared/constants.ts` file to define constants for your package:
+
+```typescript
+import type { SecurityPackageSlug } from "@trust-stack/schema";
+
+/**
+ * Security package name for use in AWS resource naming
+ */
+export const SECURITY_PACKAGE_NAME = "YourNewPackage";
+
+/**
+ * Security package slug for use in configuration
+ */
+export const SECURITY_PACKAGE_SLUG =
+  "your-new-package-slug" satisfies SecurityPackageSlug;
+```
+
+Create an `shared/index.ts` file to export the shared constants:
+
+```typescript
+export * from "./constants";
+
+```
+
+### Key CDK Stack Implementation Patterns
+
+1. **Configuration Storage**:
+
+   - Store package configuration in SSM Parameter Store
+   - Use constants for resource naming and identification
+
+2. **Lambda Function Creation**:
+
+   - Use the `createNodejsLambdaFunction` utility for consistent Lambda settings
+   - Provide descriptive names and documentation
+   - Define appropriate IAM permissions
+   - Use asset references from S3 bucket
+
+3. **Event Triggers**:
+
+   - Configure EventBridge rules to trigger Lambda functions
+   - Define precise event patterns to filter events
+
+4. **Proactive Controls**:
+
+   - Use the `CloudFormationLambdaHook` construct for CloudFormation hooks
+   - Target specific resource types and operations
+
+5. **Component Organization**:
+   - Implement each control type as a separate method
+   - Reuse common resources like the configuration parameter and assets bucket
+
+## Step 5: Implement Control Types
+
+### Preventative Controls (Service Control Policies)
+
+Create a `generate-scp.ts` file in the `preventative-controls` directory:
+
+```typescript
+import type { YourNewPackageConfig } from "@trust-stack/schema";
+import type {
+  SCPStatement,
+  ServiceControlPolicy,
+} from "../../../../../../../types/service-control-policy";
+
+export function generateSCP(
+  config: YourNewPackageConfig,
+): ServiceControlPolicy {
+  return {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Sid: "DenyUnsafeActions",
+        Effect: "Deny",
+        Action: [
+          // Actions to deny
+        ],
+        Resource: "*",
+        Condition: {
+          // Conditions for when the policy applies
+        },
+      },
+    ],
+  };
+}
+```
+
+### Proactive Controls (CloudFormation Hooks)
+
+Implement a Lambda handler for proactive controls in `proactive-control/handler.ts`:
+See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.mdc) for more information.
+
+### Detective Controls (Monitoring and Alerting)
+
+Implement a Lambda handler for detective controls in `detective-control/handler.ts`:
+See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.mdc) for more information.
+
+### Responsive Controls (Remediation)
+
+Implement a Lambda handler for responsive controls in `responsive-control/handler.ts`:
+See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.mdc) for more information.
+
+## Step 6: Implement Tests
+
+Create test files for each Lambda handler.
+See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.mdc) for more information.
+
+## Step 7: Update the Export File
+
+Create an `index.ts` file to export your security package:
+
+```typescript
+export * from "./stack";
+```
+
+## Step 8: Update CDK Application
+
+Update `apps/security-packages/bin/app.ts` to include your new security package:
+
+```typescript
+#!/usr/bin/env node
+import { ConfigurationSchema, parseManifestFile } from "@trust-stack/schema";
+import * as cdk from "aws-cdk-lib";
+import * as path from "node:path";
+import {
+  ECR_ImageLayerAccessStack,
+  SNS_SubscriptionSecurityStack,
+  YourNewPackageStack, // Import your new stack
+} from "../lib";
+
+// Existing code...
+
+if (securityPackages.yourNewPackage?.enabled) {
+  new YourNewPackageStack(app, "YourNewPackage", {
+    securityPackagesDir: securityPackagesDir,
+    config: securityPackages.yourNewPackage.configuration,
+    tags: {
+      "TrustStack:SecurityPackage": "YourNewPackage",
+    },
+  });
+}
+
+// Existing code...
+```
+Notes:
+- Ensure that the CDK stack instantiation for your new package (`YourNewPackageStack`) appears in the correct alphabetical order relative to other security packages (e.g., `ECR_ImageLayerAccessStack`, `SNS_SubscriptionSecurityStack`). This ensures consistent and predictable deployment order.
+
+## Step 9: Update Example Deployment Manifest
+
+Update the `deployment-manifest.example.yml` file to include a sample configuration for your new security package. This file serves as a reference for users configuring the security packages:
+
+```yaml
+# In deployment-manifest.example.yml
+securityPackages:
+  # Add your new package with example configuration (maintain alphabetical order)
+  yourNewPackage:
+    enabled: true
+    configuration:
+      # Include all configurable options with sensible example values
+      allowedResources:
+        - "resource-id-1"
+        - "resource-id-2"
+      maxRetries: 5
+      isStrictMode: true
+      advancedSettings:
+        timeout: 60
+        logLevel: "INFO"
+```
+
+The example configuration should:
+1. Provide clear, realistic examples for each configuration property
+2. Include values that demonstrate the intended use case
+3. Match the schema definition in `configuration-schema.ts`
+4. Be placed in the appropriate alphabetical position among other packages
+
+Example from an existing package:
+
+```yaml
+ecrImageLayerAccess:
+      enabled: true
+      configuration:
+        allowedRoleNames:
+          - TrustedRole
+          - TrustedRole2
+        allowedNetworks:
+          - 192.168.1.0/24
+          - 192.168.2.0/24
+        allowedVPCEndpoints:
+          - vpce-0123456789abcdefg
+          - vpce-0123456789abcdefh
+```
+
+## Step 10: Update Asset Generation Script
+
+Update `apps/security-packages/scripts/generate-deployment-assets.ts` to generate assets for your new security package:
+
+```typescript
+// Import your SCP generation function
+import { generateSCP as generateYourNewPackageSCP } from "../lib/security-packages/service-name/your-package-name/preventative-controls/generate-scp";
+
+// Existing code...
+
+if (securityPackages.yourNewPackage?.enabled) {
+  console.log("Your New Package is enabled");
+
+  const securityPackageSlug = "your-package-slug";
+  const description = "Description of your security package";
+
+  const cloudformationTemplateFilePath =
+    await addCloudFormationTemplate(securityPackageSlug);
+
+  generatedFilePaths.push(
+    path.relative(projectDirectory, cloudformationTemplateFilePath),
+  );
+
+  const config = securityPackages.yourNewPackage.configuration;
+  const scp = generateYourNewPackageSCP(config);
+
+  const scpFilePath = path.join(
+    distDirectory,
+    securityPackageSlug,
+    "preventative-controls",
+    "service-control-policy.json",
+  );
+
+  await fs.mkdir(path.dirname(scpFilePath), { recursive: true });
+  await fs.writeFile(scpFilePath, JSON.stringify(scp, null, 2));
+
+  const lzaOrganizationConfigFilePath = await generateLZAOrganizationConfigFile(
+    securityPackageSlug,
+    description,
+  );
+
+  const lzaCustomizationsConfigFilePath =
+    await generateLZACustomizationsConfigFile(securityPackageSlug, description);
+
+  const lambdaHandlerArchiveFilePaths =
+    await buildLambdaHandlerArchives(securityPackageSlug);
+
+  const relativeFilePaths = [
+    scpFilePath,
+    lzaOrganizationConfigFilePath,
+    lzaCustomizationsConfigFilePath,
+    ...lambdaHandlerArchiveFilePaths,
+  ].map((filePath) => path.relative(projectDirectory, filePath));
+
+  generatedFilePaths.push(...relativeFilePaths);
+} else {
+  console.log("Your New Package is disabled.");
+}
+```
+
+## Step 11: Update Build Configuration
+
+Add your package to the build configuration in `lib/shared/build-configuration.ts`:
+
+```typescript
+export const buildConfiguration: Record<
+  SecurityPackageSlug,
+  {
+    packageDirectoryPath: string;
+    generatedCloudFormationTemplateFilePath: string;
+  }
+> = {
+  // Existing packages
+  ["your-package-slug" satisfies SecurityPackageSlug]: {
+    packageDirectoryPath: path.join(
+      securityPackagesDir,
+      "service-name",
+      "your-package-name",
+    ),
+    generatedCloudFormationTemplateFilePath: path.join(
+      cdkOut,
+      "YourNewPackage.template.json",
+    ),
+  },
+};
+```
+
+## Step 12: Testing the New Security Package
+
+1. Add unit tests for your Lambda handlers using Jest
+2. Run tests locally: `pnpm test`
+3. Enable the package in your deployment manifest
+4. Test package generation: `pnpm generate-deployment-assets`
+5. Verify the generated assets in the dist directory
+
+## Reference Implementations
+
+For additional examples, refer to the existing security packages:
+
+- [README.md](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/README.md)
+- [README.md](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/README.md)
+
+## TypeScript Style Guide
+
+Follow [typescript-style-guide.mdc](mdc:.cursor/rules/typescript-style-guide.mdc) when writing TypeScript code.

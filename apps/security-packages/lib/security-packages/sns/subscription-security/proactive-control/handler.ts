@@ -12,10 +12,13 @@ import type {
   CloudFormationHookResult,
 } from "../../../../../../../types/cfn-hooks";
 import type { AWS_SNS_Subscription } from "../../../../../../../types/cfn-resources/aws-sns-subscription";
-import { validateSnsSubscriptionEndpoint } from "../shared";
+import {
+  SECURITY_PACKAGE_NAME,
+  validateSnsSubscriptionEndpoint,
+} from "../shared";
 
 const logger = new Logger({
-  serviceName: "SNSSubscriptionSecurityCloudFormationLambdaHookHandler",
+  serviceName: `${SECURITY_PACKAGE_NAME}CloudFormationLambdaHookHandler`,
 });
 
 export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));

@@ -4,6 +4,7 @@ import * as cdk from "aws-cdk-lib";
 import * as path from "node:path";
 import {
   ECR_ImageLayerAccessStack,
+  Lambda_VPCSecurityStack,
   SNS_SubscriptionSecurityStack,
 } from "../lib";
 
@@ -29,22 +30,32 @@ const app = new cdk.App({
   defaultStackSynthesizer: new cdk.BootstraplessSynthesizer(),
 });
 
-if (securityPackages.snsSubscriptionSecurity?.enabled) {
-  new SNS_SubscriptionSecurityStack(app, "SNSSubscriptionSecurity", {
-    securityPackagesDir: securityPackagesDir,
-    config: securityPackages.snsSubscriptionSecurity.configuration,
-    tags: {
-      "TrustStack:SecurityPackage": "SNSSubscriptionSecurity",
-    },
-  });
-}
-
 if (securityPackages.ecrImageLayerAccess?.enabled) {
   new ECR_ImageLayerAccessStack(app, "ECRImageLayerAccess", {
     securityPackagesDir: securityPackagesDir,
     config: securityPackages.ecrImageLayerAccess.configuration,
     tags: {
       "TrustStack:SecurityPackage": "ECRImageLayerAccess",
+    },
+  });
+}
+
+if (securityPackages.lambdaVPCSecurity?.enabled) {
+  new Lambda_VPCSecurityStack(app, "LambdaVPCSecurity", {
+    securityPackagesDir: securityPackagesDir,
+    config: securityPackages.lambdaVPCSecurity.configuration,
+    tags: {
+      "TrustStack:SecurityPackage": "LambdaVPCSecurity",
+    },
+  });
+}
+
+if (securityPackages.snsSubscriptionSecurity?.enabled) {
+  new SNS_SubscriptionSecurityStack(app, "SNSSubscriptionSecurity", {
+    securityPackagesDir: securityPackagesDir,
+    config: securityPackages.snsSubscriptionSecurity.configuration,
+    tags: {
+      "TrustStack:SecurityPackage": "SNSSubscriptionSecurity",
     },
   });
 }

@@ -96,7 +96,7 @@ export function validateSnsSubscriptionEndpoint(
       const hostname = url.hostname.toLowerCase();
 
       if (
-        !config.trustedHttpDomains.some(
+        !config.trustedHTTPDomains.some(
           (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
         )
       ) {
@@ -104,7 +104,7 @@ export function validateSnsSubscriptionEndpoint(
           isValid: false,
           reason:
             `SNS subscription has an untrusted HTTP domain: '${hostname}'. ` +
-            `Trusted domains are: ${config.trustedHttpDomains.join(", ")}.`,
+            `Trusted domains are: ${config.trustedHTTPDomains.join(", ")}.`,
         };
       }
 

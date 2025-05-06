@@ -3,9 +3,10 @@ import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { IAM } from "@aws-sdk/client-iam";
 import middy from "@middy/core";
 import type { SecurityHubFindingsImportedEvent } from "../../../../../../../types/aws-security-hub-events";
+import { SECURITY_PACKAGE_NAME } from "../shared";
 
 const logger = new Logger({
-  serviceName: "ECRImageLayerAccessResponsiveControl",
+  serviceName: `${SECURITY_PACKAGE_NAME}ResponsiveControl`,
 });
 
 const iam = new IAM({});

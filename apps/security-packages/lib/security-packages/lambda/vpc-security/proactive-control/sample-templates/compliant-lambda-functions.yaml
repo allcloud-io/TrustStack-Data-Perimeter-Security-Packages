@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Sample template with compliant Lambda functions that use proper VPC configurations"
+
+Parameters:
+  LambdaRoleARN:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ARN of IAM role for Lambda execution
+    Default: "/trust-stack/e2e-tests/lambda-role-arn"
+
+  SubnetID1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of the first subnet to use for Lambda functions
+    Default: "/trust-stack/e2e-tests/lambda-subnet-id-1"
+
+  SubnetID2:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of the second subnet to use for Lambda functions
+    Default: "/trust-stack/e2e-tests/lambda-subnet-id-2"
+
+  SecurityGroupID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of the security group to use for Lambda functions
+    Default: "/trust-stack/e2e-tests/lambda-security-group-id"
+
+  SecondarySecurityGroupID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of the secondary security group to use for Lambda functions with multiple security groups
+    Default: "/trust-stack/e2e-tests/lambda-secondary-security-group-id"
+
+Resources:
+  # Compliant Lambda function with proper VPC configuration
+  CompliantLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "compliant-lambda-function"
+      Runtime: "nodejs18.x"
+      Handler: "index.handler"
+      Role: !Ref LambdaRoleARN
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            console.log('Event:', JSON.stringify(event, null, 2));
+            return {
+              statusCode: 200,
+              body: JSON.stringify('Hello from Lambda!'),
+            };
+          };
+      Description: "A compliant Lambda function with VPC configuration"
+      Timeout: 30
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupID
+        SubnetIds:
+          - !Ref SubnetID1
+          - !Ref SubnetID2
+      Tags:
+        - Key: Purpose
+          Value: SecurityCompliance
+
+  # Compliant Lambda function with multiple security groups
+  CompliantMultiSGLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "compliant-multi-sg-lambda-function"
+      Runtime: "python3.9"
+      Handler: "index.handler"
+      Role: !Ref LambdaRoleARN
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              print('Event:', event)
+              return {
+                  'statusCode': 200,
+                  'body': 'Hello from Lambda!'
+              }
+      Description: "A compliant Lambda function with multiple security groups"
+      Timeout: 30
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupID
+          - !Ref SecondarySecurityGroupID
+        SubnetIds:
+          - !Ref SubnetID1
+          - !Ref SubnetID2
+      Tags:
+        - Key: Purpose
+          Value: SecurityCompliance
+
+  # Compliant Lambda function in an approved VPC
+  CompliantApprovedVPCLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "compliant-approved-vpc-lambda-function"
+      Runtime: "nodejs18.x"
+      Handler: "index.handler"
+      Role: !Ref LambdaRoleARN
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            console.log('Event:', JSON.stringify(event, null, 2));
+            return {
+              statusCode: 200,
+              body: JSON.stringify('Hello from Lambda!'),
+            };
+          };
+      Description: "A compliant Lambda function in an approved VPC"
+      Timeout: 30
+      MemorySize: 256
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupID
+        SubnetIds:
+          - !Ref SubnetID1
+          - !Ref SubnetID2
+      Tags:
+        - Key: Purpose
+          Value: SecurityCompliance
+
+Outputs:
+  CompliantLambdaFunctionARN:
+    Description: ARN of the compliant Lambda function
+    Value: !GetAtt CompliantLambdaFunction.Arn
+
+  CompliantMultiSGLambdaFunctionARN:
+    Description: ARN of the compliant Lambda function with multiple security groups
+    Value: !GetAtt CompliantMultiSGLambdaFunction.Arn
+
+  CompliantApprovedVPCLambdaFunctionARN:
+    Description: ARN of the compliant Lambda function in an approved VPC
+    Value: !GetAtt CompliantApprovedVPCLambdaFunction.Arn

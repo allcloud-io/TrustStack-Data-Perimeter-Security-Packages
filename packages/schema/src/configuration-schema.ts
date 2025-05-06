@@ -5,9 +5,9 @@ import { z } from "zod";
  */
 export const ECRImageLayerAccessPackageConfig = z.object({
   /**
-   * List of allowed role patterns
+   * List of allowed role names
    */
-  allowedRolePatterns: z.array(z.string()).optional(),
+  allowedRoleNames: z.array(z.string()).optional(),
 
   /**
    * List of allowed networks
@@ -25,6 +25,20 @@ export const ECRImageLayerAccessPackageConfig = z.object({
 export type ECRImageLayerAccessPackageConfig = z.infer<
   typeof ECRImageLayerAccessPackageConfig
 >;
+
+/**
+ * Configuration for the Lambda VPC security package
+ */
+export const LambdaVPCSecurityConfig = z.object({
+  /**
+   * Optional list of VPC IDs that Lambda functions are allowed to use
+   * If not specified, any VPC is considered valid as long as the function
+   * is running inside a VPC
+   */
+  allowedVPCIDs: z.array(z.string()).optional(),
+});
+
+export type LambdaVPCSecurityConfig = z.infer<typeof LambdaVPCSecurityConfig>;
 
 const SNSSupportedProtocols = z.enum([
   "email",
@@ -51,7 +65,7 @@ export const SNSSubscriptionSecurityPackageConfig = z.object({
   /**
    * List of trusted HTTP/HTTPS domains
    */
-  trustedHttpDomains: z.string().array(),
+  trustedHTTPDomains: z.string().array(),
 
   /**
    * List of trusted AWS service protocols
@@ -65,6 +79,7 @@ export type SNSSubscriptionSecurityPackageConfig = z.infer<
 
 export const SecurityPackageSlug = z.enum([
   "ecr-image-layer-access",
+  "lambda-vpc-security",
   "sns-subscription-security",
 ]);
 
@@ -102,6 +117,17 @@ export const ConfigurationSchema = z.object({
             z.object({
               enabled: z.literal(true),
               configuration: ECRImageLayerAccessPackageConfig,
+            }),
+            z.object({
+              enabled: z.literal(false),
+            }),
+          ])
+          .optional(),
+        lambdaVPCSecurity: z
+          .union([
+            z.object({
+              enabled: z.literal(true),
+              configuration: LambdaVPCSecurityConfig,
             }),
             z.object({
               enabled: z.literal(false),

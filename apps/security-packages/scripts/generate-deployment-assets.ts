@@ -29,6 +29,7 @@ import * as childProcess from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { generateSCP as generateECRImageLayerAccessSCP } from "../lib/security-packages/ecr/image-layer-access/preventative-controls/generate-scp";
+import { generateSCP as generateLambdaVPCSecuritySCP } from "../lib/security-packages/lambda/vpc-security/preventative-controls/generate-scp";
 import { generateSCP as generateSNSSubscriptionSecuritySCP } from "../lib/security-packages/sns/subscription-security/preventative-controls/generate-scp";
 import {
   buildConfiguration,
@@ -425,8 +426,6 @@ async function main() {
     await fs.mkdir(path.dirname(scpFilePath), { recursive: true });
     await fs.writeFile(scpFilePath, JSON.stringify(scp, null, 2));
 
-    generatedFilePaths.push(path.relative(projectDirectory, scpFilePath));
-
     const lzaOrganizationConfigFilePath =
       await generateLZAOrganizationConfigFile(securityPackageSlug, description);
 
@@ -449,6 +448,57 @@ async function main() {
     generatedFilePaths.push(...relativeFilePaths);
   } else {
     console.log("ECR Image Layer Access is disabled.");
+  }
+
+  if (securityPackages.lambdaVPCSecurity?.enabled) {
+    console.log("Lambda VPC Security is enabled");
+
+    const securityPackageSlug = "lambda-vpc-security";
+    const description =
+      "Deny Lambda functions from being created without a VPC configuration";
+
+    const cloudformationTemplateFilePath =
+      await addCloudFormationTemplate(securityPackageSlug);
+
+    generatedFilePaths.push(
+      path.relative(projectDirectory, cloudformationTemplateFilePath),
+    );
+
+    const config = securityPackages.lambdaVPCSecurity.configuration;
+    const scp = generateLambdaVPCSecuritySCP(config);
+
+    const scpFilePath = path.join(
+      distDirectory,
+      securityPackageSlug,
+      "preventative-controls",
+      "service-control-policy.json",
+    );
+
+    await fs.mkdir(path.dirname(scpFilePath), { recursive: true });
+    await fs.writeFile(scpFilePath, JSON.stringify(scp, null, 2));
+
+    const lzaOrganizationConfigFilePath =
+      await generateLZAOrganizationConfigFile(securityPackageSlug, description);
+
+    const lzaCustomizationsConfigFilePath =
+      await generateLZACustomizationsConfigFile(
+        securityPackageSlug,
+        description,
+      );
+
+    const lambdaHandlerArchiveFilePaths =
+      await buildLambdaHandlerArchives(securityPackageSlug);
+
+    const relativeFilePaths = [
+      scpFilePath,
+      lzaOrganizationConfigFilePath,
+      lzaCustomizationsConfigFilePath,
+      ...lambdaHandlerArchiveFilePaths,
+    ].map((filePath) => path.relative(projectDirectory, filePath));
+
+    generatedFilePaths.push(...relativeFilePaths);
+  } else {
+    console.log("Lambda VPC Security is disabled.");
   }
 
   if (securityPackages.snsSubscriptionSecurity?.enabled) {

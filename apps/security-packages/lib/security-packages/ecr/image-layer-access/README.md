@@ -44,7 +44,7 @@ This package implements a comprehensive set of controls to mitigate these risks:
 
 Service Control Policy (SCP) that restricts `GetDownloadUrlForLayer` API calls based on:
 
-- Allowed IAM role patterns (via `aws:PrincipalARN` condition)
+- Allowed IAM role names (via `aws:PrincipalARN` condition)
 - Source IP addresses (optional network restrictions)
 - VPC endpoints (optional VPC endpoint restrictions)
 

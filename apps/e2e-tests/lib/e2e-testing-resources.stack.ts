@@ -4,20 +4,68 @@ import { MachineImage } from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as sns from "aws-cdk-lib/aws-sns";
+import * as ssm from "aws-cdk-lib/aws-ssm";
 import type { Construct } from "constructs";
 
 export class E2ETestingResourcesStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    this.createSNSTopic();
+    this.createECRRepository();
+    this.createIAMUserWithECRAccess();
+    const { authorizedVPC, unauthorizedVPC } = this.createVPC();
+    this.createBastionHost(authorizedVPC);
+    this.createBasicIAMRoleForLambdaFunctionsInsideVPC();
+    this.createSecurityGroupsForLambdaFunctionsInsideVPC(
+      authorizedVPC,
+      unauthorizedVPC,
+    );
+
+    new ssm.StringParameter(this, "LambdaVPCID", {
+      parameterName: "/trust-stack/e2e-tests/lambda-vpc-id",
+      stringValue: authorizedVPC.vpcId,
+    });
+
+    new ssm.StringParameter(this, "LambdaSubnetID1", {
+      parameterName: "/trust-stack/e2e-tests/lambda-subnet-id-1",
+      stringValue: authorizedVPC.privateSubnets[0].subnetId,
+    });
+
+    new ssm.StringParameter(this, "LambdaSubnetID2", {
+      parameterName: "/trust-stack/e2e-tests/lambda-subnet-id-2",
+      stringValue: authorizedVPC.privateSubnets[1].subnetId,
+    });
+
+    new ssm.StringParameter(this, "UnauthorizedLambdaVPCID", {
+      parameterName: "/trust-stack/e2e-tests/unauthorized-lambda-vpc-id",
+      stringValue: unauthorizedVPC.vpcId,
+    });
+
+    new ssm.StringParameter(this, "UnauthorizedLambdaSubnetID1", {
+      parameterName: "/trust-stack/e2e-tests/unauthorized-lambda-subnet-id-1",
+      stringValue: unauthorizedVPC.privateSubnets[0].subnetId,
+    });
+
+    new ssm.StringParameter(this, "UnauthorizedLambdaSubnetID2", {
+      parameterName: "/trust-stack/e2e-tests/unauthorized-lambda-subnet-id-2",
+      stringValue: unauthorizedVPC.privateSubnets[1].subnetId,
+    });
+  }
+
+  private createSNSTopic() {
     new sns.Topic(this, "SNSTopic", {
       topicName: "TrustStack-E2E-Test-Topic",
     });
+  }
 
+  private createECRRepository() {
     new ecr.Repository(this, "ECRRepository", {
       repositoryName: "truststack-e2e-test-repository",
     });
+  }
 
+  private createIAMUserWithECRAccess() {
     const ecrUser = new iam.User(this, "ECRUser", {
       userName: "truststack-e2e-test-ecr-user",
     });
@@ -27,10 +75,15 @@ export class E2ETestingResourcesStack extends cdk.Stack {
         "AmazonEC2ContainerRegistryPowerUser",
       ),
     );
+  }
 
-    const vpc = new ec2.Vpc(this, "VPC", {
+  private createVPC(): { authorizedVPC: ec2.Vpc; unauthorizedVPC: ec2.Vpc } {
+    const authorizedVPC = new ec2.Vpc(this, "VPC", {
+      vpcName: "TrustStackE2ETestAuthorizedVPC",
       ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
       maxAzs: 3,
+      enableDnsHostnames: true,
+      enableDnsSupport: true,
       subnetConfiguration: [
         { cidrMask: 24, name: "Public", subnetType: ec2.SubnetType.PUBLIC },
         {
@@ -42,21 +95,78 @@ export class E2ETestingResourcesStack extends cdk.Stack {
     });
 
     // Create ECR Docker API VPC endpoint
-    new ec2.InterfaceVpcEndpoint(this, "ECRDockerInterfaceVPCEndpoint", {
-      vpc: vpc,
-      service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
-      open: true,
-      subnets: {
-        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+    const ecrDockerInterfaceVPCEndpoint = new ec2.InterfaceVpcEndpoint(
+      this,
+      "ECRDockerInterfaceVPCEndpoint",
+      {
+        vpc: authorizedVPC,
+        service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
+        open: true,
+        subnets: {
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        },
       },
-    });
+    );
+
+    cdk.Tags.of(ecrDockerInterfaceVPCEndpoint).add(
+      "Name",
+      "truststack-e2e-test-ecr-docker-interface-vpc-endpoint",
+    );
+
+    // Create SNS Interface endpoint
+    const snsInterfaceVPCEndpoint = new ec2.InterfaceVpcEndpoint(
+      this,
+      "SNSInterfaceVPCEndpoint",
+      {
+        vpc: authorizedVPC,
+        service: ec2.InterfaceVpcEndpointAwsService.SNS,
+        open: true,
+        subnets: {
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        },
+      },
+    );
+
+    cdk.Tags.of(snsInterfaceVPCEndpoint).add(
+      "Name",
+      "truststack-e2e-test-sns-interface-vpc-endpoint",
+    );
 
     // Create S3 Gateway endpoint for ECR storage access
-    new ec2.GatewayVpcEndpoint(this, "S3GatewayEndpoint", {
-      vpc: vpc,
-      service: ec2.GatewayVpcEndpointAwsService.S3,
+    const s3GatewayEndpoint = new ec2.GatewayVpcEndpoint(
+      this,
+      "S3GatewayEndpoint",
+      {
+        vpc: authorizedVPC,
+        service: ec2.GatewayVpcEndpointAwsService.S3,
+      },
+    );
+
+    cdk.Tags.of(s3GatewayEndpoint).add(
+      "Name",
+      "truststack-e2e-test-s3-gateway-endpoint",
+    );
+
+    const unauthorizedVPC = new ec2.Vpc(this, "UnauthorizedVPC", {
+      vpcName: "TrustStackE2ETestUnauthorizedVPC",
+      ipAddresses: ec2.IpAddresses.cidr("10.1.0.0/16"),
+      maxAzs: 3,
+      enableDnsHostnames: true,
+      enableDnsSupport: true,
+      subnetConfiguration: [
+        { cidrMask: 24, name: "Public", subnetType: ec2.SubnetType.PUBLIC },
+        {
+          cidrMask: 24,
+          name: "Private",
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        },
+      ],
     });
 
+    return { authorizedVPC, unauthorizedVPC };
+  }
+
+  private createBastionHost(vpc: ec2.Vpc) {
     // Create a role for the bastion host
     const bastionHostRole = new iam.Role(this, "BastionHostRole", {
       roleName: "truststack-e2e-test-bastion-host-role",
@@ -68,6 +178,16 @@ export class E2ETestingResourcesStack extends cdk.Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName(
         "AmazonSSMManagedInstanceCore",
       ),
+    );
+
+    bastionHostRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName(
+        "AmazonEC2ContainerRegistryPowerUser",
+      ),
+    );
+
+    bastionHostRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSNSFullAccess"),
     );
 
     // Create a security group for the bastion host
@@ -132,6 +252,85 @@ export class E2ETestingResourcesStack extends cdk.Stack {
     new cdk.CfnOutput(this, "BastionPrivateIP", {
       description: "The private IP address of the bastion host",
       value: bastionHost.instancePrivateIp,
+    });
+  }
+
+  private createBasicIAMRoleForLambdaFunctionsInsideVPC() {
+    const lambdaRole = new iam.Role(this, "LambdaRole", {
+      roleName: "TrustStackE2ETestLambda",
+      assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
+    });
+
+    lambdaRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName(
+        "service-role/AWSLambdaVPCAccessExecutionRole",
+      ),
+    );
+
+    new ssm.StringParameter(this, "LambdaRoleARN", {
+      parameterName: "/trust-stack/e2e-tests/lambda-role-arn",
+      stringValue: lambdaRole.roleArn,
+    });
+  }
+
+  private createSecurityGroupsForLambdaFunctionsInsideVPC(
+    authorizedVPC: ec2.Vpc,
+    unauthorizedVPC: ec2.Vpc,
+  ) {
+    const securityGroup = new ec2.SecurityGroup(this, "LambdaSecurityGroup", {
+      vpc: authorizedVPC,
+      description: "Security group for Lambda functions inside VPC",
+    });
+
+    cdk.Tags.of(securityGroup).add(
+      "Name",
+      "TrustStackE2ETestLambdaSecurityGroup",
+    );
+
+    const secondarySecurityGroup = new ec2.SecurityGroup(
+      this,
+      "SecondaryLambdaSecurityGroup",
+      {
+        vpc: authorizedVPC,
+        description: "Secondary security group for Lambda functions inside VPC",
+      },
+    );
+
+    cdk.Tags.of(secondarySecurityGroup).add(
+      "Name",
+      "TrustStackE2ETestLambdaSecondarySecurityGroup",
+    );
+
+    new ssm.StringParameter(this, "LambdaSecurityGroupID", {
+      parameterName: "/trust-stack/e2e-tests/lambda-security-group-id",
+      stringValue: securityGroup.securityGroupId,
+    });
+
+    new ssm.StringParameter(this, "SecondaryLambdaSecurityGroupID", {
+      parameterName:
+        "/trust-stack/e2e-tests/lambda-secondary-security-group-id",
+      stringValue: secondarySecurityGroup.securityGroupId,
+    });
+
+    const unauthorizedSecurityGroup = new ec2.SecurityGroup(
+      this,
+      "UnauthorizedLambdaSecurityGroup",
+      {
+        vpc: unauthorizedVPC,
+        description:
+          "Security group for Lambda functions inside an unauthorized VPC",
+      },
+    );
+
+    cdk.Tags.of(unauthorizedSecurityGroup).add(
+      "Name",
+      "TrustStackE2ETestUnauthorizedLambdaSecurityGroup",
+    );
+
+    new ssm.StringParameter(this, "UnauthorizedLambdaSecurityGroupID", {
+      parameterName:
+        "/trust-stack/e2e-tests/unauthorized-lambda-security-group-id",
+      stringValue: unauthorizedSecurityGroup.securityGroupId,
     });
   }
 }

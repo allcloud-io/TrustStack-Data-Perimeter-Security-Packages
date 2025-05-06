@@ -90,7 +90,7 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       trustedProtocols: ["email"],
       trustedEmailDomains: ["example.com"],
-      trustedHttpDomains: [],
+      trustedHTTPDomains: [],
     });
 
     const event = createHookEvent(
@@ -113,7 +113,7 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       trustedProtocols: ["email"],
       trustedEmailDomains: ["example.com"],
-      trustedHttpDomains: [],
+      trustedHTTPDomains: [],
     });
 
     const event = createHookEvent(
@@ -137,7 +137,7 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       trustedProtocols: ["http", "https"],
       trustedEmailDomains: [],
-      trustedHttpDomains: ["example.com"],
+      trustedHTTPDomains: ["example.com"],
     });
 
     const event = createHookEvent(
@@ -160,7 +160,7 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       trustedProtocols: ["http", "https"],
       trustedEmailDomains: [],
-      trustedHttpDomains: ["example.com"],
+      trustedHTTPDomains: ["example.com"],
     });
 
     const event = createHookEvent(
@@ -184,7 +184,7 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       trustedProtocols: ["sqs"],
       trustedEmailDomains: [],
-      trustedHttpDomains: [],
+      trustedHTTPDomains: [],
     });
 
     const event = createHookEvent(
@@ -225,7 +225,7 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       trustedProtocols: ["email"],
       trustedEmailDomains: [],
-      trustedHttpDomains: [],
+      trustedHTTPDomains: [],
     });
 
     const event = createHookEvent(
@@ -249,7 +249,7 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       trustedProtocols: ["email"],
       trustedEmailDomains: [],
-      trustedHttpDomains: [],
+      trustedHTTPDomains: [],
     });
 
     const event = createHookEvent(
@@ -273,7 +273,7 @@ describe("CloudFormation Hook Handler for SNS Subscription Endpoints", () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       trustedProtocols: ["http", "https"],
       trustedEmailDomains: [],
-      trustedHttpDomains: [],
+      trustedHTTPDomains: [],
     });
 
     const event = createHookEvent(

@@ -20,3 +20,44 @@ Correct:
 const vpcID = "...";
 const resourceARN = "...";
 ```
+
+## `import/export` statements ordering and conventions
+
+Import and export statements should be ordered alphabetically based on the imported module's name. The ordering should follow this pattern:
+
+1. Built-in modules
+2. Third-party modules 
+3. Modules from relative paths
+
+Node.js modules should be imported using the "node:" protocol.
+
+### Type imports
+
+- When importing a mix of types and values from a module, use the `type` keyword for type imports:
+  ```typescript
+  import { someValue, type SomeType } from "some-module";
+  ```
+
+- When importing only types from a module, use the `import type` syntax:
+  ```typescript
+  import type { SomeType, AnotherType } from "some-module";
+  ```
+
+Example of complete import ordering:
+```typescript
+// Built-in modules first
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+// Third-party modules second
+import * as cdk from "aws-cdk-lib";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import { someFunction, type SomeType } from "third-party-library";
+import type { ConfigType, OptionsType } from "types-only-library";
+
+// Modules from relative paths third
+import { MyCustomConstruct } from "./constructs/my-custom-construct";
+import type { MyComponentProps } from "./types";
+import { Utils } from "./utils";
+```
+

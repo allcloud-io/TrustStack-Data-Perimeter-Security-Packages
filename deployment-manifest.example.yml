@@ -11,7 +11,7 @@ spec:
     ecrImageLayerAccess:
       enabled: true
       configuration:
-        allowedRolePatterns:
+        allowedRoleNames:
           - TrustedRole
           - TrustedRole2
         allowedNetworks:
@@ -21,6 +21,13 @@ spec:
           - vpce-0123456789abcdefg
           - vpce-0123456789abcdefh
 
+    lambdaVPCSecurity:
+      enabled: true
+      configuration:
+        allowedVPCIDs:
+          - vpc-0123456789abcdef0
+          - vpc-0123456789abcdef1
+
     snsSubscriptionSecurity:
       enabled: true
       configuration:
@@ -28,7 +35,7 @@ spec:
           - example.com
           - example.org
           - amazonaws.com
-        trustedHttpDomains:
+        trustedHTTPDomains:
           - example.com
           - example.org
           - amazonaws.com

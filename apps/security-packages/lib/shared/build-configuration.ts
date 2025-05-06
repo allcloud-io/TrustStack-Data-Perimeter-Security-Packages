@@ -26,7 +26,13 @@ export const lzaOrganizationConfigFileName = "organization-config.yaml";
 
 export const lzaCustomizationsConfigFileName = "customizations-config.yaml";
 
-export const buildConfiguration = {
+export const buildConfiguration: Record<
+  SecurityPackageSlug,
+  {
+    packageDirectoryPath: string;
+    generatedCloudFormationTemplateFilePath: string;
+  }
+> = {
   ["ecr-image-layer-access" satisfies SecurityPackageSlug]: {
     packageDirectoryPath: path.join(
       securityPackagesDirectoryPath,
@@ -36,6 +42,17 @@ export const buildConfiguration = {
     generatedCloudFormationTemplateFilePath: path.join(
       cdkOutDirectory,
       "ECRImageLayerAccess.template.json",
+    ),
+  },
+  ["lambda-vpc-security" satisfies SecurityPackageSlug]: {
+    packageDirectoryPath: path.join(
+      securityPackagesDirectoryPath,
+      "lambda",
+      "vpc-security",
+    ),
+    generatedCloudFormationTemplateFilePath: path.join(
+      cdkOutDirectory,
+      "LambdaVPCSecurity.template.json",
     ),
   },
   ["sns-subscription-security" satisfies SecurityPackageSlug]: {

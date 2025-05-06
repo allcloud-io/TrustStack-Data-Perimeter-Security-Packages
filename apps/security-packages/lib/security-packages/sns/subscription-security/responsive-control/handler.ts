@@ -9,12 +9,13 @@ import middy from "@middy/core";
 import type { EventBridgeEvent } from "aws-lambda";
 import type { SecurityHubFindingsImportedEvent } from "../../../../../../../types/aws-security-hub-events";
 import type { SNSConfirmationEventDetail } from "../../../../../../../types/cloudtrail-events";
+import { SECURITY_PACKAGE_NAME } from "../shared";
 
 const sns = new SNS({});
 const securityHub = new SecurityHub({});
 
 const logger = new Logger({
-  serviceName: "SNSSubscriptionSecurityResponsiveControlHandler",
+  serviceName: `${SECURITY_PACKAGE_NAME}ResponsiveControlHandler`,
 });
 
 export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
