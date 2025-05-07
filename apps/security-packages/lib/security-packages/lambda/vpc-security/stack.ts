@@ -79,7 +79,8 @@ export class Lambda_VPCSecurityStack extends cdk.Stack {
     // Create each control type
     this.createProactiveControl();
     this.createDetectiveControl();
-    this.createResponsiveControl();
+    // TODO: We need to update the implementation of the responsive control before we can use it
+    // this.createResponsiveControl();
   }
 
   private createProactiveControl() {
