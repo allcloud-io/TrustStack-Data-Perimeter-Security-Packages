@@ -112,18 +112,12 @@ async function lambdaHandler(
         functionName,
       });
 
-      // Create a Security Hub finding
-      const finding = createSecurityHubFinding(
+      await importOrUpdateSecurityHubFinding({
         functionName,
         functionARN,
-        "Lambda function is not configured to run in a VPC",
         accountID,
         region,
-      );
-
-      // Import the finding into Security Hub
-      await securityHub.batchImportFindings({
-        Findings: [finding],
+        note: "Lambda function is not configured to run in a VPC",
       });
 
       logger.info(
@@ -141,18 +135,12 @@ async function lambdaHandler(
         vpcID: functionConfig.VpcConfig.VpcId,
       });
 
-      // Create a Security Hub finding
-      const finding = createSecurityHubFinding(
+      await importOrUpdateSecurityHubFinding({
         functionName,
         functionARN,
-        `Lambda function is configured to run in an unauthorized VPC: ${functionConfig.VpcConfig.VpcId}`,
         accountID,
         region,
-      );
-
-      // Import the finding into Security Hub
-      await securityHub.batchImportFindings({
-        Findings: [finding],
+        note: `Lambda function is configured to run in an unauthorized VPC: ${functionConfig.VpcConfig.VpcId}`,
       });
 
       logger.info(
@@ -170,6 +158,97 @@ async function lambdaHandler(
     });
 
     throw error;
+  }
+}
+
+async function importOrUpdateSecurityHubFinding({
+  functionName,
+  functionARN,
+  accountID,
+  region,
+  note,
+}: {
+  functionName: string;
+  functionARN: string;
+  accountID: string;
+  region: string;
+  note: string;
+}) {
+  // Create a Security Hub finding
+  const finding = createSecurityHubFinding(
+    functionName,
+    functionARN,
+    note,
+    accountID,
+    region,
+  );
+
+  async function importFinding() {
+    logger.info("Importing new Security Hub finding", {
+      finding,
+    });
+
+    try {
+      await securityHub.batchImportFindings({
+        Findings: [finding],
+      });
+    } catch (error) {
+      logger.error("Error importing Security Hub finding", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+
+    logger.info("Security Hub finding imported successfully");
+  }
+
+  async function isFindingAlreadyImported() {
+    const result = await securityHub.getFindings({
+      Filters: {
+        Id: [{ Comparison: "EQUALS", Value: finding.Id }],
+      },
+    });
+
+    return result.Findings && result.Findings.length > 0;
+  }
+
+  async function updateFinding() {
+    logger.info("Updating existing Security Hub finding", {
+      finding,
+    });
+
+    try {
+      await securityHub.batchUpdateFindings({
+        FindingIdentifiers: [
+          {
+            Id: finding.Id,
+            ProductArn: finding.ProductArn,
+          },
+        ],
+        Note: {
+          Text: note,
+          UpdatedBy: "TrustStack",
+        },
+        Workflow: {
+          Status: WorkflowStatus.NEW,
+        },
+      });
+    } catch (error) {
+      logger.error("Error updating Security Hub finding", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+
+    logger.info("Security Hub finding updated successfully");
+  }
+
+  const isAlreadyImported = await isFindingAlreadyImported();
+
+  if (isAlreadyImported) {
+    await updateFinding();
+  } else {
+    await importFinding();
   }
 }
 
@@ -192,9 +271,8 @@ function createSecurityHubFinding(
 ): AwsSecurityFinding {
   const timestamp = new Date().toISOString();
 
-  // Generate a deterministic ID based on the function ARN
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const id = `lambda-vpc-security-${functionARN.split(":").pop()!}`;
+  // Generate a deterministic ID based on the function name
+  const id = `lambda-vpc-security-${functionName}`;
 
   return {
     SchemaVersion: "2018-10-08",

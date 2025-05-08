@@ -140,7 +140,11 @@ export class Lambda_VPCSecurityStack extends cdk.Stack {
           new iam.PolicyStatement({
             sid: "AllowImportSecurityHubFindings",
             effect: iam.Effect.ALLOW,
-            actions: ["securityhub:BatchImportFindings"],
+            actions: [
+              "securityhub:BatchImportFindings",
+              "securityhub:BatchUpdateFindings",
+              "securityhub:GetFindings",
+            ],
             resources: ["*"],
           }),
         ],

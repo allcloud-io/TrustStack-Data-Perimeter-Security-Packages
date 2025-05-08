@@ -215,6 +215,56 @@ export type LambdaFunctionUpdateConfigurationEventDetail = {
 };
 
 /**
+ * CloudTrail event detail for Lambda DeleteFunction API call
+ */
+export type LambdaFunctionDeleteEventDetail = {
+  eventVersion: string;
+  userIdentity: {
+    type: string;
+    principalId: string;
+    arn: string;
+    accountId: string;
+    accessKeyId: string;
+    sessionContext: {
+      sessionIssuer: {
+        type: string;
+        principalId: string;
+        arn: string;
+        accountId: string;
+        userName: string;
+      };
+      attributes: {
+        creationDate: string;
+        mfaAuthenticated: string;
+      };
+    };
+  };
+  eventTime: string;
+  eventSource: "lambda.amazonaws.com";
+  eventName: "DeleteFunction20150331";
+  awsRegion: string;
+  sourceIPAddress: string;
+  userAgent: string;
+  requestParameters: {
+    functionName: string;
+  };
+  responseElements: null;
+  requestID: string;
+  eventID: string;
+  readOnly: boolean;
+  eventType: string;
+  managementEvent: boolean;
+  recipientAccountId: string;
+  eventCategory: string;
+  tlsDetails: {
+    tlsVersion: string;
+    cipherSuite: string;
+    clientProvidedHostHeader: string;
+  };
+  sessionCredentialFromConsole?: string;
+};
+
+/**
  * CloudTrail event detail for SNS subscription creation
  */
 export type SNSSubscribeEventDetail = {
