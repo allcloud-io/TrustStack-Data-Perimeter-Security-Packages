@@ -33,12 +33,21 @@ import { generateSCP as generateLambdaVPCSecuritySCP } from "../lib/security-pac
 import { generateSCP as generateSNSSubscriptionSecuritySCP } from "../lib/security-packages/sns/subscription-security/preventative-controls/generate-scp";
 import {
   buildConfiguration,
+  cdkOutDirectory,
+  commonComponentsDistDirectoryPath,
   distDirectory,
   lzaCustomizationsConfigFileName,
   lzaOrganizationConfigFileName,
   manifestFilePath,
   projectDirectory,
 } from "../lib/shared/build-configuration";
+
+const commonCloudformationStacksFileNames = {
+  cloudFormationHookExecutionRole: {
+    generatedFileName: "CloudFormationHookExecutionRole.template.json",
+    distFileName: "cloudformation-hook-execution-role.template.json",
+  },
+} as const;
 
 function synthesizeCDKApplication() {
   console.log("Synthesizing CDK application");
@@ -54,7 +63,50 @@ function synthesizeCDKApplication() {
   console.log("CDK application synthesized");
 }
 
-async function addCloudFormationTemplate(
+async function addCloudFormationTemplateForCommonComponent(
+  stack: keyof typeof commonCloudformationStacksFileNames,
+): Promise<string> {
+  const { generatedFileName, distFileName } =
+    commonCloudformationStacksFileNames[stack];
+
+  const generatedTemplateFilePath = path.join(
+    cdkOutDirectory,
+    generatedFileName,
+  );
+
+  let generatedCloudFormationTemplate: string;
+  try {
+    generatedCloudFormationTemplate = await fs.readFile(
+      generatedTemplateFilePath,
+      "utf-8",
+    );
+  } catch (error) {
+    console.error(
+      `Failed to read generated CloudFormation template ${generatedTemplateFilePath}`,
+    );
+    throw error;
+  }
+
+  await fs.mkdir(commonComponentsDistDirectoryPath, { recursive: true });
+
+  const distFilePath = path.join(
+    commonComponentsDistDirectoryPath,
+    distFileName,
+  );
+
+  try {
+    await fs.writeFile(distFilePath, generatedCloudFormationTemplate);
+  } catch (error) {
+    console.error(
+      `Failed to add CloudFormation template ${generatedTemplateFilePath}`,
+    );
+    throw error;
+  }
+
+  return distFilePath;
+}
+
+async function addCloudFormationTemplateForSecurityPackage(
   securityPackage: SecurityPackageSlug,
 ): Promise<string> {
   const { generatedCloudFormationTemplateFilePath } =
@@ -94,7 +146,7 @@ async function addCloudFormationTemplate(
   return distFilePath;
 }
 
-async function buildLambdaHandlerArchives(
+async function buildLambdaHandlerArchivesForSecurityPackage(
   securityPackage: SecurityPackageSlug,
 ): Promise<string[]> {
   const { packageDirectoryPath } = buildConfiguration[securityPackage];
@@ -300,7 +352,7 @@ async function buildLambdaHandlerArchives(
   return archiveFilePaths;
 }
 
-async function generateLZAOrganizationConfigFile(
+async function generateLZAOrganizationConfigFileForSecurityPackage(
   securityPackage: SecurityPackageSlug,
   description: string,
 ) {
@@ -342,7 +394,7 @@ async function generateLZAOrganizationConfigFile(
   return organizationConfigFilePath;
 }
 
-async function generateLZACustomizationsConfigFile(
+async function generateLZACustomizationsConfigFileForSecurityPackage(
   securityPackage: SecurityPackageSlug,
   description: string,
 ) {
@@ -392,12 +444,24 @@ async function generateLZACustomizationsConfigFile(
 async function main() {
   synthesizeCDKApplication();
 
+  const generatedFilePaths: string[] = [];
+
+  const cloudformationHookExecutionRoleTemplateFilePath =
+    await addCloudFormationTemplateForCommonComponent(
+      "cloudFormationHookExecutionRole",
+    );
+
+  generatedFilePaths.push(
+    path.relative(
+      projectDirectory,
+      cloudformationHookExecutionRoleTemplateFilePath,
+    ),
+  );
+
   const config = parseManifestFile(ConfigurationSchema, manifestFilePath);
   const {
     spec: { securityPackages },
   } = config;
-
-  const generatedFilePaths: string[] = [];
 
   if (securityPackages.ecrImageLayerAccess?.enabled) {
     console.log("ECR Image Layer Access is enabled");
@@ -407,7 +471,7 @@ async function main() {
       "Deny ECR image layer access to untrusted roles and networks";
 
     const cloudformationTemplateFilePath =
-      await addCloudFormationTemplate(securityPackageSlug);
+      await addCloudFormationTemplateForSecurityPackage(securityPackageSlug);
 
     generatedFilePaths.push(
       path.relative(projectDirectory, cloudformationTemplateFilePath),
@@ -427,16 +491,19 @@ async function main() {
     await fs.writeFile(scpFilePath, JSON.stringify(scp, null, 2));
 
     const lzaOrganizationConfigFilePath =
-      await generateLZAOrganizationConfigFile(securityPackageSlug, description);
+      await generateLZAOrganizationConfigFileForSecurityPackage(
+        securityPackageSlug,
+        description,
+      );
 
     const lzaCustomizationsConfigFilePath =
-      await generateLZACustomizationsConfigFile(
+      await generateLZACustomizationsConfigFileForSecurityPackage(
         securityPackageSlug,
         description,
       );
 
     const lambdaHandlerArchiveFilePaths =
-      await buildLambdaHandlerArchives(securityPackageSlug);
+      await buildLambdaHandlerArchivesForSecurityPackage(securityPackageSlug);
 
     const relativeFilePaths = [
       scpFilePath,
@@ -458,7 +525,7 @@ async function main() {
       "Deny Lambda functions from being created without a VPC configuration";
 
     const cloudformationTemplateFilePath =
-      await addCloudFormationTemplate(securityPackageSlug);
+      await addCloudFormationTemplateForSecurityPackage(securityPackageSlug);
 
     generatedFilePaths.push(
       path.relative(projectDirectory, cloudformationTemplateFilePath),
@@ -478,16 +545,19 @@ async function main() {
     await fs.writeFile(scpFilePath, JSON.stringify(scp, null, 2));
 
     const lzaOrganizationConfigFilePath =
-      await generateLZAOrganizationConfigFile(securityPackageSlug, description);
+      await generateLZAOrganizationConfigFileForSecurityPackage(
+        securityPackageSlug,
+        description,
+      );
 
     const lzaCustomizationsConfigFilePath =
-      await generateLZACustomizationsConfigFile(
+      await generateLZACustomizationsConfigFileForSecurityPackage(
         securityPackageSlug,
         description,
       );
 
     const lambdaHandlerArchiveFilePaths =
-      await buildLambdaHandlerArchives(securityPackageSlug);
+      await buildLambdaHandlerArchivesForSecurityPackage(securityPackageSlug);
 
     const relativeFilePaths = [
       scpFilePath,
@@ -509,7 +579,7 @@ async function main() {
       "Deny SNS subscriptions to untrusted endpoints and protocols";
 
     const cloudformationTemplateFilePath =
-      await addCloudFormationTemplate(securityPackageSlug);
+      await addCloudFormationTemplateForSecurityPackage(securityPackageSlug);
 
     generatedFilePaths.push(
       path.relative(projectDirectory, cloudformationTemplateFilePath),
@@ -529,16 +599,19 @@ async function main() {
     await fs.writeFile(scpFilePath, JSON.stringify(scp, null, 2));
 
     const lzaOrganizationConfigFilePath =
-      await generateLZAOrganizationConfigFile(securityPackageSlug, description);
+      await generateLZAOrganizationConfigFileForSecurityPackage(
+        securityPackageSlug,
+        description,
+      );
 
     const lzaCustomizationsConfigFilePath =
-      await generateLZACustomizationsConfigFile(
+      await generateLZACustomizationsConfigFileForSecurityPackage(
         securityPackageSlug,
         description,
       );
 
     const lambdaHandlerArchiveFilePaths =
-      await buildLambdaHandlerArchives(securityPackageSlug);
+      await buildLambdaHandlerArchivesForSecurityPackage(securityPackageSlug);
 
     const relativeFilePaths = [
       scpFilePath,

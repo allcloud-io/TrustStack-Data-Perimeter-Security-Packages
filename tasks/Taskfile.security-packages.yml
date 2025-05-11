@@ -67,4 +67,5 @@ tasks:
         export BUILD_HASH=$(task generate:build-hash) &&
         export ASSETS_BUCKET_NAME=$(aws ssm get-parameter --name "/trust-stack/assets-bucket/name" --query "Parameter.Value" --output text) &&
         pnpm generate-deployment-assets &&
-        aws s3 sync dist s3://$ASSETS_BUCKET_NAME/$BUILD_HASH/security-packages --delete
+        aws s3 sync dist s3://$ASSETS_BUCKET_NAME/$BUILD_HASH/security-packages --delete --exclude "common/*" &&
+        aws s3 sync dist/common s3://$ASSETS_BUCKET_NAME/$BUILD_HASH/common --delete

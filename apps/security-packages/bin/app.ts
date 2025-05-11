@@ -3,6 +3,7 @@ import { ConfigurationSchema, parseManifestFile } from "@trust-stack/schema";
 import * as cdk from "aws-cdk-lib";
 import * as path from "node:path";
 import {
+  CloudFormationHookExecutionRoleStack,
   ECR_ImageLayerAccessStack,
   Lambda_VPCSecurityStack,
   SNS_SubscriptionSecurityStack,
@@ -16,7 +17,7 @@ const securityPackagesDir = path.join(
 );
 
 const {
-  spec: { securityPackages },
+  spec: { sharedServicesAccountID, securityPackages },
 } = parseManifestFile(
   ConfigurationSchema,
   path.join(__dirname, "..", "..", "..", "deployment-manifest.yml"),
@@ -29,6 +30,17 @@ const app = new cdk.App({
   // Use the BootstraplessSynthesizer to exclude AWS-specific metadata (such as "aws:cdk:path") from the synthesized templates.
   defaultStackSynthesizer: new cdk.BootstraplessSynthesizer(),
 });
+
+// Should be deployed into all accounts
+new CloudFormationHookExecutionRoleStack(
+  app,
+  "CloudFormationHookExecutionRole",
+  {
+    env: {
+      account: sharedServicesAccountID,
+    },
+  },
+);
 
 if (securityPackages.ecrImageLayerAccess?.enabled) {
   new ECR_ImageLayerAccessStack(app, "ECRImageLayerAccess", {

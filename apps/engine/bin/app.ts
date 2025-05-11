@@ -2,10 +2,7 @@
 import { ConfigurationSchema, parseManifestFile } from "@trust-stack/schema";
 import * as cdk from "aws-cdk-lib";
 import * as path from "node:path";
-import {
-  AssetsBucketStack,
-  CloudFormationHookExecutionRoleStack,
-} from "../lib";
+import { AssetsBucketStack } from "../lib";
 
 const {
   spec: { awsOrganizationARN, awsOrganizationID, sharedServicesAccountID },
@@ -24,22 +21,12 @@ const app = new cdk.App({
 
 // Should be deployed into the shared services account
 new AssetsBucketStack(app, "AssetsBucket", {
+  stackName: "TrustStack-AssetsBucket",
   env: {
     account: sharedServicesAccountID,
   },
   awsOrganizationARN,
   awsOrganizationID,
 });
-
-// Should be deployed into all accounts
-new CloudFormationHookExecutionRoleStack(
-  app,
-  "CloudFormationHookExecutionRole",
-  {
-    env: {
-      account: sharedServicesAccountID,
-    },
-  },
-);
 
 cdk.Tags.of(app).add("Project", "TrustStack");

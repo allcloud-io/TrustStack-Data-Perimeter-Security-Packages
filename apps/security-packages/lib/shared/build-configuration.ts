@@ -20,6 +20,12 @@ export const securityPackagesDirectoryPath = path.join(
 
 export const distDirectory = "dist";
 
+export const commonComponentsDistDirectoryPath = path.join(
+  projectDirectory,
+  distDirectory,
+  "common",
+);
+
 export const cdkOutDirectory = "cdk.out";
 
 export const lzaOrganizationConfigFileName = "organization-config.yaml";
