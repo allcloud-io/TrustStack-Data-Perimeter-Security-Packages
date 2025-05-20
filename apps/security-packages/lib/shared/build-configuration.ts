@@ -50,6 +50,17 @@ export const buildConfiguration: Record<
       "ECRImageLayerAccess.template.json",
     ),
   },
+  ["lambda-permission-security" satisfies SecurityPackageSlug]: {
+    packageDirectoryPath: path.join(
+      securityPackagesDirectoryPath,
+      "lambda",
+      "permission-security",
+    ),
+    generatedCloudFormationTemplateFilePath: path.join(
+      cdkOutDirectory,
+      "LambdaPermissionSecurity.template.json",
+    ),
+  },
   ["lambda-vpc-security" satisfies SecurityPackageSlug]: {
     packageDirectoryPath: path.join(
       securityPackagesDirectoryPath,

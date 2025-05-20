@@ -7,6 +7,8 @@ alwaysApply: false
 
 This rule provides guidance on how to add a new security package to the TrustStack framework. Security packages in TrustStack implement comprehensive prevention-first security controls for specific AWS services or security concerns.
 
+Read [trust-stack.mdc](mdc:.cursor/rules/trust-stack.mdc) for context information about the TrustStack framework.
+
 ## Overview
 
 TrustStack security packages follow a consistent structure and implement multiple layers of controls:
@@ -741,7 +743,13 @@ export const buildConfiguration: Record<
 };
 ```
 
-## Step 12: Testing the New Security Package
+## Step 12: Update the `.cursor/rules/project-overview.mdc` Cursor IDE rule
+
+The Cursor IDE rule at `.cursor/rules/project-overview.mdc` provides an overview of the TrustStack framework and the security packages it offers. It is configured to automatically attach to every chat and Command+K request.
+
+Add a link to the `README.md` file `.cursor/rules/project-overview.mdc` in the list where the other security packages' `README.md` files are linked. The order at which the `README.md` links appear in the least must be based on the alphabetical order of the security package's name as appears in its `README.md` file's main header(e.g, "ECR Image Layer Access Security Package").
+
+## Step 13: Testing the New Security Package
 
 1. Add unit tests for your Lambda handlers using Jest
 2. Run tests locally: `pnpm test`

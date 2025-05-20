@@ -1,11 +1,15 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
-import type { GetFunctionConfigurationCommandOutput } from "@aws-sdk/client-lambda";
+import type {
+  GetFunctionConfigurationCommandOutput,
+  ListTagsCommandOutput,
+} from "@aws-sdk/client-lambda";
 import {
   Partition,
   type GetFindingsCommandOutput,
 } from "@aws-sdk/client-securityhub";
-import { beforeAll, describe, jest, test } from "@jest/globals";
+import { beforeAll, describe, jest } from "@jest/globals";
 import { LambdaVPCSecurityConfig } from "@trust-stack/schema";
+import * as utils from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type {
   LambdaFunctionCreateEventDetail,
@@ -32,6 +36,11 @@ const mockLambdaClientInstance = {
     jest.fn<
       () => Promise<Omit<GetFunctionConfigurationCommandOutput, "$metadata">>
     >(),
+  listTags: jest
+    .fn<() => Promise<Omit<ListTagsCommandOutput, "$metadata">>>()
+    .mockResolvedValue({
+      Tags: {},
+    }),
 };
 
 const mockSecurityHubClientInstance = {
@@ -75,6 +84,7 @@ jest.unstable_mockModule("@aws-sdk/client-securityhub", () => ({
 }));
 
 jest.unstable_mockModule("@trust-stack/utils", () => ({
+  ...utils,
   getValidatedPackageConfig: jest
     .fn<() => Promise<LambdaVPCSecurityConfig>>()
     .mockResolvedValue({
@@ -344,7 +354,7 @@ describe("Lambda VPC Security Detective Control Handler", () => {
     jest.clearAllMocks();
   });
 
-  test("should skip non-Lambda API events", async () => {
+  it("should skip non-Lambda API events", async () => {
     const event = createLambdaCreateFunctionAPIEvent("test-function");
     event.detail.eventSource =
       "s3.amazonaws.com" as LambdaFunctionCreateEventDetail["eventSource"];
@@ -359,7 +369,7 @@ describe("Lambda VPC Security Detective Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("should skip Lambda API events that aren't Create/Update", async () => {
+  it("should skip Lambda API events that aren't Create/Update", async () => {
     const event = deleteLambdaFunctionAPIEvent("test-function");
 
     // @ts-expect-error - The event is not a Create/Update event
@@ -374,7 +384,7 @@ describe("Lambda VPC Security Detective Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("should create finding for Lambda function without VPC configuration", async () => {
+  it("should create finding for Lambda function without VPC configuration", async () => {
     const functionName = "test-function";
     const functionArn = `arn:aws:lambda:${mockRegion}:${mockAccountID}:function:${functionName}`;
     const event = createLambdaCreateFunctionAPIEvent(functionName, functionArn);
@@ -425,7 +435,7 @@ describe("Lambda VPC Security Detective Control Handler", () => {
     });
   });
 
-  test("should update an existing finding for Lambda function without VPC configuration", async () => {
+  it("should update an existing finding for Lambda function without VPC configuration", async () => {
     const functionName = "test-function";
     const functionArn = `arn:aws:lambda:${mockRegion}:${mockAccountID}:function:${functionName}`;
     const event = createLambdaCreateFunctionAPIEvent(functionName, functionArn);
@@ -497,7 +507,7 @@ describe("Lambda VPC Security Detective Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test.skip("should create finding for Lambda function in non-approved VPC", async () => {
+  it.skip("should create finding for Lambda function in non-approved VPC", async () => {
     const functionName = "test-function";
     const functionArn = `arn:aws:lambda:${mockRegion}:${mockAccountID}:function:${functionName}`;
     const event = createLambdaUpdateFunctionConfigurationAPIEvent(functionName);
@@ -551,7 +561,7 @@ describe("Lambda VPC Security Detective Control Handler", () => {
     });
   });
 
-  test("should not create finding for Lambda function with approved VPC configuration", async () => {
+  it("should not create finding for Lambda function with approved VPC configuration", async () => {
     const functionName = "test-function";
     const functionArn = `arn:aws:lambda:${mockRegion}:${mockAccountID}:function:${functionName}`;
     const event = createLambdaCreateFunctionAPIEvent(functionName, functionArn);

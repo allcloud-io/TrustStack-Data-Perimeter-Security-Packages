@@ -1,11 +1,13 @@
 import { SSM } from "@aws-sdk/client-ssm";
 import {
   ECRImageLayerAccessPackageConfig,
+  LambdaPermissionSecurityConfig,
   LambdaVPCSecurityConfig,
   SNSSubscriptionSecurityPackageConfig,
   type SecurityPackageSlug,
 } from "@trust-stack/schema";
 import type { ZodSchema } from "zod";
+import { resolveErrorMessage } from "./resolve-error-message";
 
 const ssm = new SSM();
 
@@ -13,6 +15,7 @@ export type SharedSSMParameterName =
   | "/trust-stack/assets-bucket/name"
   | "/trust-stack/cloudformation-hook-execution-role-arn"
   | "/trust-stack/ecr/image-layer-access/config"
+  | "/trust-stack/lambda/permission-security/config"
   | "/trust-stack/lambda/vpc-security/config"
   | "/trust-stack/sns/subscription-security/config";
 
@@ -27,6 +30,9 @@ export async function getValidatedPackageConfig(
   securityPackage: "ecr-image-layer-access",
 ): Promise<ECRImageLayerAccessPackageConfig>;
 export async function getValidatedPackageConfig(
+  securityPackage: "lambda-permission-security",
+): Promise<LambdaPermissionSecurityConfig>;
+export async function getValidatedPackageConfig(
   securityPackage: "lambda-vpc-security",
 ): Promise<LambdaVPCSecurityConfig>;
 export async function getValidatedPackageConfig(
@@ -36,6 +42,7 @@ export async function getValidatedPackageConfig(
   securityPackage: SecurityPackageSlug,
 ): Promise<
   | ECRImageLayerAccessPackageConfig
+  | LambdaPermissionSecurityConfig
   | LambdaVPCSecurityConfig
   | SNSSubscriptionSecurityPackageConfig
 > {
@@ -46,6 +53,10 @@ export async function getValidatedPackageConfig(
     case "ecr-image-layer-access":
       parameterName = "/trust-stack/ecr/image-layer-access/config";
       schema = ECRImageLayerAccessPackageConfig;
+      break;
+    case "lambda-permission-security":
+      parameterName = "/trust-stack/lambda/permission-security/config";
+      schema = LambdaPermissionSecurityConfig;
       break;
     case "lambda-vpc-security":
       parameterName = "/trust-stack/lambda/vpc-security/config";
@@ -71,22 +82,22 @@ export async function getValidatedPackageConfig(
 
   try {
     configJSON = JSON.parse(getParameterResult.Parameter.Value);
-  } catch (error) {
+  } catch (error: unknown) {
     throw new Error(
       "Configuration found in SSM is not a valid JSON object. " +
         "Error: " +
-        (error instanceof Error ? error.message : "Unknown error"),
+        resolveErrorMessage(error),
     );
   }
 
   try {
     return schema.parse(configJSON);
-  } catch (error) {
+  } catch (error: unknown) {
     throw new Error(
       "Configuration found in SSM is not a valid configuration. " +
         `Parameter: ${parameterName}. ` +
         "Error: " +
-        (error instanceof Error ? error.message : "Unknown error"),
+        resolveErrorMessage(error),
     );
   }
 }

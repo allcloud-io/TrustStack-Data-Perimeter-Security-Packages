@@ -27,6 +27,31 @@ export type ECRImageLayerAccessPackageConfig = z.infer<
 >;
 
 /**
+ * Configuration for the Lambda Permission Security package
+ */
+export const LambdaPermissionSecurityConfig = z.object({
+  /**
+   * List of trusted AWS account IDs that can invoke Lambda functions
+   */
+  trustedAccountIDs: z.array(z.string()).optional(),
+
+  /**
+   * List of trusted AWS Organization IDs that can invoke Lambda functions
+   */
+  trustedOrgIDs: z.array(z.string()).optional(),
+
+  /**
+   * List of trusted AWS service principals that can invoke Lambda functions
+   * For example: "s3.amazonaws.com", "sns.amazonaws.com"
+   */
+  trustedServicePrincipals: z.array(z.string()).optional(),
+});
+
+export type LambdaPermissionSecurityConfig = z.infer<
+  typeof LambdaPermissionSecurityConfig
+>;
+
+/**
  * Configuration for the Lambda VPC security package
  */
 export const LambdaVPCSecurityConfig = z.object({
@@ -49,6 +74,7 @@ const SNSSupportedProtocols = z.enum([
   "lambda",
   "firehose",
   "application",
+  "sms",
 ]);
 
 export type SNSSupportedProtocols = z.infer<typeof SNSSupportedProtocols>;
@@ -79,6 +105,7 @@ export type SNSSubscriptionSecurityPackageConfig = z.infer<
 
 export const SecurityPackageSlug = z.enum([
   "ecr-image-layer-access",
+  "lambda-permission-security",
   "lambda-vpc-security",
   "sns-subscription-security",
 ]);
@@ -117,6 +144,17 @@ export const ConfigurationSchema = z.object({
             z.object({
               enabled: z.literal(true),
               configuration: ECRImageLayerAccessPackageConfig,
+            }),
+            z.object({
+              enabled: z.literal(false),
+            }),
+          ])
+          .optional(),
+        lambdaPermissionSecurity: z
+          .union([
+            z.object({
+              enabled: z.literal(true),
+              configuration: LambdaPermissionSecurityConfig.optional(),
             }),
             z.object({
               enabled: z.literal(false),

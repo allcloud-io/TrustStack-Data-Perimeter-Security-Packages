@@ -15,8 +15,9 @@ import type {
   BatchUpdateFindingsCommandInput,
   BatchUpdateFindingsCommandOutput,
 } from "@aws-sdk/client-securityhub";
-import { beforeAll, describe, jest, test } from "@jest/globals";
+import { beforeAll, describe, jest } from "@jest/globals";
 import { LambdaVPCSecurityConfig } from "@trust-stack/schema";
+import * as utils from "@trust-stack/utils";
 import type { Context } from "aws-lambda";
 import type { SecurityHubFindingsImportedEvent } from "../../../../../../../types/aws-security-hub-events";
 
@@ -98,6 +99,7 @@ const getValidatedPackageConfigMock =
   jest.fn<() => Promise<LambdaVPCSecurityConfig>>();
 
 jest.unstable_mockModule("@trust-stack/utils", () => ({
+  ...utils,
   getValidatedPackageConfig: getValidatedPackageConfigMock,
 }));
 
@@ -214,7 +216,7 @@ describe("Lambda VPC Security Responsive Control Handler", () => {
     jest.clearAllMocks();
   });
 
-  test("should skip findings from different generators", async () => {
+  it("should skip findings from different generators", async () => {
     const event = createSecurityHubFindingEvent("DifferentGenerator");
 
     await handler(event, mockContext);
@@ -228,7 +230,7 @@ describe("Lambda VPC Security Responsive Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("should skip findings for non-Lambda resources", async () => {
+  it("should skip findings for non-Lambda resources", async () => {
     const event = createSecurityHubFindingEvent(
       "LambdaVPCSecurityDetectiveControl",
       "AwsS3Bucket",
@@ -245,7 +247,7 @@ describe("Lambda VPC Security Responsive Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("should handle findings with missing function ARN", async () => {
+  it("should handle findings with missing function ARN", async () => {
     const event = createSecurityHubFindingEvent(
       "LambdaVPCSecurityDetectiveControl",
     );
@@ -261,7 +263,7 @@ describe("Lambda VPC Security Responsive Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("should handle findings with invalid function ARN", async () => {
+  it("should handle findings with invalid function ARN", async () => {
     const event = createSecurityHubFindingEvent(
       "LambdaVPCSecurityDetectiveControl",
       "AwsLambdaFunction",
@@ -281,7 +283,7 @@ describe("Lambda VPC Security Responsive Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("should handle case when no VPC is found", async () => {
+  it("should handle case when no VPC is found", async () => {
     const event = createSecurityHubFindingEvent(
       "LambdaVPCSecurityDetectiveControl",
     );
@@ -329,7 +331,7 @@ describe("Lambda VPC Security Responsive Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("should handle case when no subnets are found", async () => {
+  it("should handle case when no subnets are found", async () => {
     const event = createSecurityHubFindingEvent(
       "LambdaVPCSecurityDetectiveControl",
     );
@@ -367,7 +369,7 @@ describe("Lambda VPC Security Responsive Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("should handle case when no security groups are found", async () => {
+  it("should handle case when no security groups are found", async () => {
     const event = createSecurityHubFindingEvent(
       "LambdaVPCSecurityDetectiveControl",
     );
@@ -417,7 +419,7 @@ describe("Lambda VPC Security Responsive Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("should successfully update Lambda function with VPC configuration", async () => {
+  it("should successfully update Lambda function with VPC configuration", async () => {
     const event = createSecurityHubFindingEvent(
       "LambdaVPCSecurityDetectiveControl",
     );
@@ -495,7 +497,7 @@ describe("Lambda VPC Security Responsive Control Handler", () => {
     });
   });
 
-  test("should handle Lambda update failure", async () => {
+  it("should handle Lambda update failure", async () => {
     const event = createSecurityHubFindingEvent(
       "LambdaVPCSecurityDetectiveControl",
     );
@@ -560,7 +562,7 @@ describe("Lambda VPC Security Responsive Control Handler", () => {
     });
   });
 
-  test("should use VPC from config when available", async () => {
+  it("should use VPC from config when available", async () => {
     const event = createSecurityHubFindingEvent(
       "LambdaVPCSecurityDetectiveControl",
     );

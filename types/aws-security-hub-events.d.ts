@@ -30,6 +30,9 @@ export type SecurityHubFindingsImportedEventDetail = {
         Label: string;
       };
     };
+    UserDefinedFields: {
+      [key: string]: string;
+    };
     ProductFields: {
       ProviderName: string;
       ProviderVersion: string;

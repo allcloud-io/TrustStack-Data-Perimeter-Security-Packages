@@ -7,4 +7,5 @@ module.exports = {
     "^.+\\.tsx?$": "@swc/jest",
   },
   extensionsToTreatAsEsm: [".ts", ".tsx"],
+  coverageReporters: ["html"],
 };

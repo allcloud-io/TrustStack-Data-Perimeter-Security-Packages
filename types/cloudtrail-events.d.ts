@@ -265,6 +265,31 @@ export type LambdaFunctionDeleteEventDetail = {
 };
 
 /**
+ * CloudTrail event detail for Lambda AddPermission API call
+ */
+export type LambdaAddPermissionEventDetail = {
+  eventSource: string;
+  eventName: string;
+  awsRegion: string;
+  userIdentity: {
+    accountId: string;
+    type: string;
+  };
+  responseElements: {
+    statement: string;
+  };
+  requestParameters: {
+    functionName: string;
+    principal: string;
+    statementId: string;
+    action: string;
+    sourceArn?: string;
+    sourceAccount?: string;
+    principalOrgID?: string;
+  };
+};
+
+/**
  * CloudTrail event detail for SNS subscription creation
  */
 export type SNSSubscribeEventDetail = {

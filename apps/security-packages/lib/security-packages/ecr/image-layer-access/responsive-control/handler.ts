@@ -2,6 +2,7 @@ import { Logger } from "@aws-lambda-powertools/logger";
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { IAM } from "@aws-sdk/client-iam";
 import middy from "@middy/core";
+import { resolveErrorMessage } from "@trust-stack/utils";
 import type { SecurityHubFindingsImportedEvent } from "../../../../../../../types/aws-security-hub-events";
 import { SECURITY_PACKAGE_NAME } from "../shared";
 
@@ -96,9 +97,9 @@ function extractIdentityInfo(resource: {
     logger.warn("Unable to extract identity information from resource", {
       resource,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error("Error extracting identity info", {
-      error: error instanceof Error ? error.message : String(error),
+      error: resolveErrorMessage(error),
       resource,
     });
   }
@@ -152,9 +153,9 @@ async function revokePermissions(userIdentity: {
       });
     }
     // Additional identity types could be handled here
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error("Error revoking permissions", {
-      error: error instanceof Error ? error.message : String(error),
+      error: resolveErrorMessage(error),
     });
     throw error;
   }

@@ -5,7 +5,10 @@ import type {
   SNSSubscriptionSecurityPackageConfig,
   SNSSupportedProtocols,
 } from "@trust-stack/schema";
-import { getValidatedPackageConfig } from "@trust-stack/utils";
+import {
+  getValidatedPackageConfig,
+  resolveErrorMessage,
+} from "@trust-stack/utils";
 import type { Context } from "aws-lambda";
 import type {
   CloudFormationHookEvent,
@@ -79,18 +82,18 @@ async function lambdaHandler(
     logger.info("Retrieving configuration from SSM Parameter Store");
     config = await getValidatedPackageConfig("sns-subscription-security");
     logger.info("Configuration retrieved successfully");
-  } catch (error) {
+  } catch (error: unknown) {
     const errorMessage =
       "Failed to retrieve configuration from SSM Parameter Store";
 
     logger.error(errorMessage, {
-      error: error instanceof Error ? error.message : String(error),
+      error: resolveErrorMessage(error),
     });
 
     return {
       hookStatus: "FAILURE",
       errorCode: "InternalFailure",
-      message: `${errorMessage}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      message: `${errorMessage}: ${resolveErrorMessage(error)}`,
       clientRequestToken,
     };
   }

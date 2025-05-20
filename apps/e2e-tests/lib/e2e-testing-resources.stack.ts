@@ -3,13 +3,27 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import { MachineImage } from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import type { Construct } from "constructs";
 
+type E2ETestingResourcesStackProps = cdk.StackProps &
+  Readonly<{
+    awsOrganizationID: string;
+  }>;
+
 export class E2ETestingResourcesStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  private readonly awsOrganizationID: string;
+
+  constructor(
+    scope: Construct,
+    id: string,
+    props: E2ETestingResourcesStackProps,
+  ) {
     super(scope, id, props);
+
+    this.awsOrganizationID = props.awsOrganizationID;
 
     this.createSNSTopic();
     this.createECRRepository();
@@ -21,6 +35,7 @@ export class E2ETestingResourcesStack extends cdk.Stack {
       authorizedVPC,
       unauthorizedVPC,
     );
+    this.createTestLambdaFunctionForPermissionTesting(authorizedVPC);
 
     new ssm.StringParameter(this, "LambdaVPCID", {
       parameterName: "/trust-stack/e2e-tests/lambda-vpc-id",
@@ -51,12 +66,35 @@ export class E2ETestingResourcesStack extends cdk.Stack {
       parameterName: "/trust-stack/e2e-tests/unauthorized-lambda-subnet-id-2",
       stringValue: unauthorizedVPC.privateSubnets[1].subnetId,
     });
+
+    // Add SSM parameters for permission testing
+    new ssm.StringParameter(this, "TrustedAccountID", {
+      parameterName: "/trust-stack/e2e-tests/trusted-account-id",
+      stringValue: this.account,
+    });
+
+    new ssm.StringParameter(this, "UntrustedAccountID", {
+      parameterName: "/trust-stack/e2e-tests/untrusted-account-id",
+      stringValue: "999988887777", // Example untrusted account ID
+    });
+
+    new ssm.StringParameter(this, "TrustedOrgID", {
+      parameterName: "/trust-stack/e2e-tests/trusted-org-id",
+      stringValue: this.awsOrganizationID,
+    });
   }
 
-  private createSNSTopic() {
-    new sns.Topic(this, "SNSTopic", {
+  private createSNSTopic(): sns.Topic {
+    const topic = new sns.Topic(this, "SNSTopic", {
       topicName: "TrustStack-E2E-Test-Topic",
     });
+
+    new ssm.StringParameter(this, "SNSTopicARN", {
+      parameterName: "/trust-stack/e2e-tests/sns-topic-arn",
+      stringValue: topic.topicArn,
+    });
+
+    return topic;
   }
 
   private createECRRepository() {
@@ -331,6 +369,42 @@ export class E2ETestingResourcesStack extends cdk.Stack {
       parameterName:
         "/trust-stack/e2e-tests/unauthorized-lambda-security-group-id",
       stringValue: unauthorizedSecurityGroup.securityGroupId,
+    });
+  }
+
+  private createTestLambdaFunctionForPermissionTesting(authorizedVPC: ec2.Vpc) {
+    // Create a basic Lambda function for permission testing
+    const lambdaRole = iam.Role.fromRoleName(
+      this,
+      "ExistingLambdaRole",
+      "TrustStackE2ETestLambda",
+    );
+
+    const testLambda = new lambda.Function(this, "TestPermissionLambda", {
+      functionName: "truststack-e2e-test-permission-function",
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: "index.handler",
+      vpc: authorizedVPC,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      code: lambda.Code.fromInline(`
+        exports.handler = async (event) => {
+          console.log('Event:', JSON.stringify(event, null, 2));
+          return {
+            statusCode: 200,
+            body: JSON.stringify('Hello from Lambda!'),
+          };
+        };
+      `),
+      timeout: cdk.Duration.seconds(30),
+      role: lambdaRole,
+    });
+
+    // Store the Lambda function ARN in SSM Parameter Store
+    new ssm.StringParameter(this, "LambdaFunctionARN", {
+      parameterName: "/trust-stack/e2e-tests/lambda-function-arn",
+      stringValue: testLambda.functionArn,
     });
   }
 }

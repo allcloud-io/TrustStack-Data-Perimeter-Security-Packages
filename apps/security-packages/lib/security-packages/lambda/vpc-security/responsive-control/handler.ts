@@ -4,9 +4,12 @@ import { EC2 } from "@aws-sdk/client-ec2";
 import { Lambda } from "@aws-sdk/client-lambda";
 import { SecurityHub } from "@aws-sdk/client-securityhub";
 import middy from "@middy/core";
+import {
+  getValidatedPackageConfig,
+  resolveErrorMessage,
+} from "@trust-stack/utils";
 import type { Context } from "aws-lambda";
 import type { SecurityHubFindingsImportedEvent } from "../../../../../../../types/aws-security-hub-events";
-import { getValidatedPackageConfig } from "@trust-stack/utils";
 import { SECURITY_PACKAGE_NAME } from "../shared";
 
 const lambda = new Lambda();
@@ -223,9 +226,9 @@ async function lambdaHandler(
           subnetIDs,
           securityGroupID,
         });
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error("Failed to update Lambda function VPC configuration", {
-          error: error instanceof Error ? error.message : String(error),
+          error: resolveErrorMessage(error),
           functionName,
         });
 
@@ -233,7 +236,7 @@ async function lambdaHandler(
         await updateFindingStatus(
           finding.Id,
           finding.ProductArn,
-          `Failed to update Lambda function: ${error instanceof Error ? error.message : "Unknown error"}`,
+          `Failed to update Lambda function: ${resolveErrorMessage(error)}`,
           "NEW",
         );
 
@@ -248,18 +251,18 @@ async function lambdaHandler(
           `Lambda function updated to use VPC: ${vpcID}`,
           "RESOLVED",
         );
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error("Failed to update finding status", {
-          error: error instanceof Error ? error.message : String(error),
+          error: resolveErrorMessage(error),
           findingID: finding.Id,
         });
 
         throw error;
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error("Error processing Security Hub findings", {
-      error: error instanceof Error ? error.message : String(error),
+      error: resolveErrorMessage(error),
     });
 
     throw error;
@@ -302,9 +305,9 @@ async function updateFindingStatus(
       status,
       note,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error("Failed to update Security Hub finding", {
-      error: error instanceof Error ? error.message : String(error),
+      error: resolveErrorMessage(error),
       findingID,
     });
   }

@@ -94,7 +94,7 @@ import { Logger } from "@aws-lambda-powertools/logger";
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import middy from "@middy/core";
 import type { YourNewPackageConfig } from "@trust-stack/schema";
-import { getValidatedPackageConfig } from "@trust-stack/utils";
+import { getValidatedPackageConfig, resolveErrorMessage } from "@trust-stack/utils";
 
 const logger = new Logger({
   serviceName: "YourPackageNameProactiveControl",
@@ -115,18 +115,18 @@ async function lambdaHandler(event: CloudFormationHookEvent) {
     logger.info("Retrieving configuration from SSM Parameter Store");
     config = await getValidatedPackageConfig("your-package-slug");
     logger.info("Configuration retrieved successfully");
-  } catch (error) {
+  } catch (error: unknown) {
     const errorMessage =
       "Failed to retrieve configuration from SSM Parameter Store";
 
     logger.error(errorMessage, {
-      error: error instanceof Error ? error.message : String(error),
+      error: resolveErrorMessage(error),
     });
 
     return {
       hookStatus: "FAILURE",
       errorCode: "InternalFailure",
-      message: `${errorMessage}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      message: errorMessage,
       clientRequestToken,
     };
   }
@@ -154,10 +154,10 @@ async function lambdaHandler(event: CloudFormationHookEvent) {
     return {
       status: "SUCCESS",
     };
-  } catch (error) {
+  } catch (error: unknown) {
     // Log error and prevent deployment on validation failure
     logger.error("Error validating resource configuration", {
-      error: error instanceof Error ? error.message : String(error),
+      error: resolveErrorMessage(error),
     });
     
     return {
@@ -197,6 +197,7 @@ function validateResourceConfiguration(properties: Record<string, any>) {
 
 Reference implementations of proactive controls:
 - [handler.ts](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/proactive-control/handler.ts)
+- [handler.ts](mdc:apps/security-packages/lib/security-packages/lambda/permission-security/proactive-control/handler.ts)
 
 ### Detective Controls
 
@@ -258,9 +259,9 @@ async function performRemediationAction(resourceInfo: ResourceInfo) {
   try {
     // Implement remediation logic here
     logger.info("Remediation action completed", { resourceInfo });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error("Remediation action failed", {
-      error: error instanceof Error ? error.message : String(error),
+      error: resolveErrorMessage(error),
       resourceInfo,
     });
     throw error;
@@ -279,10 +280,10 @@ Always implement robust error handling:
 ```typescript
 try {
   // Operation that might fail
-} catch (error) {
+} catch (error: unknown) {
   // Log with structured format
   logger.error("Operation failed", {
-    error: error instanceof Error ? error.message : String(error),
+    error: resolveErrorMessage(error),
     context: { relevant: "information" },
   });
   
@@ -297,106 +298,9 @@ try {
 
 ## Testing
 
-### Test Structure
+Read [unit-tests-generation.mdc](mdc:.cursor/rules/unit-tests-generation.mdc) for guidance and instructions on how to generate unit tests for Lambda handlers.
 
-Each Lambda handler should have corresponding test files that verify:
-1. Normal operation path
-2. Error handling
-3. Integration with AWS services
-
-```typescript
-import { beforeAll, describe, jest, test } from "@jest/globals";
-import type { Context } from "aws-lambda";
-import type { EventType } from "path/to/event/types";
-
-// Mock AWS client dependencies
-const mockClientInstance = {
-  methodName: jest.fn(),
-};
-
-// Mock logger
-const mockLoggerInstance = {
-  appendKeys: jest.fn(),
-  info: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-};
-
-// Setup mocks before imports
-jest.unstable_mockModule("@aws-sdk/client-service", () => ({
-  Service: jest.fn().mockImplementation(() => mockClientInstance),
-}));
-
-jest.unstable_mockModule("@aws-lambda-powertools/logger", () => ({
-  Logger: jest.fn().mockImplementation(() => mockLoggerInstance),
-  injectLambdaContext: jest.fn().mockImplementation(() => {
-    return jest.fn().mockImplementation((handler) => handler);
-  }),
-}));
-
-// Variables for dynamically imported modules
-let handler: typeof import("./handler").handler;
-
-// Load the handler module dynamically
-beforeAll(async () => {
-  const handlerModule = await import("./handler");
-  handler = handlerModule.handler;
-});
-
-describe("[Control Type] Handler", () => {
-  const mockEvent: EventType = {
-    // Mock event data
-  };
-  
-  const mockContext = {} as Context;
-  
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-  
-  test("should handle successful execution", async () => {
-    // Setup mock responses
-    mockClientInstance.methodName.mockResolvedValueOnce({
-      // Mock successful response
-    });
-    
-    // Call handler
-    await handler(mockEvent, mockContext);
-    
-    // Assertions
-    expect(mockClientInstance.methodName).toHaveBeenCalledWith({
-      // Expected parameters
-    });
-  });
-  
-  test("should handle error conditions", async () => {
-    // Setup mock error
-    mockClientInstance.methodName.mockRejectedValueOnce(
-      new Error("Service error")
-    );
-    
-    // Call handler and assert error is handled
-    await expect(handler(mockEvent, mockContext)).rejects.toThrow();
-    
-    // Additional assertions
-    expect(mockLoggerInstance.error).toHaveBeenCalled();
-  });
-});
-```
-
-Reference test files:
-- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/detective-control/handler.spec.ts)
-- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/responsive-control/handler.spec.ts)
-- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/proactive-control/handler.spec.ts)
-- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/responsive-control/handler.spec.ts)
-
-### Testing Best Practices
-
-1. **Mock AWS SDK Clients**: Never call real AWS services in tests
-2. **Test Edge Cases**: Include tests for different event types and error scenarios
-3. **Use Dynamic Imports**: Ensure mocks are established before importing the handler
-4. **Mock Middlewares**: Ensure middleware functions don't interfere with tests
-5. **Verify Logging**: Check that appropriate log statements are generated
+Generate unit tests for every Lambda handler function you write.
 
 ## Security Considerations
 
@@ -411,7 +315,7 @@ Reference test files:
 ## Design Considerations
 
 1. Every lambda function implementation must have unit tests.
-2. For CloudFormation Lambda hooks always generate two deployable sample CloudFormation templates, the first file is named `compliant-<resource type in plural form>.yaml` for provisioning compliant resources that should pass the check and the second file is named `compliant-<resource type in plural form>.yaml` for provisioning non-compliant resources that should fail the check. The template files should be in a `sample-templates` sub-directory of the proactive control directory.
+2. For CloudFormation Lambda hooks always generate two deployable sample CloudFormation templates, the first file is named `compliant-<resource type in plural form>.yaml` for provisioning compliant resources that should pass the check and the second file is named `compliant-<resource type in plural form>.yaml` for provisioning non-compliant resources that should fail the check. The template files should be in a `sample-templates` sub-directory of the proactive control directory. Follow the [shared-ssm-parameters-for-e2e-tests.mdc](mdc:.cursor/rules/shared-ssm-parameters-for-e2e-tests.mdc) Cursor IDE rule when generating the sample templates.
 
 ## TypeScript Style Guide
 

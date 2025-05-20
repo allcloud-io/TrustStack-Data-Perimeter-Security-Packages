@@ -32,9 +32,16 @@ export function validateSnsSubscriptionEndpoint(
       isValid: false,
       reason: `SNS subscription has an unsupported Protocol: '${protocol}'.`,
     };
-  } else if (!["email", "email-json", "http", "https"].includes(protocol)) {
+  } else if (["lambda", "sqs", "application"].includes(protocol)) {
     return { isValid: true };
   }
+
+  const noEndpointResult = {
+    isValid: false,
+    reason:
+      `SNS subscription with Protocol '${protocol}' ` +
+      "does not have Endpoint defined.",
+  };
 
   // For email and email-json protocols, validate the email domain
   if (
@@ -42,16 +49,14 @@ export function validateSnsSubscriptionEndpoint(
     protocol.toLowerCase() === "email-json"
   ) {
     if (!endpoint) {
-      return {
-        isValid: false,
-        reason:
-          `SNS subscription with Protocol '${protocol}' ` +
-          "does not have Endpoint defined.",
-      };
+      return noEndpointResult;
     }
 
     // Extract the domain from the email address
-    const emailParts = endpoint.split("@");
+    const emailParts = endpoint
+      .split("@")
+      .filter((emailPart) => emailPart.length > 0);
+
     if (emailParts.length !== 2) {
       return {
         isValid: false,
@@ -82,12 +87,7 @@ export function validateSnsSubscriptionEndpoint(
   // For http and https protocols, validate the domain
   if (protocol.toLowerCase() === "http" || protocol.toLowerCase() === "https") {
     if (!endpoint) {
-      return {
-        isValid: false,
-        reason:
-          `SNS subscription with Protocol '${protocol}' ` +
-          "does not have Endpoint defined.",
-      };
+      return noEndpointResult;
     }
 
     try {
@@ -119,19 +119,24 @@ export function validateSnsSubscriptionEndpoint(
     }
   }
 
+  if (protocol.toLowerCase() === "firehose") {
+    if (!endpoint) {
+      return noEndpointResult;
+    }
+
+    return { isValid: true };
+  }
+
+  // TODO: Implement phone number validation here
   // For SMS protocol, we might want to validate phone numbers
   // This is a simplified example - in a real implementation, you might want to validate
   // phone numbers against a list of trusted country codes or patterns
   if (protocol.toLowerCase() === "sms") {
-    // For this example, we'll just check that the endpoint is defined
     if (!endpoint) {
-      return {
-        isValid: false,
-        reason: `SNS subscription with Protocol 'sms' does not have Endpoint defined.`,
-      };
+      return noEndpointResult;
     }
 
-    // In a real implementation, you might want to add more validation here
+    // TODO: Add validation logic here
     return { isValid: true };
   }
 

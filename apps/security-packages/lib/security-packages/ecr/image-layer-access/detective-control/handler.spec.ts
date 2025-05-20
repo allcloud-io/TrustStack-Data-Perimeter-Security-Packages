@@ -2,14 +2,7 @@ import type {
   AwsSecurityFinding,
   BatchImportFindingsResponse,
 } from "@aws-sdk/client-securityhub";
-import {
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { beforeAll, beforeEach, describe, expect, jest } from "@jest/globals";
 import type { ECRImageLayerAccessPackageConfig } from "@trust-stack/schema";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type { ECRBatchGetImageEventDetail } from "../../../../../../../types/cloudtrail-events";
@@ -180,7 +173,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     jest.clearAllMocks();
   });
 
-  test("should skip event if not an ECR BatchGetImage event", async () => {
+  it("should skip event if not an ECR BatchGetImage event", async () => {
     const nonECREvent = createEventWithModifications({
       eventSource: "s3.amazonaws.com",
       eventName: "PutObject",
@@ -194,7 +187,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     expect(mockSecurityHubInstance.batchImportFindings).not.toHaveBeenCalled();
   });
 
-  test("should allow access if role name matches", async () => {
+  it("should allow access if role name matches", async () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       allowedRoleNames: ["AWSControlTowerExecution"],
     });
@@ -210,7 +203,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     expect(mockSecurityHubInstance.batchImportFindings).not.toHaveBeenCalled();
   });
 
-  test("should create Security Hub finding if role name does not match", async () => {
+  it("should create Security Hub finding if role name does not match", async () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       allowedRoleNames: ["NonMatchingRoleName"],
     });
@@ -239,7 +232,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     expect(batchImportFindingsInput.Findings).toHaveLength(1);
   });
 
-  test("should allow access if source IP is in the allowed networks", async () => {
+  it("should allow access if source IP is in the allowed networks", async () => {
     // Create an event with a specific IP address
     const ipEvent = createEventWithModifications({
       sourceIPAddress: "192.168.1.1",
@@ -261,7 +254,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     expect(mockSecurityHubInstance.batchImportFindings).not.toHaveBeenCalled();
   });
 
-  test("should create Security Hub finding if source IP is not in the allowed networks", async () => {
+  it("should create Security Hub finding if source IP is not in the allowed networks", async () => {
     // Create an event with an unauthorized IP and non-matching role
     const unauthorizedEvent = createEventWithModifications({
       sourceIPAddress: "203.0.113.1",
@@ -291,7 +284,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     expect(batchImportFindingsInput.Findings).toHaveLength(1);
   });
 
-  test("should allow access if VPC endpoint ID is in the allowed VPC endpoints", async () => {
+  it("should allow access if VPC endpoint ID is in the allowed VPC endpoints", async () => {
     const vpcEndpointEvent = createEventWithModifications({
       vpcEndpointId: "vpce-0123456789abcdefg",
     });
@@ -318,7 +311,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     expect(mockSecurityHubInstance.batchImportFindings).not.toHaveBeenCalled();
   });
 
-  test("should throw error if Security Hub finding creation fails", async () => {
+  it("should throw error if Security Hub finding creation fails", async () => {
     // Mock Security Hub to throw an error
     const mockError = new Error("Security Hub API Error");
     mockSecurityHubInstance.batchImportFindings.mockRejectedValueOnce(
@@ -349,7 +342,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     );
   });
 
-  test("should handle invalid IP addresses gracefully", async () => {
+  it("should handle invalid IP addresses gracefully", async () => {
     // Create an event with an invalid IP address
     const invalidIPEvent = createEventWithModifications({
       sourceIPAddress: "not-an-ip-address",
@@ -378,7 +371,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     expect(batchImportFindingsInput.Findings).toHaveLength(1);
   });
 
-  test("should handle invalid network CIDR blocks gracefully", async () => {
+  it("should handle invalid network CIDR blocks gracefully", async () => {
     // Create an event with a specific IP address
     const ipEvent = createEventWithModifications({
       sourceIPAddress: "192.168.1.1",
@@ -407,7 +400,7 @@ describe("ECR Image Layer Access Detective Control Handler", () => {
     expect(batchImportFindingsInput.Findings).toHaveLength(1);
   });
 
-  test("should handle errors in authorization check gracefully", async () => {
+  it("should handle errors in authorization check gracefully", async () => {
     // Create a malformed event that would cause an error in isAuthorizedAccess
     const malformedEvent = createEventWithModifications({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any

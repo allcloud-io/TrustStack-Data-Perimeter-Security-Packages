@@ -1,13 +1,15 @@
+# Example deployment manifest for the TrustStack framework
 version: v1
 
 spec:
-  awsOrganizationARN: "arn:aws:organizations::012345678901:organization/o-88ouygy8db"
+  awsOrganizationARN: "arn:aws:organizations::012345678901:organization/o-exampleorgid"
 
-  awsOrganizationID: "o-88ouygy8db"
+  awsOrganizationID: "o-exampleorgid"
 
   sharedServicesAccountID: "123456789012"
 
   securityPackages:
+    # ECR Image Layer Access Security Package
     ecrImageLayerAccess:
       enabled: true
       configuration:
@@ -15,12 +17,28 @@ spec:
           - TrustedRole
           - TrustedRole2
         allowedNetworks:
-          - 192.168.1.0/24
-          - 192.168.2.0/24
+          - 10.0.0.0/8
+          - 172.16.0.0/12
+          - 192.168.0.0/16
         allowedVPCEndpoints:
           - vpce-0123456789abcdefg
           - vpce-0123456789abcdefh
 
+    # Lambda Permission Security Package
+    lambdaPermissionSecurity:
+      enabled: true
+      configuration:
+        trustedAccountIDs:
+          - "111122223333"
+          - "444455556666"
+        trustedOrgIDs:
+          - "o-exampleorgid"
+        trustedServicePrincipals:
+          - "s3.amazonaws.com"
+          - "sns.amazonaws.com"
+          - "events.amazonaws.com"
+
+    # Lambda VPC Security Package
     lambdaVPCSecurity:
       enabled: true
       configuration:
@@ -28,19 +46,18 @@ spec:
           - vpc-0123456789abcdef0
           - vpc-0123456789abcdef1
 
+    # SNS Subscription Security Package
     snsSubscriptionSecurity:
       enabled: true
       configuration:
         trustedEmailDomains:
           - example.com
-          - example.org
-          - amazonaws.com
+          - trusted-domain.org
         trustedHTTPDomains:
-          - example.com
-          - example.org
-          - amazonaws.com
+          - api.example.com
+          - webhook.trusted-domain.org
         trustedProtocols:
-          - sqs
-          - lambda
           - firehose
+          - lambda
+          - sqs
           - application

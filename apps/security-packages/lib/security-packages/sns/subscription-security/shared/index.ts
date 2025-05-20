@@ -3,4 +3,4 @@
  */
 
 export * from "./constants";
-export * from "./validation";
+export * from "./validate-sns-subscription-endpoint";

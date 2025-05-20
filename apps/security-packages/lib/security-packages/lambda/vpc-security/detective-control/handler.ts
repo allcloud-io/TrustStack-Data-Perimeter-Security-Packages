@@ -14,7 +14,10 @@ import {
   WorkflowStatus,
 } from "@aws-sdk/client-securityhub";
 import middy from "@middy/core";
-import { getValidatedPackageConfig } from "@trust-stack/utils";
+import {
+  getValidatedPackageConfig,
+  resolveErrorMessage,
+} from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type {
   LambdaFunctionCreateEventDetail,
@@ -81,6 +84,26 @@ async function lambdaHandler(
 
     if (!functionARN && !functionName) {
       logger.warn("Could not determine Lambda function identifier, skipping");
+      return;
+    }
+
+    let tags: Record<string, string>;
+    try {
+      tags = (await lambda.listTags({ Resource: functionARN })).Tags ?? {};
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        error.name === "ResourceNotFoundException"
+      ) {
+        logger.warn("Lambda function not found, skipping");
+        return;
+      }
+      throw error;
+    }
+
+    const excludeTag = tags["ts:exclude"];
+    if (excludeTag === "*" || excludeTag === SECURITY_PACKAGE_NAME) {
+      logger.info("Lambda function is excluded from security checks, skipping");
       return;
     }
 
@@ -152,9 +175,9 @@ async function lambdaHandler(
         vpcID: functionConfig.VpcConfig.VpcId,
       });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error("Error processing Lambda function event", {
-      error: error instanceof Error ? error.message : String(error),
+      error: resolveErrorMessage(error),
     });
 
     throw error;
@@ -192,9 +215,9 @@ async function importOrUpdateSecurityHubFinding({
       await securityHub.batchImportFindings({
         Findings: [finding],
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error importing Security Hub finding", {
-        error: error instanceof Error ? error.message : String(error),
+        error: resolveErrorMessage(error),
       });
       throw error;
     }
@@ -233,9 +256,9 @@ async function importOrUpdateSecurityHubFinding({
           Status: WorkflowStatus.NEW,
         },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error updating Security Hub finding", {
-        error: error instanceof Error ? error.message : String(error),
+        error: resolveErrorMessage(error),
       });
       throw error;
     }

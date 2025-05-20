@@ -23,7 +23,7 @@ node_modules
 !.vscode/extensions.json
 
 # misc
-/coverage
+coverage
 
 # System Files
 .DS_Store

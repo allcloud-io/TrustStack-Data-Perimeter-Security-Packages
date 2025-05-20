@@ -1,0 +1,171 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Shared SSM Parameters for E2E Tests
+
+This rule provides guidance on using shared SSM parameters defined in the `e2e-tests` application of the TrustStack monorepo. These parameters enable consistent end-to-end testing by providing standardized references to AWS resources.
+
+## Available SSM Parameters
+
+The following SSM parameters are available for use in your tests:
+
+### Lambda Function Parameters
+| Parameter Path | Description |
+|---------------|-------------|
+| `/trust-stack/e2e-tests/lambda-role-arn` | ARN of IAM role for Lambda execution |
+| `/trust-stack/e2e-tests/lambda-function-arn` | ARN of a test Lambda function for permission testing |
+| `/trust-stack/e2e-tests/lambda-vpc-id` | ID of the authorized VPC for Lambda functions |
+| `/trust-stack/e2e-tests/lambda-subnet-id-1` | ID of the first subnet for Lambda VPC configuration |
+| `/trust-stack/e2e-tests/lambda-subnet-id-2` | ID of the second subnet for Lambda VPC configuration |
+| `/trust-stack/e2e-tests/lambda-security-group-id` | ID of the security group for Lambda functions |
+| `/trust-stack/e2e-tests/lambda-secondary-security-group-id` | ID of a secondary security group for multi-SG Lambda functions |
+
+### Account and Organization Parameters
+| Parameter Path | Description |
+|---------------|-------------|
+| `/trust-stack/e2e-tests/trusted-account-id` | ID of the trusted AWS account (current account) |
+| `/trust-stack/e2e-tests/untrusted-account-id` | ID of an untrusted AWS account for negative testing |
+| `/trust-stack/e2e-tests/trusted-org-id` | ID of the trusted AWS organization |
+
+### Non-Compliant Testing Parameters
+| Parameter Path | Description |
+|---------------|-------------|
+| `/trust-stack/e2e-tests/unauthorized-lambda-vpc-id` | ID of an unapproved VPC (for negative testing) |
+| `/trust-stack/e2e-tests/unauthorized-lambda-subnet-id-1` | ID of the first subnet in unapproved VPC |
+| `/trust-stack/e2e-tests/unauthorized-lambda-subnet-id-2` | ID of the second subnet in unapproved VPC |
+| `/trust-stack/e2e-tests/unauthorized-lambda-security-group-id` | ID of a security group in the unapproved VPC |
+
+## Using Shared Parameters in CloudFormation Templates
+
+When creating CloudFormation templates for testing, use the `AWS::SSM::Parameter::Value<Type>` parameter type to reference these shared resources. This approach avoids hardcoding resource IDs and ensures tests remain valid even when the underlying infrastructure changes.
+
+### Example: Compliant Lambda Functions Template
+
+Here's how to reference shared SSM parameters in your CloudFormation templates:
+
+```yaml
+Parameters:
+  LambdaRoleARN:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ARN of IAM role for Lambda execution
+    Default: "/trust-stack/e2e-tests/lambda-role-arn"
+
+  SubnetID1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of the first subnet to use for Lambda functions
+    Default: "/trust-stack/e2e-tests/lambda-subnet-id-1"
+
+  SubnetID2:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of the second subnet to use for Lambda functions
+    Default: "/trust-stack/e2e-tests/lambda-subnet-id-2"
+
+  SecurityGroupID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of the security group to use for Lambda functions
+    Default: "/trust-stack/e2e-tests/lambda-security-group-id"
+```
+
+Then, use these parameters in your resources:
+
+```yaml
+Resources:
+  CompliantLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      # ... other properties ...
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupID
+        SubnetIds:
+          - !Ref SubnetID1
+          - !Ref SubnetID2
+```
+
+### Example: Non-Compliant Lambda Functions Template
+
+For negative testing, you can reference parameters that represent unauthorized resources:
+
+```yaml
+Parameters:
+  UnapprovedVPCID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of an unapproved VPC
+    Default: "/trust-stack/e2e-tests/unauthorized-lambda-vpc-id"
+
+  SubnetID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of a subnet in the unapproved VPC
+    Default: "/trust-stack/e2e-tests/unauthorized-lambda-subnet-id-1"
+    
+  UnauthorizedSecurityGroupID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ID of a security group in the unapproved VPC
+    Default: "/trust-stack/e2e-tests/unauthorized-lambda-security-group-id"
+```
+
+## Using Shared Parameters in TypeScript Jest Tests
+
+For automated tests using Jest and TypeScript with AWS SDK v3, you can access these SSM parameters programmatically:
+
+```typescript
+import { SSM } from "@aws-sdk/client-ssm";
+
+const ssm = new SSM({});
+
+describe("Lambda Function Tests", () => {
+  let lambdaRoleARN: string;
+  let securityGroupID: string;
+  let vpcID: string;
+
+  beforeAll(async () => {
+    // Fetch parameters
+    const roleARNParam = await ssm.getParameter({
+      Name: "/trust-stack/e2e-tests/lambda-role-arn",
+    });
+
+    const sgParam = await ssm.getParameter({
+      Name: "/trust-stack/e2e-tests/lambda-security-group-id",
+    });
+
+    const vpcParam = await ssm.getParameter({
+      Name: "/trust-stack/e2e-tests/lambda-vpc-id",
+    });
+
+    lambdaRoleARN = roleARNParam.Parameter?.Value!; // eslint-disable-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
+    securityGroupID = sgParam.Parameter?.Value!; // eslint-disable-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
+    vpcID = vpcParam.Parameter?.Value!; // eslint-disable-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
+  });
+
+  test("should create a compliant Lambda function", async () => {
+    // Use the parameters in SDK calls
+    const createFunctionParams = {
+      FunctionName: "test-function",
+      Role: lambdaRoleARN,
+      // ...other properties
+      VpcConfig: {
+        SecurityGroupIds: [securityGroupID],
+        // ...subnet IDs
+      },
+    };
+
+    // Test implementation
+  });
+});
+```
+
+## Benefits of Using Shared SSM Parameters
+
+1. **Reusability**: Multiple tests can reference the same resources without duplication
+2. **Maintainability**: Changes to infrastructure only require updating SSM parameters, not test code
+3. **Isolation**: Clear separation between test logic and test infrastructure
+4. **Consistency**: All tests use the same standardized resources
+
+## Best Practices
+
+1. Always use SSM parameters for resource IDs in test templates
+2. Document any new SSM parameters you add to the e2e-tests application
+3. For local testing, ensure your AWS credentials have access to read these SSM parameters
+4. Consider using parameter caching in long-running test suites to reduce API calls

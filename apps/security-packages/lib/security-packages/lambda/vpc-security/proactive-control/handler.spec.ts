@@ -2,6 +2,7 @@
 import { DescribeSubnetsCommandOutput } from "@aws-sdk/client-ec2";
 import { jest } from "@jest/globals";
 import type { LambdaVPCSecurityConfig } from "@trust-stack/schema";
+import * as utils from "@trust-stack/utils";
 import { Context } from "aws-lambda";
 import { produce } from "immer";
 import type { CloudFormationHookEvent } from "../../../../../../../types/cfn-hooks";
@@ -36,6 +37,7 @@ jest.unstable_mockModule("@aws-lambda-powertools/logger", () => ({
 }));
 
 jest.unstable_mockModule("@trust-stack/utils", () => ({
+  ...utils,
   getValidatedPackageConfig: mockGetValidatedPackageConfig,
 }));
 
@@ -130,7 +132,7 @@ describe("CloudFormation Hook Handler for Lambda VPC Security", () => {
     jest.clearAllMocks();
   });
 
-  test("should return SUCCESS for Lambda function with VPC config", async () => {
+  it("should return SUCCESS for Lambda function with VPC config", async () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({});
 
     const result = await handler(event, mockContext);
@@ -138,7 +140,7 @@ describe("CloudFormation Hook Handler for Lambda VPC Security", () => {
     expect(result.message).toBe("Lambda function has valid VPC configuration");
   });
 
-  test("should return FAILURE for Lambda function without VPC config", async () => {
+  it("should return FAILURE for Lambda function without VPC config", async () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({});
 
     const eventWithoutVPCConfig = produce(event, (draft) => {
@@ -153,7 +155,7 @@ describe("CloudFormation Hook Handler for Lambda VPC Security", () => {
     );
   });
 
-  test("should return SUCCESS for Lambda function provisioned in an allowed VPC", async () => {
+  it("should return SUCCESS for Lambda function provisioned in an allowed VPC", async () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       allowedVPCIDs: ["vpc-0017a480bbff7f00d"],
     });
@@ -171,7 +173,7 @@ describe("CloudFormation Hook Handler for Lambda VPC Security", () => {
     expect(result.message).toBe("Lambda function has valid VPC configuration");
   });
 
-  test("should return FAILURE for Lambda function provisioned in a non-allowed VPC", async () => {
+  it("should return FAILURE for Lambda function provisioned in a non-allowed VPC", async () => {
     mockGetValidatedPackageConfig.mockResolvedValueOnce({
       allowedVPCIDs: ["vpc-0017a480bbff7f00d"],
     });

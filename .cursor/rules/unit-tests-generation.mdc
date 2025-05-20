@@ -1,0 +1,417 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Unit Tests Generation for TrustStack
+
+This rule provides guidelines for generating unit tests for Lambda functions and other components in the TrustStack project.
+
+## Introduction
+
+Unit tests are a critical part of maintaining the TrustStack security framework. Tests help ensure that security controls function as expected and detect regressions early. This guide focuses on writing effective unit tests for Lambda functions and other components using Jest.
+
+## Test Setup With ES Modules
+
+TrustStack uses ES modules for its test files. This requires a specific approach to mocking modules:
+
+### Mocking Dependencies
+
+Always set up mocks **before** importing the module under test:
+
+```typescript
+// 1. First, define mock objects and functions
+const mockSecurityHubClient = {
+  batchImportFindings: jest.fn(),
+};
+
+const mockLoggerInstance = {
+  appendKeys: jest.fn(),
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+};
+
+// 2. Mock dependencies using jest.unstable_mockModule
+jest.unstable_mockModule("@aws-sdk/client-securityhub", () => ({
+  SecurityHub: jest.fn().mockImplementation(() => mockSecurityHubClient),
+}));
+
+jest.unstable_mockModule("@aws-lambda-powertools/logger", () => ({
+  Logger: jest.fn().mockImplementation(() => mockLoggerInstance),
+  injectLambdaContext: jest.fn().mockImplementation(() => {
+    return jest.fn().mockImplementation((handler) => handler);
+  }),
+}));
+
+// 3. Dynamically import the module under test
+let handler: typeof import("./handler").handler;
+
+beforeAll(async () => {
+  const handlerModule = await import("./handler");
+  handler = handlerModule.handler;
+});
+```
+
+### Important Notes on ES Module Mocking
+
+1. Use `jest.unstable_mockModule` instead of `jest.mock`
+2. Define mock objects before mocking modules
+3. Always use dynamic imports after mocks are set up
+4. Set proper types for mock functions and return values
+
+## Test Structure
+
+### File Organization
+
+Each test file should:
+1. Be named with the `.spec.ts` extension (matching the `testMatch` pattern in jest.config.js)
+2. Be placed in the same directory as the file it tests
+3. Import necessary test utilities and type definitions
+
+### Basic Test Structure
+
+```typescript
+import { beforeAll, describe, expect, jest } from "@jest/globals";
+import type { Context } from "aws-lambda";
+import type { EventType } from "path/to/event/types";
+
+// Mock definitions go here...
+// Mock setup goes here...
+
+describe("Component Name", () => {
+  const mockContext = {} as Context;
+  
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  
+  it("should handle the success path", async () => {
+    // Arrange: Set up test data and mock return values
+    const testEvent: EventType = { /* event data */ };
+    
+    mockSomeClient.someMethod.mockResolvedValueOnce({ /* successful response */ });
+    
+    // Act: Call the handler with the test event
+    const result = await handler(testEvent, mockContext);
+    
+    // Assert: Check the result and verify mocks were called correctly
+    expect(result.someProperty).toBe("expectedValue");
+    expect(mockSomeClient.someMethod).toHaveBeenCalledWith({
+      /* expected parameters */
+    });
+  });
+  
+  it("should handle the error path", async () => {
+    // Arrange: Set up test data and mock errors
+    const testEvent: EventType = { /* event data */ };
+    
+    mockSomeClient.someMethod.mockRejectedValueOnce(new Error("Test error"));
+    
+    // Act & Assert: Either catch the error or check the error response
+    const result = await handler(testEvent, mockContext);
+    
+    expect(result.errorCode).toBe("ExpectedErrorCode");
+    expect(mockLoggerInstance.error).toHaveBeenCalled();
+  });
+});
+```
+
+## Mocking Best Practices
+
+### AWS SDK Clients
+
+Always mock AWS SDK clients to prevent actual AWS calls:
+
+```typescript
+const mockEC2ClientInstance = {
+  describeSubnets: jest.fn(),
+};
+
+jest.unstable_mockModule("@aws-sdk/client-ec2", () => ({
+  EC2: jest.fn().mockImplementation(() => mockEC2ClientInstance),
+}));
+```
+
+### Logger
+
+Mock the AWS Lambda Powertools logger:
+
+```typescript
+const mockLoggerInstance = {
+  addContext: jest.fn(),
+  appendKeys: jest.fn(),
+  clearBuffer: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn(),
+  logEventIfEnabled: jest.fn(),
+  refreshSampleRateCalculation: jest.fn(),
+  resetKeys: jest.fn(),
+  warn: jest.fn(),
+};
+
+jest.unstable_mockModule("@aws-lambda-powertools/logger", () => ({
+  Logger: jest.fn().mockImplementation(() => mockLoggerInstance),
+  injectLambdaContext: jest.fn().mockImplementation(() => {
+    return jest.fn().mockImplementation((handler) => handler);
+  }),
+}));
+```
+
+### Utils and Configuration Functions
+
+Mock utility functions like `getValidatedPackageConfig` from the `@trust-stack/utils` package:
+
+```typescript
+const getValidatedPackageConfigMock = 
+  jest.fn<() => Promise<YourConfigType>>();
+
+jest.unstable_mockModule("@trust-stack/utils", () => ({
+  ...utils, // Spread the actual utils to keep other functions
+  getValidatedPackageConfig: getValidatedPackageConfigMock,
+}));
+```
+
+## Common Test Cases for Security Controls
+
+### Proactive Controls
+
+For CloudFormation Hook handlers:
+
+1. Test successful validation of compliant resources
+2. Test rejection of non-compliant resources 
+3. Test error handling when configuration retrieval fails
+4. Test each validation rule in isolation
+
+### Detective Controls
+
+For event-based detective controls:
+
+1. Test detection of security violations
+2. Test allowing valid/trusted configurations
+3. Test creation of security findings
+4. Test error handling for AWS service failures
+
+### Responsive Controls
+
+For remediation functions:
+
+1. Test successful remediation of security issues
+2. Test proper updating of finding status
+3. Test error handling and logging during remediation
+4. Test edge cases in remediation logic
+
+## Test Data Generation
+
+Use utilities like `immer` to create test events by modifying a base template:
+
+```typescript
+import { produce } from "immer";
+
+const baseEvent = { /* base event structure */ };
+
+const testEvent = produce(baseEvent, (draft) => {
+  draft.someProperty = "new value";
+  draft.nestedObject.someField = "changed";
+});
+```
+
+## Assertions
+
+Make explicit assertions that test both:
+1. Function return values
+2. Side effects (like logging or AWS SDK calls)
+
+```typescript
+// Assert return value
+expect(result.hookStatus).toBe("FAILURE");
+expect(result.message).toContain("expected error message");
+
+// Assert side effects
+expect(mockLoggerInstance.warn).toHaveBeenCalledWith(
+  "Expected log message",
+  expect.objectContaining({
+    reason: expect.stringContaining("expected reason"),
+  }),
+);
+
+expect(mockSecurityHubClient.batchImportFindings).toHaveBeenCalledWith({
+  Findings: [
+    expect.objectContaining({
+      Title: "Expected finding title",
+    }),
+  ],
+});
+```
+
+## Running Tests
+
+To run your unit tests, navigate to the project directory and run the appropriate test command:
+
+```bash
+cd apps/security-packages  # Navigate to the specific package directory
+pnpm test:chatbot         # Run tests with verbose output
+```
+
+The test command uses the following configuration:
+- Uses Node.js with ES modules support (`NODE_OPTIONS=--experimental-vm-modules`)
+- Matches files with `.spec.ts` extension
+- Uses SWC for fast TypeScript compilation
+- Prints Jest's test coverage table in text form when it completes to run the tests
+
+When requested to run a specific test suite file, navigate to the project directory and run the appropriate test command:
+```bash
+cd apps/security-packages  # Navigate to the specific package directory
+pnpm test:chatbot -- --testPathPattern <path of the test suite file relative to the project directory>         # Run tests with verbose output
+```
+
+## Example: Complete Test File
+
+Here's a complete example of a test file for a Lambda function handler:
+
+```typescript
+import type { BatchImportFindingsResponse } from "@aws-sdk/client-securityhub";
+import { beforeAll, describe, expect, jest } from "@jest/globals";
+import type { YourConfigType } from "@trust-stack/schema";
+import * as utils from "@trust-stack/utils";
+import type { Context, EventBridgeEvent } from "aws-lambda";
+import type { YourEventDetail } from "../path/to/type";
+
+// Mock AWS client
+const mockSecurityHubClient = {
+  batchImportFindings: jest.fn<() => Promise<BatchImportFindingsResponse>>(),
+};
+
+// Mock logger
+const mockLoggerInstance = {
+  addContext: jest.fn(),
+  appendKeys: jest.fn(),
+  clearBuffer: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn(),
+  logEventIfEnabled: jest.fn(),
+  refreshSampleRateCalculation: jest.fn(),
+  resetKeys: jest.fn(),
+  warn: jest.fn(),
+};
+
+const getValidatedPackageConfigMock =
+  jest.fn<() => Promise<YourConfigType>>();
+
+// Setup mocks before imports
+jest.unstable_mockModule("@aws-sdk/client-securityhub", () => ({
+  SecurityHub: jest.fn().mockImplementation(() => mockSecurityHubClient),
+}));
+
+jest.unstable_mockModule("@aws-lambda-powertools/logger", () => ({
+  Logger: jest.fn().mockImplementation(() => mockLoggerInstance),
+  injectLambdaContext: jest.fn().mockImplementation(() => {
+    return jest.fn().mockImplementation((handler) => handler);
+  }),
+}));
+
+jest.unstable_mockModule("@trust-stack/utils", () => ({
+  ...utils,
+  getValidatedPackageConfig: getValidatedPackageConfigMock,
+}));
+
+let handler: typeof import("./handler").handler;
+
+beforeAll(async () => {
+  const handlerModule = await import("./handler");
+  handler = handlerModule.handler;
+});
+
+describe("Your Control Handler", () => {
+  const mockContext = {} as Context;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should handle the success case", async () => {
+    // Arrange
+    const mockEvent = {
+      /* event properties */
+    } as EventBridgeEvent<"EventType", YourEventDetail>;
+
+    getValidatedPackageConfigMock.mockResolvedValueOnce({
+      /* config properties */
+    });
+
+    // Act
+    await handler(mockEvent, mockContext);
+
+    // Assert
+    expect(mockLoggerInstance.info).toHaveBeenCalledWith(
+      "Expected log message",
+      expect.any(Object)
+    );
+    expect(mockSecurityHubClient.batchImportFindings).not.toHaveBeenCalled();
+  });
+
+  it("should handle the failure case", async () => {
+    // Arrange
+    const mockEvent = {
+      /* event properties for failure case */
+    } as EventBridgeEvent<"EventType", YourEventDetail>;
+
+    getValidatedPackageConfigMock.mockResolvedValueOnce({
+      /* config properties */
+    });
+
+    mockSecurityHubClient.batchImportFindings.mockResolvedValueOnce({
+      FailedCount: 0,
+      SuccessCount: 1,
+    });
+
+    // Act
+    await handler(mockEvent, mockContext);
+
+    // Assert
+    expect(mockLoggerInstance.warn).toHaveBeenCalledWith(
+      "Expected warning message",
+      expect.any(Object)
+    );
+    expect(mockSecurityHubClient.batchImportFindings).toHaveBeenCalledWith({
+      Findings: [expect.any(Object)],
+    });
+  });
+});
+```
+
+## Test Generation Process
+
+When generating unit tests, follow these steps:
+
+1. **Analyze the module to test**: Understand its dependencies, input/output, and error cases
+2. **Set up mock objects**: Create mocks for all external dependencies. Never call real AWS services in tests.
+4. **Mock Middlewares**: When relevant, ensure middleware functions don't interfere with tests
+4. **Use Dynamic Imports**: Ensure mocks are established before importing the handler
+5. **Define test cases**: Include happy path and all error scenarios
+6. **Verify Logging**: Check that appropriate log statements are generated
+7. **Run tests iteratively**: Fix and improve until all tests pass
+8. **Ensure coverage**: Aim for high test coverage of critical paths. When possible, aim for 100% test coverage.
+
+## Reference test files
+
+Reference test files:
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/detective-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/responsive-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/lambda/permission-security/detective-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/lambda/permission-security/proactive-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/lambda/permission-security/responsive-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/lambda/vpc-security/detective-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/lambda/vpc-security/proactive-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/lambda/vpc-security/responsive-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/proactive-control/handler.spec.ts)
+- [handler.spec.ts](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/responsive-control/handler.spec.ts)
+
+## Test Troubleshooting
+
+If you encounter issues with your tests:
+
+1. **Module import errors**: Ensure all mocks are set up before dynamic imports
+2. **Type errors**: Use proper typing for mock functions and events
+3. **Test timeouts**: Check for unresolved promises or missing await statements
+4. **Mock verification failures**: Ensure mock functions are being called with expected parameters

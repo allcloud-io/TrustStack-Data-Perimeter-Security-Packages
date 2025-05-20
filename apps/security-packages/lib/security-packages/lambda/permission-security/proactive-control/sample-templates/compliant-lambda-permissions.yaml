@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Compliant Lambda Permission Examples"
+
+Parameters:
+  LambdaFunction:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ARN of Lambda function to grant permissions to
+    Default: "/trust-stack/e2e-tests/lambda-function-arn"
+
+  TrustedAccountID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Trusted AWS Account ID
+    Default: "/trust-stack/e2e-tests/trusted-account-id"
+
+  TrustedOrgID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Trusted AWS Organization ID
+    Default: "/trust-stack/e2e-tests/trusted-org-id"
+
+  SNSTopicARN:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ARN of SNS topic to grant permissions to
+    Default: "/trust-stack/e2e-tests/sns-topic-arn"
+
+Resources:
+  # Example 1: Permission for trusted AWS account
+  TrustedAccountPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: !Ref TrustedAccountID
+      SourceAccount: !Ref TrustedAccountID
+
+  # Example 2: Permission for trusted service principal
+  TrustedS3Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref TrustedAccountID
+      SourceArn: !Sub arn:aws:s3:::example-bucket-${TrustedAccountID}
+
+  # Example 3: Permission for trusted service with organization ID
+  TrustedSNSPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      PrincipalOrgID: !Ref TrustedOrgID
+      SourceArn: !Ref SNSTopicARN

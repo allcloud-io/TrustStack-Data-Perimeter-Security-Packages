@@ -154,7 +154,7 @@ describe("ECR Image Layer Access Responsive Control Handler", () => {
     jest.clearAllMocks();
   });
 
-  test("should revoke permissions for an unauthorized IAM user", async () => {
+  it("should revoke permissions for an unauthorized IAM user", async () => {
     const event = produce(mockEvent, (draft) => {
       draft.detail.findings[0].Resources[0].Details.Other.identityType =
         "IAMUser";
@@ -173,7 +173,7 @@ describe("ECR Image Layer Access Responsive Control Handler", () => {
     });
   });
 
-  test("should skip if the identity type is an assumed role", async () => {
+  it("should skip if the identity type is an assumed role", async () => {
     await handler(mockEvent, mockContext);
 
     expect(mockLoggerInstance.warn).toHaveBeenCalledWith(

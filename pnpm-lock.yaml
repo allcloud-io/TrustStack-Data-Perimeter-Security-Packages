@@ -167,6 +167,9 @@ importers:
       '@aws-sdk/client-sns':
         specifier: 'catalog:'
         version: 3.758.0
+      '@trust-stack/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       aws-cdk-lib:
         specifier: 'catalog:'
         version: 2.182.0(constructs@10.4.2)

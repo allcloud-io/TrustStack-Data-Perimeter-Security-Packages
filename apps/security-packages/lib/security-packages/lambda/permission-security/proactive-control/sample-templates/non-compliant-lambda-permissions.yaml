@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Non-Compliant Lambda Permission Examples"
+
+Parameters:
+  LambdaFunction:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ARN of Lambda function to grant permissions to
+    Default: "/trust-stack/e2e-tests/lambda-function-arn"
+
+  TrustedAccountID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Trusted AWS Account ID
+    Default: "/trust-stack/e2e-tests/trusted-account-id"
+
+  UntrustedAccountID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Untrusted AWS Account ID
+    Default: "/trust-stack/e2e-tests/untrusted-account-id"
+
+Resources:
+  # Example 1: Permission with wildcard principal (allows anyone to invoke)
+  WildcardPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: "*"
+
+  # Example 2: Permission for untrusted AWS account
+  UntrustedAccountPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: !Ref UntrustedAccountID
+
+  # Example 3: Permission for untrusted service principal
+  UntrustedServicePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: "cloudformation.amazonaws.com"
+      SourceAccount: !Ref TrustedAccountID
+
+  # Example 4: Permission with untrusted organization ID
+  UntrustedOrgPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: !Ref TrustedAccountID
+      PrincipalOrgID: "o-untrusted123"

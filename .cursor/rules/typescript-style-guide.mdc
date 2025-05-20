@@ -61,3 +61,85 @@ import type { MyComponentProps } from "./types";
 import { Utils } from "./utils";
 ```
 
+## Types vs. Interfaces
+
+Prefer using `type` aliases over `interface` declarations unless specific features of interfaces are needed. Types are generally more flexible and can represent a wider variety of shapes.
+
+**Prefer `type`:**
+
+```typescript
+type UserProfile = {
+  userID: string;
+  username: string;
+  email: string;
+};
+
+type Point = {
+  x: number;
+  y: number;
+};
+
+type ID = string | number;
+
+type UserResponse = UserProfile | { error: string };
+```
+
+**When to consider `interface`:**
+
+Interfaces can be useful in specific scenarios, primarily due to their declaration merging and `extends` capabilities with classes.
+
+1.  **Declaration Merging:** Interfaces with the same name in the same scope will have their definitions merged. This can be useful for extending existing interfaces or when working with third-party libraries that use interfaces.
+
+    ```typescript
+    // Original interface (e.g., from a library)
+    interface Window {
+      title: string;
+    }
+
+    // Your extension to the Window interface
+    interface Window {
+      customProperty: boolean;
+    }
+
+    // The effective Window interface is now:
+    // interface Window {
+    //   title: string;
+    //   customProperty: boolean;
+    // }
+
+    window.customProperty = true; 
+    ```
+
+2.  **Implementing with `class` (especially with `extends`):** While classes can implement types, interfaces are often used when defining contracts that multiple classes will adhere to, especially when using inheritance.
+
+    ```typescript
+    interface Shape {
+      getArea: () => number;
+    }
+
+    interface Colored {
+      color: string;
+    }
+
+    interface ColoredShape extends Shape, Colored {
+      // Combines Shape and Colored and can add more
+      name: string;
+    }
+
+    class Circle implements ColoredShape {
+      constructor(public radius: number, public color: string, public name: string) {}
+
+      getArea(): number {
+        return Math.PI * this.radius * this.radius;
+      }
+    }
+
+    class Square implements Shape {
+        constructor(public sideLength: number) {}
+
+        getArea(): number {
+            return this.sideLength * this.sideLength;
+        }
+    }
+    ```
+In summary, start with `type` for its simplicity and versatility. Opt for `interface` when you specifically need declaration merging or are defining contracts for classes in a more object-oriented programming style, particularly with inheritance.

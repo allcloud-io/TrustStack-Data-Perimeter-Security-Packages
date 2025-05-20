@@ -3,7 +3,10 @@ import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import { EC2 } from "@aws-sdk/client-ec2";
 import middy from "@middy/core";
 import type { LambdaVPCSecurityConfig } from "@trust-stack/schema";
-import { getValidatedPackageConfig } from "@trust-stack/utils";
+import {
+  getValidatedPackageConfig,
+  resolveErrorMessage,
+} from "@trust-stack/utils";
 import type { CloudFormationHookEvent } from "../../../../../../../types/cfn-hooks";
 import type { AWS_Lambda_Function } from "../../../../../../../types/cfn-resources/aws-lambda-function";
 import { SECURITY_PACKAGE_NAME, SECURITY_PACKAGE_SLUG } from "../shared";
@@ -84,18 +87,18 @@ async function lambdaHandler(event: CloudFormationHookEvent) {
       message: "Lambda function has valid VPC configuration",
       clientRequestToken,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     const errorMessage = "Failed to validate Lambda function configuration";
 
     logger.error(errorMessage, {
-      error: error instanceof Error ? error.message : String(error),
+      error: resolveErrorMessage(error),
     });
 
     return {
       hookStatus: "FAILURE",
       failureMode: "FAIL",
       errorCode: "InternalFailure",
-      message: `${errorMessage}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      message: `${errorMessage}: ${resolveErrorMessage(error)}`,
       clientRequestToken,
     };
   }
@@ -108,6 +111,15 @@ async function validateLambdaVPCConfig(
   properties: AWS_Lambda_Function.FunctionResourceType,
   config: LambdaVPCSecurityConfig,
 ): Promise<{ isValid: boolean; reason?: string }> {
+  const excludeTag = properties.Tags?.find(
+    (tag) => tag.Key === "ts:exclude",
+  )?.Value;
+
+  if (excludeTag === "*" || excludeTag === SECURITY_PACKAGE_NAME) {
+    logger.info("Lambda function is excluded from security checks, skipping");
+    return { isValid: true };
+  }
+
   // Check if VpcConfig exists
   if (!properties.VpcConfig) {
     return {

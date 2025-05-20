@@ -5,6 +5,7 @@ import * as path from "node:path";
 import {
   CloudFormationHookExecutionRoleStack,
   ECR_ImageLayerAccessStack,
+  Lambda_PermissionSecurityStack,
   Lambda_VPCSecurityStack,
   SNS_SubscriptionSecurityStack,
 } from "../lib";
@@ -48,6 +49,16 @@ if (securityPackages.ecrImageLayerAccess?.enabled) {
     config: securityPackages.ecrImageLayerAccess.configuration,
     tags: {
       "TrustStack:SecurityPackage": "ECRImageLayerAccess",
+    },
+  });
+}
+
+if (securityPackages.lambdaPermissionSecurity?.enabled) {
+  new Lambda_PermissionSecurityStack(app, "LambdaPermissionSecurity", {
+    securityPackagesDir: securityPackagesDir,
+    config: securityPackages.lambdaPermissionSecurity.configuration ?? {},
+    tags: {
+      "TrustStack:SecurityPackage": "LambdaPermissionSecurity",
     },
   });
 }

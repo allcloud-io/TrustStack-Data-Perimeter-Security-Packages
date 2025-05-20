@@ -216,7 +216,7 @@ describe("SNS Subscription Security Responsive Control Handler", () => {
     jest.clearAllMocks();
   });
 
-  test("should handle Security Hub finding with active subscription and unsubscribe it", async () => {
+  it("should handle Security Hub finding with active subscription and unsubscribe it", async () => {
     // Mock subscription is not pending confirmation
     mockSNSClientInstance.getSubscriptionAttributes.mockResolvedValueOnce({
       Attributes: {
@@ -258,7 +258,7 @@ describe("SNS Subscription Security Responsive Control Handler", () => {
     });
   });
 
-  test("should skip Security Hub finding when subscription is pending confirmation", async () => {
+  it("should skip Security Hub finding when subscription is pending confirmation", async () => {
     // Mock subscription is pending confirmation
     mockSNSClientInstance.getSubscriptionAttributes.mockResolvedValueOnce({
       Attributes: {
@@ -284,7 +284,7 @@ describe("SNS Subscription Security Responsive Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("should handle Security Hub finding when subscription is not found", async () => {
+  it("should handle Security Hub finding when subscription is not found", async () => {
     // Mock subscription not found
     mockSNSClientInstance.getSubscriptionAttributes.mockRejectedValueOnce(
       new MockNotFoundException(),
@@ -322,7 +322,7 @@ describe("SNS Subscription Security Responsive Control Handler", () => {
     });
   });
 
-  test("should handle SNS confirmation event with matching Security Hub finding", async () => {
+  it("should handle SNS confirmation event with matching Security Hub finding", async () => {
     // Mock finding exists
     mockSecurityHubClientInstance.getFindings.mockResolvedValueOnce({
       Findings: [mockFinding],
@@ -367,7 +367,7 @@ describe("SNS Subscription Security Responsive Control Handler", () => {
     });
   });
 
-  test("should handle SNS confirmation event with no matching Security Hub finding", async () => {
+  it("should handle SNS confirmation event with no matching Security Hub finding", async () => {
     // Mock no finding exists
     mockSecurityHubClientInstance.getFindings.mockResolvedValueOnce({
       Findings: [],

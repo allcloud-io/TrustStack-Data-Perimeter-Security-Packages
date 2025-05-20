@@ -12,7 +12,10 @@ import {
 import { SNS } from "@aws-sdk/client-sns";
 import middy from "@middy/core";
 import type { SNSSupportedProtocols } from "@trust-stack/schema";
-import { getValidatedPackageConfig } from "@trust-stack/utils";
+import {
+  getValidatedPackageConfig,
+  resolveErrorMessage,
+} from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type { SNSSubscribeEventDetail } from "../../../../../../../types/cloudtrail-events";
 import {
@@ -117,9 +120,9 @@ async function lambdaHandler(
       });
 
       logger.info("Security Hub finding created", { response });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error creating Security Hub finding:", {
-        error: error instanceof Error ? error.message : String(error),
+        error: resolveErrorMessage(error),
       });
 
       throw error;

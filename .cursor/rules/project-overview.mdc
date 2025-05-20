@@ -1,0 +1,16 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Project overview
+
+TrustStack is a prevention-first cybersecurity framework that enables highly regulated organizations, government agencies, and defense units to securely run sensitive workloads in AWS commercial regions.
+
+Read [README.md](mdc:README.md), [README.md](mdc:apps/security-packages/README.md), [DATA_PERIMETER_GUIDELINES.md](mdc:docs/DATA_PERIMETER_GUIDELINES.md) for information about this project.
+
+Read the following `README.md` files for information about the security packages offered by the TrustStack framework.
+- [README.md](mdc:apps/security-packages/lib/security-packages/ecr/image-layer-access/README.md) (ECR Image Layer Access Security Package)
+- [README.md](mdc:apps/security-packages/lib/security-packages/lambda/permission-security/README.md) (Lambda Permission Security Package)
+- [README.md](mdc:apps/security-packages/lib/security-packages/lambda/vpc-security/README.md) (Lambda VPC Security Package)
+- [README.md](mdc:apps/security-packages/lib/security-packages/sns/subscription-security/README.md) (SNS Subscription Security Package)

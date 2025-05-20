@@ -23,14 +23,19 @@ import {
   parseManifestFile,
   type SecurityPackageSlug,
 } from "@trust-stack/schema";
+import { resolveErrorMessage } from "@trust-stack/utils";
 import dedent from "dedent";
 import * as esbuild from "esbuild";
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { generateSCP as generateECRImageLayerAccessSCP } from "../lib/security-packages/ecr/image-layer-access/preventative-controls/generate-scp";
+import { SECURITY_PACKAGE_SLUG as ECR_IMAGE_LAYER_ACCESS_SECURITY_PACKAGE_SLUG } from "../lib/security-packages/ecr/image-layer-access/shared/index";
+import { SECURITY_PACKAGE_SLUG as LAMBDA_PERMISSION_SECURITY_PACKAGE_SLUG } from "../lib/security-packages/lambda/permission-security/shared/index";
 import { generateSCP as generateLambdaVPCSecuritySCP } from "../lib/security-packages/lambda/vpc-security/preventative-controls/generate-scp";
+import { SECURITY_PACKAGE_SLUG as LAMBDA_VPC_SECURITY_PACKAGE_SLUG } from "../lib/security-packages/lambda/vpc-security/shared/index";
 import { generateSCP as generateSNSSubscriptionSecuritySCP } from "../lib/security-packages/sns/subscription-security/preventative-controls/generate-scp";
+import { SECURITY_PACKAGE_SLUG as SNS_SUBSCRIPTION_SECURITY_PACKAGE_SLUG } from "../lib/security-packages/sns/subscription-security/shared/index";
 import {
   buildConfiguration,
   cdkOutDirectory,
@@ -339,9 +344,9 @@ async function buildLambdaHandlerArchivesForSecurityPackage(
   for (const filePath of transformedFilePaths) {
     try {
       await fs.unlink(filePath);
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn(
-        `Failed to remove generated file: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to remove generated file: ${resolveErrorMessage(error)}`,
       );
       throw error;
     }
@@ -466,12 +471,13 @@ async function main() {
   if (securityPackages.ecrImageLayerAccess?.enabled) {
     console.log("ECR Image Layer Access is enabled");
 
-    const securityPackageSlug = "ecr-image-layer-access";
     const description =
       "Deny ECR image layer access to untrusted roles and networks";
 
     const cloudformationTemplateFilePath =
-      await addCloudFormationTemplateForSecurityPackage(securityPackageSlug);
+      await addCloudFormationTemplateForSecurityPackage(
+        ECR_IMAGE_LAYER_ACCESS_SECURITY_PACKAGE_SLUG,
+      );
 
     generatedFilePaths.push(
       path.relative(projectDirectory, cloudformationTemplateFilePath),
@@ -482,7 +488,7 @@ async function main() {
 
     const scpFilePath = path.join(
       distDirectory,
-      securityPackageSlug,
+      ECR_IMAGE_LAYER_ACCESS_SECURITY_PACKAGE_SLUG,
       "preventative-controls",
       "service-control-policy.json",
     );
@@ -492,18 +498,20 @@ async function main() {
 
     const lzaOrganizationConfigFilePath =
       await generateLZAOrganizationConfigFileForSecurityPackage(
-        securityPackageSlug,
+        ECR_IMAGE_LAYER_ACCESS_SECURITY_PACKAGE_SLUG,
         description,
       );
 
     const lzaCustomizationsConfigFilePath =
       await generateLZACustomizationsConfigFileForSecurityPackage(
-        securityPackageSlug,
+        ECR_IMAGE_LAYER_ACCESS_SECURITY_PACKAGE_SLUG,
         description,
       );
 
     const lambdaHandlerArchiveFilePaths =
-      await buildLambdaHandlerArchivesForSecurityPackage(securityPackageSlug);
+      await buildLambdaHandlerArchivesForSecurityPackage(
+        ECR_IMAGE_LAYER_ACCESS_SECURITY_PACKAGE_SLUG,
+      );
 
     const relativeFilePaths = [
       scpFilePath,
@@ -517,15 +525,53 @@ async function main() {
     console.log("ECR Image Layer Access is disabled.");
   }
 
+  if (securityPackages.lambdaPermissionSecurity?.enabled) {
+    console.log("Lambda Permission Security is enabled");
+
+    const description = "Deny Lambda permissions with untrusted principals";
+
+    const cloudformationTemplateFilePath =
+      await addCloudFormationTemplateForSecurityPackage(
+        LAMBDA_PERMISSION_SECURITY_PACKAGE_SLUG,
+      );
+
+    generatedFilePaths.push(
+      path.relative(projectDirectory, cloudformationTemplateFilePath),
+    );
+
+    const config = securityPackages.lambdaPermissionSecurity.configuration;
+
+    const lzaCustomizationsConfigFilePath =
+      await generateLZACustomizationsConfigFileForSecurityPackage(
+        LAMBDA_PERMISSION_SECURITY_PACKAGE_SLUG,
+        description,
+      );
+
+    const lambdaHandlerArchiveFilePaths =
+      await buildLambdaHandlerArchivesForSecurityPackage(
+        LAMBDA_PERMISSION_SECURITY_PACKAGE_SLUG,
+      );
+
+    const relativeFilePaths = [
+      lzaCustomizationsConfigFilePath,
+      ...lambdaHandlerArchiveFilePaths,
+    ].map((filePath) => path.relative(projectDirectory, filePath));
+
+    generatedFilePaths.push(...relativeFilePaths);
+  } else {
+    console.log("Lambda Permission Security is disabled.");
+  }
+
   if (securityPackages.lambdaVPCSecurity?.enabled) {
     console.log("Lambda VPC Security is enabled");
 
-    const securityPackageSlug = "lambda-vpc-security";
     const description =
       "Deny Lambda functions from being created without a VPC configuration";
 
     const cloudformationTemplateFilePath =
-      await addCloudFormationTemplateForSecurityPackage(securityPackageSlug);
+      await addCloudFormationTemplateForSecurityPackage(
+        LAMBDA_VPC_SECURITY_PACKAGE_SLUG,
+      );
 
     generatedFilePaths.push(
       path.relative(projectDirectory, cloudformationTemplateFilePath),
@@ -536,7 +582,7 @@ async function main() {
 
     const scpFilePath = path.join(
       distDirectory,
-      securityPackageSlug,
+      LAMBDA_VPC_SECURITY_PACKAGE_SLUG,
       "preventative-controls",
       "service-control-policy.json",
     );
@@ -546,18 +592,20 @@ async function main() {
 
     const lzaOrganizationConfigFilePath =
       await generateLZAOrganizationConfigFileForSecurityPackage(
-        securityPackageSlug,
+        LAMBDA_VPC_SECURITY_PACKAGE_SLUG,
         description,
       );
 
     const lzaCustomizationsConfigFilePath =
       await generateLZACustomizationsConfigFileForSecurityPackage(
-        securityPackageSlug,
+        LAMBDA_VPC_SECURITY_PACKAGE_SLUG,
         description,
       );
 
     const lambdaHandlerArchiveFilePaths =
-      await buildLambdaHandlerArchivesForSecurityPackage(securityPackageSlug);
+      await buildLambdaHandlerArchivesForSecurityPackage(
+        LAMBDA_VPC_SECURITY_PACKAGE_SLUG,
+      );
 
     const relativeFilePaths = [
       scpFilePath,
@@ -574,12 +622,13 @@ async function main() {
   if (securityPackages.snsSubscriptionSecurity?.enabled) {
     console.log("SNS Subscription Security is enabled");
 
-    const securityPackageSlug = "sns-subscription-security";
     const description =
       "Deny SNS subscriptions to untrusted endpoints and protocols";
 
     const cloudformationTemplateFilePath =
-      await addCloudFormationTemplateForSecurityPackage(securityPackageSlug);
+      await addCloudFormationTemplateForSecurityPackage(
+        SNS_SUBSCRIPTION_SECURITY_PACKAGE_SLUG,
+      );
 
     generatedFilePaths.push(
       path.relative(projectDirectory, cloudformationTemplateFilePath),
@@ -590,7 +639,7 @@ async function main() {
 
     const scpFilePath = path.join(
       distDirectory,
-      securityPackageSlug,
+      SNS_SUBSCRIPTION_SECURITY_PACKAGE_SLUG,
       "preventative-controls",
       "service-control-policy.json",
     );
@@ -600,18 +649,20 @@ async function main() {
 
     const lzaOrganizationConfigFilePath =
       await generateLZAOrganizationConfigFileForSecurityPackage(
-        securityPackageSlug,
+        SNS_SUBSCRIPTION_SECURITY_PACKAGE_SLUG,
         description,
       );
 
     const lzaCustomizationsConfigFilePath =
       await generateLZACustomizationsConfigFileForSecurityPackage(
-        securityPackageSlug,
+        SNS_SUBSCRIPTION_SECURITY_PACKAGE_SLUG,
         description,
       );
 
     const lambdaHandlerArchiveFilePaths =
-      await buildLambdaHandlerArchivesForSecurityPackage(securityPackageSlug);
+      await buildLambdaHandlerArchivesForSecurityPackage(
+        SNS_SUBSCRIPTION_SECURITY_PACKAGE_SLUG,
+      );
 
     const relativeFilePaths = [
       scpFilePath,

@@ -134,7 +134,7 @@ export class Lambda_VPCSecurityStack extends cdk.Stack {
           new iam.PolicyStatement({
             sid: "AllowLambdaFunctionInspection",
             effect: iam.Effect.ALLOW,
-            actions: ["lambda:GetFunctionConfiguration"],
+            actions: ["lambda:GetFunctionConfiguration", "lambda:ListTags"],
             resources: ["*"],
           }),
           new iam.PolicyStatement({
