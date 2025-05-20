@@ -15,12 +15,13 @@ The following SSM parameters are available for use in your tests:
 | Parameter Path | Description |
 |---------------|-------------|
 | `/trust-stack/e2e-tests/lambda-role-arn` | ARN of IAM role for Lambda execution |
-| `/trust-stack/e2e-tests/lambda-function-arn` | ARN of a test Lambda function for permission testing |
 | `/trust-stack/e2e-tests/lambda-vpc-id` | ID of the authorized VPC for Lambda functions |
 | `/trust-stack/e2e-tests/lambda-subnet-id-1` | ID of the first subnet for Lambda VPC configuration |
 | `/trust-stack/e2e-tests/lambda-subnet-id-2` | ID of the second subnet for Lambda VPC configuration |
 | `/trust-stack/e2e-tests/lambda-security-group-id` | ID of the security group for Lambda functions |
 | `/trust-stack/e2e-tests/lambda-secondary-security-group-id` | ID of a secondary security group for multi-SG Lambda functions |
+| `/trust-stack/e2e-tests/security-packages/lambda-permission-security/lambda-function-arn` | ARN of a test Lambda function for testing the detectice control of the Lambda Permission security package |
+| `/trust-stack/e2e-tests/security-packages/lambda-vpc-security/lambda-function-arn` | ARN of a test Lambda function for testing the detectice control of the Lambda VPC security package |
 
 ### Account and Organization Parameters
 | Parameter Path | Description |
