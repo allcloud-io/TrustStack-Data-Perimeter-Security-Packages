@@ -25,6 +25,12 @@ export class E2ETestingResourcesStack extends cdk.Stack {
 
     this.awsOrganizationID = props.awsOrganizationID;
 
+    const lambdaRole = iam.Role.fromRoleName(
+      this,
+      "ExistingLambdaRole",
+      "TrustStackE2ETestLambda",
+    );
+
     this.createSNSTopic();
     this.createECRRepository();
     this.createIAMUserWithECRAccess();
@@ -35,7 +41,14 @@ export class E2ETestingResourcesStack extends cdk.Stack {
       authorizedVPC,
       unauthorizedVPC,
     );
-    this.createTestLambdaFunctionForPermissionTesting(authorizedVPC);
+    this.createTestLambdaFunctionForPermissionTesting({
+      authorizedVPC,
+      lambdaRole,
+    });
+    this.createTestLambdaFunctionForVPCSecurityTesting({
+      authorizedVPC,
+      lambdaRole,
+    });
 
     new ssm.StringParameter(this, "LambdaVPCID", {
       parameterName: "/trust-stack/e2e-tests/lambda-vpc-id",
@@ -372,14 +385,11 @@ export class E2ETestingResourcesStack extends cdk.Stack {
     });
   }
 
-  private createTestLambdaFunctionForPermissionTesting(authorizedVPC: ec2.Vpc) {
+  private createTestLambdaFunctionForPermissionTesting({
+    authorizedVPC,
+    lambdaRole,
+  }: Readonly<{ authorizedVPC: ec2.Vpc; lambdaRole: iam.IRole }>) {
     // Create a basic Lambda function for permission testing
-    const lambdaRole = iam.Role.fromRoleName(
-      this,
-      "ExistingLambdaRole",
-      "TrustStackE2ETestLambda",
-    );
-
     const testLambda = new lambda.Function(this, "TestPermissionLambda", {
       functionName: "truststack-e2e-test-permission-function",
       runtime: lambda.Runtime.NODEJS_22_X,
@@ -402,8 +412,43 @@ export class E2ETestingResourcesStack extends cdk.Stack {
     });
 
     // Store the Lambda function ARN in SSM Parameter Store
-    new ssm.StringParameter(this, "LambdaFunctionARN", {
-      parameterName: "/trust-stack/e2e-tests/lambda-function-arn",
+    new ssm.StringParameter(this, "PermissionTestingLambdaFunctionARN", {
+      parameterName:
+        "/trust-stack/e2e-tests/security-packages/lambda-permission-security/lambda-function-arn",
+      stringValue: testLambda.functionArn,
+    });
+  }
+
+  private createTestLambdaFunctionForVPCSecurityTesting({
+    authorizedVPC,
+    lambdaRole,
+  }: Readonly<{ authorizedVPC: ec2.Vpc; lambdaRole: iam.IRole }>) {
+    // Create a basic Lambda function for permission testing
+    const testLambda = new lambda.Function(this, "TestVPCLambda", {
+      functionName: "truststack-e2e-test-vpc-function",
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: "index.handler",
+      vpc: authorizedVPC,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      code: lambda.Code.fromInline(`
+        exports.handler = async (event) => {
+          console.log('Event:', JSON.stringify(event, null, 2));
+          return {
+            statusCode: 200,
+            body: JSON.stringify('Hello from Lambda!'),
+          };
+        };
+      `),
+      timeout: cdk.Duration.seconds(30),
+      role: lambdaRole,
+    });
+
+    // Store the Lambda function ARN in SSM Parameter Store
+    new ssm.StringParameter(this, "VPCSecurityLambdaFunctionARN", {
+      parameterName:
+        "/trust-stack/e2e-tests/security-packages/lambda-vpc-security/lambda-function-arn",
       stringValue: testLambda.functionArn,
     });
   }

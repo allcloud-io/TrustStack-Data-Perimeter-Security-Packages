@@ -5,7 +5,7 @@ Parameters:
   LambdaFunction:
     Type: AWS::SSM::Parameter::Value<String>
     Description: ARN of Lambda function to grant permissions to
-    Default: "/trust-stack/e2e-tests/lambda-function-arn"
+    Default: "/trust-stack/e2e-tests/security-packages/lambda-permission-security/lambda-function-arn"
 
   TrustedAccountID:
     Type: AWS::SSM::Parameter::Value<String>
