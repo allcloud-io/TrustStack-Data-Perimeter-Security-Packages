@@ -4,6 +4,7 @@ import * as apigatewayv2Integrations from "aws-cdk-lib/aws-apigatewayv2-integrat
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
+import * as ssm from "aws-cdk-lib/aws-ssm";
 import type { Construct } from "constructs";
 import * as path from "node:path";
 
@@ -129,6 +130,13 @@ export class MockHTTPAPIStack extends cdk.Stack {
         "SNSSubscriptionConfirmationWithSubscribeURLLambdaDelayedIntegration",
         snsSubscriptionConfirmationWithSubscribeURLLambdaDelayed,
       ),
+    });
+
+    new ssm.StringParameter(this, "MockHTTPAPIEndpoint", {
+      parameterName: "/trust-stack/e2e-tests/mock-http-api/endpoint",
+      description:
+        "The endpoint of the mock HTTP API used in the SNS subscription security e2e tests",
+      stringValue: this.httpApi.apiEndpoint,
     });
   }
 }

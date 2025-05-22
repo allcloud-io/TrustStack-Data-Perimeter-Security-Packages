@@ -22,6 +22,7 @@ The following SSM parameters are available for use in your tests:
 | `/trust-stack/e2e-tests/lambda-secondary-security-group-id` | ID of a secondary security group for multi-SG Lambda functions |
 | `/trust-stack/e2e-tests/security-packages/lambda-permission-security/lambda-function-arn` | ARN of a test Lambda function for testing the detectice control of the Lambda Permission security package |
 | `/trust-stack/e2e-tests/security-packages/lambda-vpc-security/lambda-function-arn` | ARN of a test Lambda function for testing the detectice control of the Lambda VPC security package |
+| `/trust-stack/e2e-tests/mock-http-api/endpoint` | The endpoint of the mock HTTP API used in the SNS subscription security e2e tests
 
 ### Account and Organization Parameters
 | Parameter Path | Description |

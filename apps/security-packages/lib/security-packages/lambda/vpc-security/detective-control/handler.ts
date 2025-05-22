@@ -87,7 +87,7 @@ async function lambdaHandler(
       return;
     }
 
-    let tags: Record<string, string>;
+    let tags: Record<string, string | undefined>;
     try {
       tags = (await lambda.listTags({ Resource: functionARN })).Tags ?? {};
     } catch (error: unknown) {
@@ -102,7 +102,10 @@ async function lambdaHandler(
     }
 
     const excludeTag = tags["ts:exclude"];
-    if (excludeTag === "*" || excludeTag === SECURITY_PACKAGE_NAME) {
+    if (
+      excludeTag === "ALL" ||
+      excludeTag?.split(",").includes(SECURITY_PACKAGE_NAME)
+    ) {
       logger.info("Lambda function is excluded from security checks, skipping");
       return;
     }

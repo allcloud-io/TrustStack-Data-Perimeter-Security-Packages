@@ -19,4 +19,4 @@ new E2ETestingResourcesStack(app, "E2ETestingResources", {
 });
 
 cdk.Tags.of(app).add("Project", "TrustStack");
-cdk.Tags.of(app).add("ts:exclude", "*");
+cdk.Tags.of(app).add("ts:exclude", "ALL");

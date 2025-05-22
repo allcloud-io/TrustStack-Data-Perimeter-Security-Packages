@@ -1,6 +1,12 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Sample template with compliant SNS subscriptions that use trusted endpoints"
 
+Parameters:
+  MockHTTPAPIEndpoint:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Endpoint of the mock HTTP API
+    Default: "/trust-stack/e2e-tests/mock-http-api/endpoint"
+
 Resources:
   MySnsTopic:
     Type: AWS::SNS::Topic
@@ -25,7 +31,8 @@ Resources:
     Type: AWS::SNS::Subscription
     Properties:
       Protocol: https
-      Endpoint: https://api.example.com/sns-subscription-confirmation
+      Endpoint:
+        !Join ["", [!Ref MockHTTPAPIEndpoint, "/sns-subscription-confirmation"]]
       TopicArn: !Ref MySnsTopic
       RawMessageDelivery: true
 

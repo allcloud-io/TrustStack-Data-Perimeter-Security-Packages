@@ -115,7 +115,10 @@ async function validateLambdaVPCConfig(
     (tag) => tag.Key === "ts:exclude",
   )?.Value;
 
-  if (excludeTag === "*" || excludeTag === SECURITY_PACKAGE_NAME) {
+  if (
+    excludeTag === "ALL" ||
+    excludeTag?.split(",").includes(SECURITY_PACKAGE_NAME)
+  ) {
     logger.info("Lambda function is excluded from security checks, skipping");
     return { isValid: true };
   }
