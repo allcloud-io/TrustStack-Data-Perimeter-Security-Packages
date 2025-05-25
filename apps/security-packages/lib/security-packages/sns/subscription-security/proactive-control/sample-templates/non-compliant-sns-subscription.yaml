@@ -1,24 +1,20 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Sample template with non-compliant SNS subscriptions that use untrusted endpoints"
 
-Resources:
-  MySnsTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Sub "my-topic-${AWS::AccountId}-${AWS::Region}"
-      Tags:
-        - Key: Environment
-          Value: Test
-        - Key: Purpose
-          Value: SecurityCompliance
+Parameters:
+  SNSTopicARN:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ARN of the SNS topic
+    Default: "/trust-stack/e2e-tests/sns-topic-arn"
 
+Resources:
   # Non-compliant email subscription with untrusted domain
   UntrustedEmailSubscription:
     Type: AWS::SNS::Subscription
     Properties:
       Protocol: email
       Endpoint: user@untrusted-domain.com
-      TopicArn: !Ref MySnsTopic
+      TopicArn: !Ref SNSTopicARN
 
   # Non-compliant HTTPS subscription with untrusted domain
   UntrustedHttpsSubscription:
@@ -26,7 +22,7 @@ Resources:
     Properties:
       Protocol: https
       Endpoint: https://api.untrusted-domain.com/sns-subscription-confirmation
-      TopicArn: !Ref MySnsTopic
+      TopicArn: !Ref SNSTopicARN
       RawMessageDelivery: true
 
   # Non-compliant subscription with missing Endpoint
@@ -35,7 +31,7 @@ Resources:
     Properties:
       Protocol: email
       # Missing Endpoint
-      TopicArn: !Ref MySnsTopic
+      TopicArn: !Ref SNSTopicARN
 
   # Non-compliant subscription with invalid email format
   InvalidEmailFormatSubscription:
@@ -43,7 +39,7 @@ Resources:
     Properties:
       Protocol: email
       Endpoint: invalid-email-format
-      TopicArn: !Ref MySnsTopic
+      TopicArn: !Ref SNSTopicARN
 
   # Non-compliant subscription with invalid URL format
   InvalidUrlFormatSubscription:
@@ -51,12 +47,4 @@ Resources:
     Properties:
       Protocol: https
       Endpoint: invalid-url-format
-      TopicArn: !Ref MySnsTopic
-
-Outputs:
-  TopicName:
-    Description: Name of the SNS topic
-    Value: !GetAtt MySnsTopic.TopicName
-  TopicArn:
-    Description: ARN of the SNS topic
-    Value: !Ref MySnsTopic
+      TopicArn: !Ref SNSTopicARN

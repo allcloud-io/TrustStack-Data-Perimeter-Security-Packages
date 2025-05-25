@@ -2,29 +2,24 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "Sample template with compliant SNS subscriptions that use trusted endpoints"
 
 Parameters:
+  SNSTopicARN:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ARN of the SNS topic
+    Default: "/trust-stack/e2e-tests/sns-topic-arn"
+
   MockHTTPAPIEndpoint:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Endpoint of the mock HTTP API
     Default: "/trust-stack/e2e-tests/mock-http-api/endpoint"
 
 Resources:
-  MySnsTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Sub "my-topic-${AWS::AccountId}-${AWS::Region}"
-      Tags:
-        - Key: Environment
-          Value: Test
-        - Key: Purpose
-          Value: SecurityCompliance
-
   # Compliant email subscription with trusted domain
   EmailSubscription:
     Type: AWS::SNS::Subscription
     Properties:
       Protocol: email
       Endpoint: user@example.com
-      TopicArn: !Ref MySnsTopic
+      TopicArn: !Ref SNSTopicARN
 
   # Compliant HTTPS subscription with trusted domain
   HttpsSubscription:
@@ -33,7 +28,7 @@ Resources:
       Protocol: https
       Endpoint:
         !Join ["", [!Ref MockHTTPAPIEndpoint, "/sns-subscription-confirmation"]]
-      TopicArn: !Ref MySnsTopic
+      TopicArn: !Ref SNSTopicARN
       RawMessageDelivery: true
 
   # Compliant SQS subscription (AWS service protocol)
@@ -42,7 +37,7 @@ Resources:
     Properties:
       Protocol: sqs
       Endpoint: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:my-queue"
-      TopicArn: !Ref MySnsTopic
+      TopicArn: !Ref SNSTopicARN
 
   # Compliant Lambda subscription (AWS service protocol)
   LambdaSubscription:
@@ -50,12 +45,4 @@ Resources:
     Properties:
       Protocol: lambda
       Endpoint: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:my-function"
-      TopicArn: !Ref MySnsTopic
-
-Outputs:
-  TopicName:
-    Description: Name of the SNS topic
-    Value: !GetAtt MySnsTopic.TopicName
-  TopicArn:
-    Description: ARN of the SNS topic
-    Value: !Ref MySnsTopic
+      TopicArn: !Ref SNSTopicARN
