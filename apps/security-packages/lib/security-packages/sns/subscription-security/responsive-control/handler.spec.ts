@@ -7,7 +7,7 @@ import type {
   GetSubscriptionAttributesCommandOutput,
   UnsubscribeCommandOutput,
 } from "@aws-sdk/client-sns";
-import { beforeAll, describe, jest, test } from "@jest/globals";
+import { beforeAll, describe, jest } from "@jest/globals";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type { SecurityHubFindingsImportedEvent } from "../../../../../../../types/aws-security-hub-events";
 import type { SNSConfirmationEventDetail } from "../../../../../../../types/cloudtrail-events";

@@ -24,6 +24,16 @@ spec:
           - vpce-0123456789abcdefg
           - vpce-0123456789abcdefh
 
+    # Lambda Layer Permission Security Package
+    lambdaLayerPermissionSecurity:
+      enabled: true
+      configuration:
+        trustedAccountIDs:
+          - "111122223333"
+          - "444455556666"
+        trustedOrgIDs:
+          - "o-exampleorgid"
+
     # Lambda Permission Security Package
     lambdaPermissionSecurity:
       enabled: true

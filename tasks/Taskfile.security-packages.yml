@@ -16,6 +16,21 @@ tasks:
     dir: "apps/security-packages"
     cmd: pnpm test {{ .CLI_ARGS }}
 
+  "test:debug":
+    desc: "Test the security packages code"
+    dir: "apps/security-packages"
+    cmd: pnpm test:debug {{ .CLI_ARGS }}
+
+  "test:e2e":
+    desc: "End to end testing of the security packages"
+    dir: "apps/security-packages"
+    cmd: pnpm test:e2e {{ .CLI_ARGS }}
+
+  "test:e2e:debug":
+    desc: "End to end testing of the security packages"
+    dir: "apps/security-packages"
+    cmd: pnpm test:debug:e2e {{ .CLI_ARGS }}
+
   "cdk:deploy":
     desc: "Deploy the security packages(except for organization policies)"
     dir: "apps/security-packages"

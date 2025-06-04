@@ -49,3 +49,4 @@ devfile.yaml
 
 # TrustStack configuration
 deployment-manifest.yml
+e2e-tests-options.yml

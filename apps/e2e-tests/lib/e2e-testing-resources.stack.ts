@@ -7,10 +7,15 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import type { Construct } from "constructs";
+import * as path from "node:path";
 
 type E2ETestingResourcesStackProps = cdk.StackProps &
   Readonly<{
     awsOrganizationID: string;
+    untrustedAccountID?: string;
+    untrustedOrgID?: string;
+    trustedAccountID?: string;
+    trustedOrgID?: string;
   }>;
 
 export class E2ETestingResourcesStack extends cdk.Stack {
@@ -49,6 +54,7 @@ export class E2ETestingResourcesStack extends cdk.Stack {
       authorizedVPC,
       lambdaRole,
     });
+    this.createTestLambdaLayerVersionForLayerPermissionTesting();
 
     new ssm.StringParameter(this, "LambdaVPCID", {
       parameterName: "/trust-stack/e2e-tests/lambda-vpc-id",
@@ -83,17 +89,22 @@ export class E2ETestingResourcesStack extends cdk.Stack {
     // Add SSM parameters for permission testing
     new ssm.StringParameter(this, "TrustedAccountID", {
       parameterName: "/trust-stack/e2e-tests/trusted-account-id",
-      stringValue: this.account,
+      stringValue: props.trustedAccountID ?? this.account,
     });
 
     new ssm.StringParameter(this, "UntrustedAccountID", {
       parameterName: "/trust-stack/e2e-tests/untrusted-account-id",
-      stringValue: "999988887777", // Example untrusted account ID
+      stringValue: props.untrustedAccountID ?? "999988887777", // Example untrusted account ID
     });
 
     new ssm.StringParameter(this, "TrustedOrgID", {
       parameterName: "/trust-stack/e2e-tests/trusted-org-id",
-      stringValue: this.awsOrganizationID,
+      stringValue: props.trustedOrgID ?? this.awsOrganizationID,
+    });
+
+    new ssm.StringParameter(this, "UntrustedOrgID", {
+      parameterName: "/trust-stack/e2e-tests/untrusted-org-id",
+      stringValue: props.untrustedOrgID ?? "o-untrusted123",
     });
   }
 
@@ -451,5 +462,24 @@ export class E2ETestingResourcesStack extends cdk.Stack {
         "/trust-stack/e2e-tests/security-packages/lambda-vpc-security/lambda-function-arn",
       stringValue: testLambda.functionArn,
     });
+  }
+
+  private createTestLambdaLayerVersionForLayerPermissionTesting() {
+    const testLambdaLayer = new lambda.LayerVersion(this, "TestLayer", {
+      layerVersionName: "TrustStackE2ETestLayer",
+      code: lambda.Code.fromAsset(path.join(__dirname, "sample-lambda-layer")),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_22_X],
+      description: "Test Lambda layer for layer permission testing",
+    });
+
+    new ssm.StringParameter(
+      this,
+      "LayerPermissionTestingLambdaLayerVersionARN",
+      {
+        parameterName:
+          "/trust-stack/e2e-tests/security-packages/lambda-layer-permission/lambda-layer-version-arn",
+        stringValue: testLambdaLayer.layerVersionArn,
+      },
+    );
   }
 }

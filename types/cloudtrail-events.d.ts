@@ -265,6 +265,63 @@ export type LambdaFunctionDeleteEventDetail = {
 };
 
 /**
+ * CloudTrail event detail for Lambda AddLayerVersionPermission API call
+ */
+export type LambdaAddLayerVersionPermissionEventDetail = {
+  eventVersion: string;
+  userIdentity: {
+    type: string;
+    principalId: string;
+    arn: string;
+    accountId: string;
+    accessKeyId: string;
+    sessionContext: {
+      sessionIssuer: {
+        type: string;
+        principalId: string;
+        arn: string;
+        accountId: string;
+        userName: string;
+      };
+      attributes: {
+        creationDate: string;
+        mfaAuthenticated: string;
+      };
+    };
+  };
+  eventTime: string;
+  eventSource: "lambda.amazonaws.com";
+  eventName: "AddLayerVersionPermission20181031";
+  awsRegion: string;
+  sourceIPAddress: string;
+  userAgent: string;
+  requestParameters: {
+    layerName: string;
+    versionNumber: number;
+    principal: string;
+    statementId: string;
+    action: string;
+    organizationId?: string;
+  };
+  responseElements: {
+    statement: string;
+    revisionId: string;
+  };
+  requestID: string;
+  eventID: string;
+  readOnly: boolean;
+  eventType: string;
+  managementEvent: boolean;
+  recipientAccountId: string;
+  eventCategory: string;
+  tlsDetails: {
+    tlsVersion: string;
+    cipherSuite: string;
+    clientProvidedHostHeader: string;
+  };
+};
+
+/**
  * CloudTrail event detail for Lambda AddPermission API call
  */
 export type LambdaAddPermissionEventDetail = {

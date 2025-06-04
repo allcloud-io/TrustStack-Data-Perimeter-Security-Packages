@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, jest, test } from "@jest/globals";
+import { beforeAll, describe, expect, jest } from "@jest/globals";
 import type { LambdaPermissionSecurityConfig } from "@trust-stack/schema";
 import * as trustStackUtils from "@trust-stack/utils";
 import type { Context } from "aws-lambda";

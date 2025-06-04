@@ -95,9 +95,10 @@ import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
 import middy from "@middy/core";
 import type { YourNewPackageConfig } from "@trust-stack/schema";
 import { getValidatedPackageConfig, resolveErrorMessage } from "@trust-stack/utils";
+import { SECURITY_PACKAGE_NAME } from "../shared";
 
 const logger = new Logger({
-  serviceName: "YourPackageNameProactiveControl",
+  serviceName: `${SECURITY_PACKAGE_NAME}ProactiveControl`,
 });
 
 export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));

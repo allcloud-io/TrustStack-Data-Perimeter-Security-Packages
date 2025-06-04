@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Non-Compliant Lambda Layer Permissions - These should fail validation
+
+Parameters:
+  UntrustedAccountID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/trust-stack/e2e-tests/untrusted-account-id"
+    Description: Untrusted AWS account ID (not in the allowed list)
+
+  UntrustedOrganizationID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/trust-stack/e2e-tests/untrusted-org-id"
+    Description: Untrusted AWS Organization ID (not in the allowed list)
+
+  LayerVersionARN:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/trust-stack/e2e-tests/security-packages/lambda-layer-permission/lambda-layer-version-arn"
+    Description: ARN of the Lambda layer to grant permissions to
+
+Resources:
+  # Non-compliant: Permission granted to an untrusted account
+  UntrustedAccountPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LayerVersionARN
+      Principal: !Ref UntrustedAccountID
+
+  # Non-compliant: Wildcard permission without organization
+  WildcardWithoutOrgPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LayerVersionARN
+      Principal: "*"
+      # Missing OrganizationId - this grants access to ALL AWS accounts
+
+  # Non-compliant: Permission granted to untrusted organization
+  UntrustedOrganizationPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LayerVersionARN
+      Principal: "*"
+      OrganizationId: !Ref UntrustedOrganizationID
+
+  # Non-compliant: Permission granted to untrusted root account
+  UnztrustedRootAccountPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LayerVersionARN
+      Principal: !Sub "arn:aws:iam::${UntrustedAccountID}:root"
+
+  # Non-compliant: IAM role ARN (not allowed for layer permissions)
+  IAMRolePermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LayerVersionARN
+      Principal: !Sub "arn:aws:iam::${UntrustedAccountID}:role/SomeRole"

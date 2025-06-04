@@ -128,6 +128,8 @@ export const SecurityPackageSlug = z.enum([
 export type SecurityPackageSlug = z.infer<typeof SecurityPackageSlug>;
 ```
 
+Place the new Zod schema and corresponding TypeScript type based on the alphabitical order of the existing packages' schemas and types.
+
 Finally, update the `ConfigurationSchema` to include your new security package:
 
 ```typescript
@@ -139,7 +141,7 @@ export const ConfigurationSchema = z.object({
       .object({
         // Existing packages...
 
-        // Add your new package
+        // Add your new package (maintain alphabetical order)
         yourNewPackage: z
           .union([
             z.object({

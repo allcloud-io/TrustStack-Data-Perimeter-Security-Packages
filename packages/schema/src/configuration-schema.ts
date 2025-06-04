@@ -27,6 +27,25 @@ export type ECRImageLayerAccessPackageConfig = z.infer<
 >;
 
 /**
+ * Configuration for the Lambda Layer Permission Security package
+ */
+export const LambdaLayerPermissionSecurityConfig = z.object({
+  /**
+   * List of trusted AWS account IDs that can access Lambda layers
+   */
+  trustedAccountIDs: z.array(z.string()).optional(),
+
+  /**
+   * List of trusted AWS Organization IDs that can access Lambda layers
+   */
+  trustedOrgIDs: z.array(z.string()).optional(),
+});
+
+export type LambdaLayerPermissionSecurityConfig = z.infer<
+  typeof LambdaLayerPermissionSecurityConfig
+>;
+
+/**
  * Configuration for the Lambda Permission Security package
  */
 export const LambdaPermissionSecurityConfig = z.object({
@@ -105,6 +124,7 @@ export type SNSSubscriptionSecurityPackageConfig = z.infer<
 
 export const SecurityPackageSlug = z.enum([
   "ecr-image-layer-access",
+  "lambda-layer-permission-security",
   "lambda-permission-security",
   "lambda-vpc-security",
   "sns-subscription-security",
@@ -144,6 +164,17 @@ export const ConfigurationSchema = z.object({
             z.object({
               enabled: z.literal(true),
               configuration: ECRImageLayerAccessPackageConfig,
+            }),
+            z.object({
+              enabled: z.literal(false),
+            }),
+          ])
+          .optional(),
+        lambdaLayerPermissionSecurity: z
+          .union([
+            z.object({
+              enabled: z.literal(true),
+              configuration: LambdaLayerPermissionSecurityConfig,
             }),
             z.object({
               enabled: z.literal(false),

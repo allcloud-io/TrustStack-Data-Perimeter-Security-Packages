@@ -1,5 +1,8 @@
 *.js
 !jest.config.js
+!jest.config.debug.js
+!jest.e2e.config.js
+!jest.e2e.config.debug.js
 *.d.ts
 node_modules
 

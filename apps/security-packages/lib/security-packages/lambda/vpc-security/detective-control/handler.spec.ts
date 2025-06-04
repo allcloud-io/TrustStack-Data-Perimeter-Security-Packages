@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-imports */
 import type {
   GetFunctionConfigurationCommandOutput,
   ListTagsCommandOutput,
@@ -8,7 +7,7 @@ import {
   type GetFindingsCommandOutput,
 } from "@aws-sdk/client-securityhub";
 import { beforeAll, describe, jest } from "@jest/globals";
-import { LambdaVPCSecurityConfig } from "@trust-stack/schema";
+import type { LambdaVPCSecurityConfig } from "@trust-stack/schema";
 import * as utils from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type {
@@ -93,6 +92,7 @@ jest.unstable_mockModule("@trust-stack/utils", () => ({
 }));
 
 // Variables for dynamically imported modules
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 let handler: typeof import("./handler").handler;
 
 // Load the handler module dynamically
@@ -373,7 +373,6 @@ describe("Lambda VPC Security Detective Control Handler", () => {
     const event = deleteLambdaFunctionAPIEvent("test-function");
 
     // @ts-expect-error - The event is not a Create/Update event
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await handler(event, mockContext);
 
     expect(mockLoggerInstance.info).toHaveBeenCalledWith(

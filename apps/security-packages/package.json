@@ -9,6 +9,9 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "NODE_OPTIONS=--experimental-vm-modules POWERTOOLS_DEV=true jest --silent",
+    "test:debug": "jest --config jest.config.debug.js",
+    "test:e2e": "NODE_OPTIONS=--experimental-vm-modules POWERTOOLS_DEV=true jest --config jest.e2e.config.js --silent",
+    "test:debug:e2e": "jest --config jest.e2e.config.debug.js",
     "test:chatbot": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --coverageReporters=text",
     "cdk": "cdk",
     "lint": "eslint .",
@@ -57,6 +60,7 @@
     "immer": "catalog:",
     "jest": "catalog:",
     "prettier": "catalog:",
+    "ts-jest": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:"

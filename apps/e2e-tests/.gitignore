@@ -8,3 +8,7 @@ node_modules
 cdk.out
 
 .env
+
+# Ignore the sample Lambda layer
+!lib/sample-lambda-layer/nodejs/node_modules/
+!lib/sample-lambda-layer/nodejs/node_modules/dummy-nodejs-module/index.js

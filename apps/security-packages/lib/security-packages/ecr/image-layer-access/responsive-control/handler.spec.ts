@@ -1,4 +1,4 @@
-import { beforeAll, describe, jest, test } from "@jest/globals";
+import { beforeAll, describe, jest } from "@jest/globals";
 import type { Context } from "aws-lambda";
 import { produce } from "immer";
 import type { SecurityHubFindingsImportedEvent } from "../../../../../../../types/aws-security-hub-events";

@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Compliant Lambda Layer Permissions - These should pass validation
+
+Parameters:
+  TrustedAccountID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/trust-stack/e2e-tests/trusted-account-id"
+    Description: Trusted AWS account ID
+
+  TrustedOrganizationID:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/trust-stack/e2e-tests/trusted-org-id"
+    Description: Trusted AWS Organization ID
+
+  LayerVersionARN:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: "/trust-stack/e2e-tests/security-packages/lambda-layer-permission/lambda-layer-version-arn"
+    Description: ARN of the Lambda layer to grant permissions to
+
+Resources:
+  # Compliant: Permission granted to a trusted account
+  TrustedAccountPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LayerVersionARN
+      Principal: !Ref TrustedAccountID
+
+  # Compliant: Permission granted to an organization with wildcard
+  OrganizationPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LayerVersionARN
+      Principal: "*"
+      OrganizationId: !Ref TrustedOrganizationID
+
+  # Compliant: Permission granted to a trusted root account
+  TrustedRootAccountPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref LayerVersionARN
+      Principal: !Sub "arn:aws:iam::${TrustedAccountID}:root"

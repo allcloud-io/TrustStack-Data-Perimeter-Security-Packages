@@ -1,6 +1,7 @@
 import { SSM } from "@aws-sdk/client-ssm";
 import {
   ECRImageLayerAccessPackageConfig,
+  LambdaLayerPermissionSecurityConfig,
   LambdaPermissionSecurityConfig,
   LambdaVPCSecurityConfig,
   SNSSubscriptionSecurityPackageConfig,
@@ -15,6 +16,7 @@ export type SharedSSMParameterName =
   | "/trust-stack/assets-bucket/name"
   | "/trust-stack/cloudformation-hook-execution-role-arn"
   | "/trust-stack/ecr/image-layer-access/config"
+  | "/trust-stack/lambda/layer-permission-security/config"
   | "/trust-stack/lambda/permission-security/config"
   | "/trust-stack/lambda/vpc-security/config"
   | "/trust-stack/sns/subscription-security/config";
@@ -30,6 +32,9 @@ export async function getValidatedPackageConfig(
   securityPackage: "ecr-image-layer-access",
 ): Promise<ECRImageLayerAccessPackageConfig>;
 export async function getValidatedPackageConfig(
+  securityPackage: "lambda-layer-permission-security",
+): Promise<LambdaLayerPermissionSecurityConfig>;
+export async function getValidatedPackageConfig(
   securityPackage: "lambda-permission-security",
 ): Promise<LambdaPermissionSecurityConfig>;
 export async function getValidatedPackageConfig(
@@ -42,6 +47,7 @@ export async function getValidatedPackageConfig(
   securityPackage: SecurityPackageSlug,
 ): Promise<
   | ECRImageLayerAccessPackageConfig
+  | LambdaLayerPermissionSecurityConfig
   | LambdaPermissionSecurityConfig
   | LambdaVPCSecurityConfig
   | SNSSubscriptionSecurityPackageConfig
@@ -53,6 +59,10 @@ export async function getValidatedPackageConfig(
     case "ecr-image-layer-access":
       parameterName = "/trust-stack/ecr/image-layer-access/config";
       schema = ECRImageLayerAccessPackageConfig;
+      break;
+    case "lambda-layer-permission-security":
+      parameterName = "/trust-stack/lambda/layer-permission-security/config";
+      schema = LambdaLayerPermissionSecurityConfig;
       break;
     case "lambda-permission-security":
       parameterName = "/trust-stack/lambda/permission-security/config";

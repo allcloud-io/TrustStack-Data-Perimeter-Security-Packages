@@ -31,6 +31,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { generateSCP as generateECRImageLayerAccessSCP } from "../lib/security-packages/ecr/image-layer-access/preventative-controls/generate-scp";
 import { SECURITY_PACKAGE_SLUG as ECR_IMAGE_LAYER_ACCESS_SECURITY_PACKAGE_SLUG } from "../lib/security-packages/ecr/image-layer-access/shared/index";
+import { SECURITY_PACKAGE_SLUG as LAMBDA_LAYER_PERMISSION_SECURITY_PACKAGE_SLUG } from "../lib/security-packages/lambda/layer-permission/shared/index";
 import { SECURITY_PACKAGE_SLUG as LAMBDA_PERMISSION_SECURITY_PACKAGE_SLUG } from "../lib/security-packages/lambda/permission-security/shared/index";
 import { generateSCP as generateLambdaVPCSecuritySCP } from "../lib/security-packages/lambda/vpc-security/preventative-controls/generate-scp";
 import { SECURITY_PACKAGE_SLUG as LAMBDA_VPC_SECURITY_PACKAGE_SLUG } from "../lib/security-packages/lambda/vpc-security/shared/index";
@@ -525,6 +526,41 @@ async function main() {
     console.log("ECR Image Layer Access is disabled.");
   }
 
+  if (securityPackages.lambdaLayerPermissionSecurity?.enabled) {
+    console.log("Lambda Layer Permission Security is enabled");
+
+    const description = "Deny Lambda layer permissions to untrusted principals";
+
+    const cloudformationTemplateFilePath =
+      await addCloudFormationTemplateForSecurityPackage(
+        LAMBDA_LAYER_PERMISSION_SECURITY_PACKAGE_SLUG,
+      );
+
+    generatedFilePaths.push(
+      path.relative(projectDirectory, cloudformationTemplateFilePath),
+    );
+
+    const lzaCustomizationsConfigFilePath =
+      await generateLZACustomizationsConfigFileForSecurityPackage(
+        LAMBDA_LAYER_PERMISSION_SECURITY_PACKAGE_SLUG,
+        description,
+      );
+
+    const lambdaHandlerArchiveFilePaths =
+      await buildLambdaHandlerArchivesForSecurityPackage(
+        LAMBDA_LAYER_PERMISSION_SECURITY_PACKAGE_SLUG,
+      );
+
+    const relativeFilePaths = [
+      lzaCustomizationsConfigFilePath,
+      ...lambdaHandlerArchiveFilePaths,
+    ].map((filePath) => path.relative(projectDirectory, filePath));
+
+    generatedFilePaths.push(...relativeFilePaths);
+  } else {
+    console.log("Lambda Layer Permission Security is disabled.");
+  }
+
   if (securityPackages.lambdaPermissionSecurity?.enabled) {
     console.log("Lambda Permission Security is enabled");
 
@@ -538,8 +574,6 @@ async function main() {
     generatedFilePaths.push(
       path.relative(projectDirectory, cloudformationTemplateFilePath),
     );
-
-    const config = securityPackages.lambdaPermissionSecurity.configuration;
 
     const lzaCustomizationsConfigFilePath =
       await generateLZACustomizationsConfigFileForSecurityPackage(

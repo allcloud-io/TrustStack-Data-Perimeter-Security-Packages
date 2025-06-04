@@ -17,6 +17,7 @@ export default tseslint.config(
     },
   },
   {
+    files: ["**/*.ts", "**/*.tsx"],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -49,5 +50,8 @@ export default tseslint.config(
       "@typescript-eslint/consistent-type-definitions": ["error", "type"],
       "n/prefer-node-protocol": ["error"],
     },
+  },
+  {
+    ignores: ["eslint.config.mjs", "jest.config.js", "coverage/**"],
   },
 );
