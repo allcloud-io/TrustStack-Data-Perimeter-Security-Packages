@@ -8,6 +8,7 @@ TrustStack provides a comprehensive suite of security packages designed to prote
   - [Security Benefits](#security-benefits)
   - [Packages](#packages)
     - [ECR Image Layer Access Security Package](#ecr-image-layer-access-security-package)
+    - [Lambda Layer Permission Security Package](#lambda-layer-permission-security-package)
     - [Lambda Permission Security Package](#lambda-permission-security-package)
     - [Lambda VPC Security Package](#lambda-vpc-security-package)
     - [SNS Subscription Security Package](#sns-subscription-security-package)
@@ -38,6 +39,18 @@ The [ECR Image Layer Access Security Package](lib/security-packages/ecr/image-la
 3. **Responsive Controls**: Automated remediation workflows to address unauthorized access attempts.
 
 For detailed implementation details, see the [ECR Image Layer Access Security Package documentation](lib/security-packages/ecr/image-layer-access/README.md).
+
+### Lambda Layer Permission Security Package
+
+The Lambda Layer Permission Security package addresses the risk of unauthorized access to AWS Lambda layers through overly permissive layer version permissions. AWS Lambda layers allow code sharing across functions, but improper permission management can expose sensitive code and dependencies to untrusted accounts or organizations, potentially leading to intellectual property theft and security vulnerabilities.
+
+The [Lambda Layer Permission Security Package](lib/security-packages/lambda/layer-permission/README.md) addresses this risk by implementing a comprehensive set of controls:
+
+1. **Proactive Controls**: CloudFormation hooks that validate `AWS::Lambda::LayerVersionPermission` resources during deployment to ensure only trusted principals are allowed.
+2. **Detective Controls**: CloudTrail monitoring to detect `AddLayerVersionPermission` API calls with untrusted principals and create Security Hub findings.
+3. **Responsive Controls**: Automated remediation to remove layer permissions granted to untrusted principals.
+
+For detailed implementation details, see the [Lambda Layer Permission Security Package documentation](lib/security-packages/lambda/layer-permission/README.md).
 
 ### Lambda Permission Security Package
 

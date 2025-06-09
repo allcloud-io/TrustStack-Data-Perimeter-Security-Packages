@@ -1,0 +1,18 @@
+version: "3"
+
+env:
+  DOCKER_CLI_TOOL: '{{ or .DOCKER_CLI_TOOL "docker" }}'
+
+tasks:
+  "docker:build":
+    desc: "Build the Docker image"
+    cmd: "{{ .DOCKER_CLI_TOOL }} build -t truststack-ci ."
+
+  "docker:run:interactive":
+    desc: "Run the Docker container in interactive mode"
+    cmd: >
+      {{ .DOCKER_CLI_TOOL }} run -it \
+        -v ~/.aws:/root/.aws \
+        -v ./.envrc:/app/.envrc \
+        -v ./deployment-manifest.yml:/app/deployment-manifest.yml \
+        truststack-ci

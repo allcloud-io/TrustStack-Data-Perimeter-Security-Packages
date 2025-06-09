@@ -1,5 +1,8 @@
 version: "3"
 
+env:
+  BUILD_HASH: "{{ .BUILD_HASH }}"
+
 tasks:
   lint:
     desc: "Lint the security packages code"
@@ -72,6 +75,11 @@ tasks:
     cmd: >
       BUILD_HASH=$(task generate:build-hash)
       pnpm generate-deployment-assets
+
+  "build:ci":
+    desc: "Generate deployment artifacts for the security packages"
+    dir: "apps/security-packages"
+    cmd: pnpm generate-deployment-assets
 
   upload-to-s3:
     desc: "Upload the generated deployment artifacts to the assets bucket"

@@ -2,26 +2,13 @@
 .git
 .gitignore
 
-# Python cache files
-**/__pycache__
-**/*.py[cod]
-**/*.so
-**/*.egg-info
-
 # Development environment files
 .env
 .envrc
 .envrc.example
-.venv
-venv/
-.idea/
-.vscode/
 
 # Build artifacts
 dist/
-
-# Auto-generated dependencies files for the web application
-dependencies.json
 
 # Documentation
 docs/
@@ -34,12 +21,12 @@ Dockerfile
 docker-compose.yml
 
 # Development tools
-.python-version
-.sqlfluff
-pyrightconfig.json
-pytest.ini
 .editorconfig
+.nvmrc
 Taskfile.yml
+.cursor/
+.idea/
+.vscode/
 
 # Temporary files
 *.bak
@@ -47,5 +34,9 @@ Taskfile.yml
 *.temp
 .DS_Store
 
-# Pants
-.pants.d/
+# Installed packages
+node_modules/
+
+# Configuration files
+deployment-manifest.yml
+e2e-tests-options.yml

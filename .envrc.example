@@ -2,3 +2,6 @@
 # Required by all components
 export AWS_PROFILE=
 export AWS_REGION=
+
+# Only used by the TrustStack container image
+export BUILD_HASH=

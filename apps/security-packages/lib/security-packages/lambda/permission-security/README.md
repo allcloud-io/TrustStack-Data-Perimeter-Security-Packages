@@ -115,4 +115,4 @@ securityPackages:
 
 ## Conclusion
 
-By implementing this comprehensive approach to securing Lambda permissions, you can significantly reduce the risk of unauthorized access to your Lambda functions. The combination of proactive, detective, and responsive controls provides a robust security posture that aligns with the [Data Perimeter Guidelines](../../../../../../docs/DATA_PERIMETER_GUIDELINES.md).
+By implementing this comprehensive approach to securing Lambda permissions, you can significantly reduce the risk of unauthorized access to your Lambda functions. The combination of proactive, detective, and responsive controls provides a robust security posture that aligns with the [Data Perimeter Guidelines](../../../../../../docs/data-perimeter-guidelines.md).

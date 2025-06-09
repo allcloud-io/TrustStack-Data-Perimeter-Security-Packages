@@ -75,7 +75,46 @@ Describe the responsive controls that automatically remediate issues.
 Document the configuration options for this security package.
 ```
 
-## Step 2: Define Package Configuration Schema
+## Step 2: Update Security Packages README
+
+Update the `apps/security-packages/README.md` file to include your new security package in the packages section. Add a new subsection that follows the existing pattern and maintains alphabetical order by package name.
+
+### Adding Your Package Section
+
+Add your new package section in the appropriate alphabetical position within the "Packages" section. Follow this template:
+
+```markdown
+### [Your Package Name] Security Package
+
+Brief description of the security risk that your package addresses. Explain the specific AWS service or security concern that is being protected.
+
+The [Your Package Name Security Package](lib/security-packages/service-name/your-package-name/README.md) addresses this risk by implementing a comprehensive set of controls:
+
+1. **Preventative Controls**: Description of preventative controls (if applicable)
+2. **Proactive Controls**: Description of proactive controls (if applicable)  
+3. **Detective Controls**: Description of detective controls (if applicable)
+4. **Responsive Controls**: Description of responsive controls (if applicable)
+
+For detailed implementation details, see the [Your Package Name Security Package documentation](lib/security-packages/service-name/your-package-name/README.md).
+```
+
+### Examples from Existing Packages
+
+Reference the existing package sections in the README to understand the structure and tone:
+
+- ECR Image Layer Access Security Package
+- Lambda Permission Security Package  
+- Lambda VPC Security Package
+- SNS Subscription Security Package
+
+Ensure your package description:
+1. Clearly explains the security risk being addressed
+2. Uses consistent formatting with existing packages
+3. Links to your package's detailed README
+4. Follows the same writing style and terminology
+5. Is placed in the correct alphabetical order
+
+## Step 3: Define Package Configuration Schema
 
 First, define a dedicated Zod schema and TypeScript type for your security package configuration in the `packages/schema/src/configuration-schema.ts` file:
 
@@ -215,7 +254,7 @@ export type SNSSubscriptionSecurityPackageConfig = z.infer<
 >;
 ```
 
-## Step 3: Update Utils Package Types
+## Step 4: Update Utils Package Types
 
 Update the `SharedSSMParameterName` type in the `packages/utils/src/shared-ssm-parameters.ts` file to include your security package's configuration parameter path:
 
@@ -260,7 +299,7 @@ export async function getValidatedPackageConfig(
 }
 ```
 
-## Step 4: Implement CDK Stack
+## Step 5: Implement CDK Stack
 
 Create a `stack.ts` file that defines the CloudFormation resources for your security package. Your stack should follow the TrustStack patterns for security packages:
 
@@ -518,7 +557,7 @@ export * from "./constants";
    - Implement each control type as a separate method
    - Reuse common resources like the configuration parameter and assets bucket
 
-## Step 5: Implement Control Types
+## Step 6: Implement Control Types
 
 ### Preventative Controls (Service Control Policies)
 
@@ -568,12 +607,12 @@ See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.md
 Implement a Lambda handler for responsive controls in `responsive-control/handler.ts`:
 See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.mdc) for more information.
 
-## Step 6: Implement Tests
+## Step 7: Implement Tests
 
 Create test files for each Lambda handler.
 See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.mdc) for more information.
 
-## Step 7: Update the Export File
+## Step 8: Update the Export File
 
 Create an `index.ts` file to export your security package:
 
@@ -581,7 +620,7 @@ Create an `index.ts` file to export your security package:
 export * from "./stack";
 ```
 
-## Step 8: Update CDK Application
+## Step 9: Update CDK Application
 
 Update `apps/security-packages/bin/app.ts` to include your new security package:
 
@@ -613,7 +652,7 @@ if (securityPackages.yourNewPackage?.enabled) {
 Notes:
 - Ensure that the CDK stack instantiation for your new package (`YourNewPackageStack`) appears in the correct alphabetical order relative to other security packages (e.g., `ECR_ImageLayerAccessStack`, `SNS_SubscriptionSecurityStack`). This ensures consistent and predictable deployment order.
 
-## Step 9: Update Example Deployment Manifest
+## Step 10: Update Example Deployment Manifest
 
 Update the `deployment-manifest.example.yml` file to include a sample configuration for your new security package. This file serves as a reference for users configuring the security packages:
 
@@ -658,7 +697,7 @@ ecrImageLayerAccess:
           - vpce-0123456789abcdefh
 ```
 
-## Step 10: Update Asset Generation Script
+## Step 11: Update Asset Generation Script
 
 Update `apps/security-packages/scripts/generate-deployment-assets.ts` to generate assets for your new security package:
 
@@ -718,7 +757,7 @@ if (securityPackages.yourNewPackage?.enabled) {
 }
 ```
 
-## Step 11: Update Build Configuration
+## Step 12: Update Build Configuration
 
 Add your package to the build configuration in `lib/shared/build-configuration.ts`:
 
@@ -745,13 +784,13 @@ export const buildConfiguration: Record<
 };
 ```
 
-## Step 12: Update the `.cursor/rules/project-overview.mdc` Cursor IDE rule
+## Step 13: Update the `.cursor/rules/project-overview.mdc` Cursor IDE rule
 
 The Cursor IDE rule at `.cursor/rules/project-overview.mdc` provides an overview of the TrustStack framework and the security packages it offers. It is configured to automatically attach to every chat and Command+K request.
 
 Add a link to the `README.md` file `.cursor/rules/project-overview.mdc` in the list where the other security packages' `README.md` files are linked. The order at which the `README.md` links appear in the least must be based on the alphabetical order of the security package's name as appears in its `README.md` file's main header(e.g, "ECR Image Layer Access Security Package").
 
-## Step 13: Testing the New Security Package
+## Step 14: Testing the New Security Package
 
 1. Add unit tests for your Lambda handlers using Jest
 2. Run tests locally: `pnpm test`

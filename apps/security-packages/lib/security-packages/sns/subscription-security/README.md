@@ -111,4 +111,4 @@ To complete the defense-in-depth strategy, we offer automated remediation for un
 
 ## Conclusion
 
-By implementing this comprehensive approach to securing SNS subscriptions, you can significantly reduce the risk of data exfiltration through untrusted endpoints. The combination of preventative, proactive, detective, and responsive controls provides a robust security posture that aligns with the [Data Perimeter Guidelines](../../../../../../docs/DATA_PERIMETER_GUIDELINES.md).
+By implementing this comprehensive approach to securing SNS subscriptions, you can significantly reduce the risk of data exfiltration through untrusted endpoints. The combination of preventative, proactive, detective, and responsive controls provides a robust security posture that aligns with the [Data Perimeter Guidelines](../../../../../../docs/data-perimeter-guidelines.md).

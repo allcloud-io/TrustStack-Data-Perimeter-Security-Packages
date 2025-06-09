@@ -32,7 +32,7 @@ Certain AWS services require additional considerations to meet data perimeter co
    2. [Resource control policies (RCPs)](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_rcps.html) - Control access at the resource level
    3. [VPC endpoint policies](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-access.html) - Secure network pathways to resources
 
-2. **Proactive controls** - security controls designed to prevent resource configurations that lead to deviations from the data perimeter baseline. These controls are implemented through automated checks within deployment pipelines, such as those supported with [AWS CloudFormation hooks](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/hooks.html). While we primarily use AWS CloudFormation hooks in the prescriptive guidance, customers can implement policy-as-code checks using customer preferred Infrastructure as Code (IaC) tooling.
+2. **Proactive controls** - security controls designed to prevent resource configurations that lead to deviations from the data perimeter baseline. These controls are implemented through automated checks within deployment pipelines, such as those supported with [AWS CloudFormation hooks](https://docs.aws.amazon.com/cloudformation-cli/latest/hooks-userguide/what-is-cloudformation-hooks.html). While we primarily use AWS CloudFormation hooks in the prescriptive guidance, customers can implement policy-as-code checks using customer preferred Infrastructure as Code (IaC) tooling.
 
 3. **Detective** - security controls designed to detect actions or resource configurations that lead to deviations from the data perimeter baseline. If necessary, detected deviations should be remediated with Responsive controls.
 

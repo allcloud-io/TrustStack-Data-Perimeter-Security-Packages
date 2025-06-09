@@ -1,6 +1,9 @@
 version: "3"
 
 includes:
+  ci:
+    taskfile: ./tasks/Taskfile.ci.yml
+
   dev:
     taskfile: ./tasks/Taskfile.dev.yml
     flatten: true

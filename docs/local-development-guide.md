@@ -1,5 +1,9 @@
 # Local Development Guide
 
+<!-- TODO: Complete the local development guide -->
+
+**Important note:** This document is a work in progress and does not yet provide comprehensive information on setting up a local development environment.
+
 **Table of Contents:**
 
 - [Local Development Guide](#local-development-guide)
@@ -47,7 +51,7 @@ tasks:
   #   cmd: "echo 'Running my task'"
 ```
 
-Consult [TASKS.md](TASKS.md) for a description of all available tasks.
+Consult [tasks.md](tasks.md) for a description of all available tasks.
 
 ## Utilities
 
