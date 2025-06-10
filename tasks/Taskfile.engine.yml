@@ -21,6 +21,11 @@ tasks:
     dir: "apps/engine"
     cmd: pnpm cdk deploy {{ .CLI_ARGS }}
 
+  "cdk:deploy:ci":
+    desc: "Deploy the TrustStack engine without requiring approval"
+    dir: "apps/engine"
+    cmd: pnpm cdk deploy --all --require-approval=never {{ .CLI_ARGS }}
+
   "cdk:destroy":
     desc: "Remove the TrustStack engine from the environment"
     dir: "apps/engine"

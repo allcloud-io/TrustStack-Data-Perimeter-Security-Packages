@@ -152,10 +152,10 @@ export const ConfigurationSchema = z.object({
       .describe(
         "ID of the AWS organization to use for provisioning TrustStack's components",
       ),
-    sharedServicesAccountID: z
+    deploymentAccountID: z
       .string()
       .describe(
-        "ID of an AWS account to use for provisioning TrustStack's shared components",
+        "ID of an AWS account to use for provisioning TrustStack's core components",
       ),
     securityPackages: z
       .object({
@@ -169,7 +169,10 @@ export const ConfigurationSchema = z.object({
               enabled: z.literal(false),
             }),
           ])
-          .optional(),
+          .optional()
+          .describe(
+            "Configuration for the ECR Image Layer Access security package",
+          ),
         lambdaLayerPermissionSecurity: z
           .union([
             z.object({
@@ -180,7 +183,10 @@ export const ConfigurationSchema = z.object({
               enabled: z.literal(false),
             }),
           ])
-          .optional(),
+          .optional()
+          .describe(
+            "Configuration for the Lambda Layer Permission Security package",
+          ),
         lambdaPermissionSecurity: z
           .union([
             z.object({
@@ -191,7 +197,8 @@ export const ConfigurationSchema = z.object({
               enabled: z.literal(false),
             }),
           ])
-          .optional(),
+          .optional()
+          .describe("Configuration for the Lambda Permission Security package"),
         lambdaVPCSecurity: z
           .union([
             z.object({
@@ -202,7 +209,8 @@ export const ConfigurationSchema = z.object({
               enabled: z.literal(false),
             }),
           ])
-          .optional(),
+          .optional()
+          .describe("Configuration for the Lambda VPC Security package"),
         snsSubscriptionSecurity: z
           .union([
             z.object({
@@ -213,9 +221,10 @@ export const ConfigurationSchema = z.object({
               enabled: z.literal(false),
             }),
           ])
-          .optional(),
+          .optional()
+          .describe("Configuration for the SNS Subscription Security package"),
       })
-      .describe("The security packages to deploy"),
+      .describe("Configuration for the security packages to deploy"),
   }),
 });
 

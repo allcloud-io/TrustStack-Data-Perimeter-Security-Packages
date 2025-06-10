@@ -19,7 +19,7 @@ const securityPackagesDir = path.join(
 );
 
 const {
-  spec: { sharedServicesAccountID, securityPackages },
+  spec: { deploymentAccountID, securityPackages },
 } = parseManifestFile(
   ConfigurationSchema,
   path.join(__dirname, "..", "..", "..", "deployment-manifest.yml"),
@@ -39,7 +39,7 @@ new CloudFormationHookExecutionRoleStack(
   "CloudFormationHookExecutionRole",
   {
     env: {
-      account: sharedServicesAccountID,
+      account: deploymentAccountID,
     },
   },
 );

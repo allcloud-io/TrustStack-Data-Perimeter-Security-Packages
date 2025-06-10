@@ -6,7 +6,7 @@ Below are all the available tasks organized by their categories based on the Tas
 
 - **Docker**
   - `task docker:build` - Build the Docker image
-  - `task docker:run` - Run the Docker container
+  - `task docker:run:interactive` - Run the Docker container in interactive mode
 
 ## Development Tasks (`Taskfile.dev.yml`)
 
@@ -29,6 +29,7 @@ Below are all the available tasks organized by their categories based on the Tas
 
 - **Deployment**
   - `task engine:cdk:deploy` - Deploy the TrustStack engine
+  - `task engine:cdk:deploy:ci` - Deploy the TrustStack engine without requiring approval
   - `task engine:cdk:destroy` - Remove the TrustStack engine from the environment
   - `task engine:cdk:diff` - Present a diff of the TrustStack engine code against the deployed stacks
   - `task engine:cdk:synth` - Synthesize deployment artifacts for the TrustStack engine
@@ -55,7 +56,6 @@ Below are all the available tasks organized by their categories based on the Tas
 
 - **Build & Upload**
   - `task security-packages:build` - Generate deployment artifacts for the security packages
-  - `task security-packages:build:ci` - Generate deployment artifacts for the security packages (CI mode)
   - `task security-packages:upload-to-s3` - Upload the generated deployment artifacts to the assets bucket
 
 ## E2E Test Tasks (`Taskfile.e2e.yml`)

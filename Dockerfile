@@ -4,7 +4,7 @@ COPY . /app
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl zip unzip less
+RUN apt-get update && apt-get install -y curl zip unzip less jq
 
 # Download and install Node.js
 RUN curl -sL https://deb.nodesource.com/setup_22.x -o /tmp/nodesource_setup.sh && \

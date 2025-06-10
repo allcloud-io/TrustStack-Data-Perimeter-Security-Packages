@@ -5,7 +5,7 @@ import * as path from "node:path";
 import { AssetsBucketStack } from "../lib";
 
 const {
-  spec: { awsOrganizationARN, awsOrganizationID, sharedServicesAccountID },
+  spec: { awsOrganizationARN, awsOrganizationID, deploymentAccountID },
 } = parseManifestFile(
   ConfigurationSchema,
   path.join(__dirname, "..", "..", "..", "deployment-manifest.yml"),
@@ -23,7 +23,7 @@ const app = new cdk.App({
 new AssetsBucketStack(app, "AssetsBucket", {
   stackName: "TrustStack-AssetsBucket",
   env: {
-    account: sharedServicesAccountID,
+    account: deploymentAccountID,
   },
   awsOrganizationARN,
   awsOrganizationID,

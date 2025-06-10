@@ -38,48 +38,43 @@ tasks:
     desc: "Deploy the security packages(except for organization policies)"
     dir: "apps/security-packages"
     cmd: >
-      BUILD_HASH=$(task generate:build-hash)
+      BUILD_HASH=${BUILD_HASH:-$(task generate:build-hash)}
       pnpm cdk deploy {{ .CLI_ARGS }}
 
   "cdk:destroy":
     desc: "Remove the security packages from the environment(except for organization policies)"
     dir: "apps/security-packages"
     cmd: >
-      BUILD_HASH=$(task generate:build-hash)
+      BUILD_HASH=${BUILD_HASH:-$(task generate:build-hash)}
       pnpm cdk destroy {{ .CLI_ARGS }}
 
   "cdk:diff":
     desc: "Present a diff of the security packages code against the deployed stacks(except for organization policies)"
     dir: "apps/security-packages"
     cmd: >
-      BUILD_HASH=$(task generate:build-hash)
+      BUILD_HASH=${BUILD_HASH:-$(task generate:build-hash)}
       pnpm cdk diff {{ .CLI_ARGS }}
 
   "cdk:synth":
     desc: "Synthesize deployment artifacts for the security packages(except for organization policies)"
     dir: "apps/security-packages"
     cmd: >
-      BUILD_HASH=$(task generate:build-hash)
+      BUILD_HASH=${BUILD_HASH:-$(task generate:build-hash)}
       pnpm cdk synth --version-reporting=false --path-metadata=false --asset-metadata=false --ci {{ .CLI_ARGS }}
 
   "cdk:ls":
     desc: "List the security packages stack"
     dir: "apps/security-packages"
     cmd: >
-      BUILD_HASH=$(task generate:build-hash)
+      BUILD_HASH=${BUILD_HASH:-$(task generate:build-hash)}
       pnpm cdk ls
 
   build:
     desc: "Generate deployment artifacts for the security packages"
     dir: "apps/security-packages"
     cmd: >
-      BUILD_HASH=$(task generate:build-hash)
+      BUILD_HASH=${BUILD_HASH:-$(task generate:build-hash)}
       pnpm generate-deployment-assets
-
-  "build:ci":
-    desc: "Generate deployment artifacts for the security packages"
-    dir: "apps/security-packages"
-    cmd: pnpm generate-deployment-assets
 
   upload-to-s3:
     desc: "Upload the generated deployment artifacts to the assets bucket"
@@ -87,7 +82,7 @@ tasks:
     cmds:
       - rm -rf dist cdk.out
       - >
-        export BUILD_HASH=$(task generate:build-hash) &&
+        export BUILD_HASH=${BUILD_HASH:-$(task generate:build-hash)} &&
         export ASSETS_BUCKET_NAME=$(aws ssm get-parameter --name "/trust-stack/assets-bucket/name" --query "Parameter.Value" --output text) &&
         pnpm generate-deployment-assets &&
         aws s3 sync dist s3://$ASSETS_BUCKET_NAME/$BUILD_HASH/security-packages --delete --exclude "common/*" &&

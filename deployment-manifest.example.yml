@@ -1,71 +1,103 @@
 # Example deployment manifest for the TrustStack framework
+
+# Version of the deployment manifest schema
 version: v1
 
+# Specification for the TrustStack security framework deployment
 spec:
+  # ARN of the AWS organization to use for provisioning TrustStack's components
   awsOrganizationARN: "arn:aws:organizations::012345678901:organization/o-exampleorgid"
 
+  # ID of the AWS organization to use for provisioning TrustStack's components
   awsOrganizationID: "o-exampleorgid"
 
-  sharedServicesAccountID: "123456789012"
+  # ID of an AWS account to use for provisioning TrustStack's core components
+  deploymentAccountID: "123456789012"
 
+  # Configuration for the security packages to deploy
   securityPackages:
-    # ECR Image Layer Access Security Package
+    # Configuration for the ECR Image Layer Access security package
     ecrImageLayerAccess:
+      # Whether the ECR Image Layer Access security package is enabled
       enabled: true
+      # Configuration for the ECR Image Layer Access security package
       configuration:
+        # List of allowed role names
         allowedRoleNames:
           - TrustedRole
           - TrustedRole2
+        # List of allowed networks
         allowedNetworks:
           - 10.0.0.0/8
           - 172.16.0.0/12
           - 192.168.0.0/16
+        # List of allowed VPC endpoints
         allowedVPCEndpoints:
           - vpce-0123456789abcdefg
           - vpce-0123456789abcdefh
 
-    # Lambda Layer Permission Security Package
+    # Configuration for the Lambda Layer Permission Security package
     lambdaLayerPermissionSecurity:
+      # Whether the Lambda Layer Permission Security package is enabled
       enabled: true
+      # Configuration for the Lambda Layer Permission Security package
       configuration:
+        # List of trusted AWS account IDs that can access Lambda layers
         trustedAccountIDs:
           - "111122223333"
           - "444455556666"
+        # List of trusted AWS Organization IDs that can access Lambda layers
         trustedOrgIDs:
           - "o-exampleorgid"
 
-    # Lambda Permission Security Package
+    # Configuration for the Lambda Permission Security package
     lambdaPermissionSecurity:
+      # Whether the Lambda Permission Security package is enabled
       enabled: true
+      # Configuration for the Lambda Permission Security package
       configuration:
+        # List of trusted AWS account IDs that can invoke Lambda functions
         trustedAccountIDs:
           - "111122223333"
           - "444455556666"
+        # List of trusted AWS Organization IDs that can invoke Lambda functions
         trustedOrgIDs:
           - "o-exampleorgid"
+        # List of trusted AWS service principals that can invoke Lambda functions
+        # For example: "s3.amazonaws.com", "sns.amazonaws.com"
         trustedServicePrincipals:
           - "s3.amazonaws.com"
           - "sns.amazonaws.com"
           - "events.amazonaws.com"
 
-    # Lambda VPC Security Package
+    # Configuration for the Lambda VPC Security package
     lambdaVPCSecurity:
+      # Whether the Lambda VPC Security package is enabled
       enabled: true
+      # Configuration for the Lambda VPC Security package
       configuration:
+        # Optional list of VPC IDs that Lambda functions are allowed to use
+        # If not specified, any VPC is considered valid as long as the function
+        # is running inside a VPC
         allowedVPCIDs:
           - vpc-0123456789abcdef0
           - vpc-0123456789abcdef1
 
-    # SNS Subscription Security Package
+    # Configuration for the SNS Subscription Security package
     snsSubscriptionSecurity:
+      # Whether the SNS Subscription Security package is enabled
       enabled: true
+      # Configuration for the SNS Subscription Security package
       configuration:
+        # List of trusted email domains
         trustedEmailDomains:
           - example.com
           - trusted-domain.org
+        # List of trusted HTTP/HTTPS domains
         trustedHTTPDomains:
           - api.example.com
           - webhook.trusted-domain.org
+        # List of trusted AWS service protocols
         trustedProtocols:
           - firehose
           - lambda
