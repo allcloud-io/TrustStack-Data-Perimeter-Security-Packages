@@ -112,6 +112,42 @@ async function addCloudFormationTemplateForCommonComponent(
   return distFilePath;
 }
 
+async function generateLZACustomizationsConfigFileForCommonComponents() {
+  const lzaCustomizationsConfigFilePath = path.join(
+    commonComponentsDistDirectoryPath,
+    lzaCustomizationsConfigFileName,
+  );
+
+  const lzaCustomizationsConfig = dedent`
+    customizations:
+      cloudFormationStackSets:
+        - name: trust-stack-common-cloudformation-hook-execution-role
+          description: CloudFormation hook execution role for TrustStack
+          template: ./trust-stack/common/cloudformation-hook-execution-role.template.json
+        # Uncomment and edit the following section to customize the deployment targets and regions
+        # regions:
+        #   - <REGION_1>
+        #   - <REGION_2>
+        # deploymentTargets:
+        #   accounts:
+        #     - <ACCOUNT_1>
+        #     - <ACCOUNT_2>
+        #   organizationalUnits:
+        #     - <ORGANIZATIONAL_UNIT_1>
+        #     - <ORGANIZATIONAL_UNIT_2>
+        #   excludedAccounts:
+        #     - <EXCLUDED_ACCOUNT_1>
+        #     - <EXCLUDED_ACCOUNT_2>
+        #   excludedRegions:
+        #     - <EXCLUDED_REGION_1>
+        #     - <EXCLUDED_REGION_2>
+  `;
+
+  await fs.writeFile(lzaCustomizationsConfigFilePath, lzaCustomizationsConfig);
+
+  return lzaCustomizationsConfigFilePath;
+}
+
 async function addCloudFormationTemplateForSecurityPackage(
   securityPackage: SecurityPackageSlug,
 ): Promise<string> {
@@ -462,6 +498,13 @@ async function main() {
       projectDirectory,
       cloudformationHookExecutionRoleTemplateFilePath,
     ),
+  );
+
+  const lzaCustomizationsConfigFilePath =
+    await generateLZACustomizationsConfigFileForCommonComponents();
+
+  generatedFilePaths.push(
+    path.relative(projectDirectory, lzaCustomizationsConfigFilePath),
   );
 
   const config = parseManifestFile(ConfigurationSchema, manifestFilePath);

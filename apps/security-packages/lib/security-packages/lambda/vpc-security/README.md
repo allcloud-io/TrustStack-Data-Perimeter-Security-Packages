@@ -1,5 +1,19 @@
 # Lambda VPC Security Package
 
+This document outlines a comprehensive approach to securing AWS Lambda functions by enforcing VPC configurations and network controls.
+
+**Table of Contents:**
+
+- [Overview](#overview)
+- [Security Controls](#security-controls)
+  - [Preventative Controls](#preventative-controls)
+  - [Proactive Controls](#proactive-controls)
+  - [Detective Controls](#detective-controls)
+  - [Responsive Controls](#responsive-controls)
+- [Deployment Instructions](#deployment-instructions)
+  - [Configuration](#configuration)
+  - [Deployment Considerations](#deployment-considerations)
+
 ## Overview
 
 AWS Lambda allows associating AWS Lambda functions with either an AWS managed network or a customer managed VPC. Running Lambda functions outside of a VPC can create security risks by potentially exposing functions to unauthorized network access or allowing Lambda functions to exfiltrate data to untrusted networks.
@@ -60,27 +74,38 @@ The responsive control automatically remediates non-compliant Lambda functions:
 - Automatically updates Lambda functions to use an approved VPC configuration
 - Updates Security Hub findings with remediation status
 
-## Configuration
+## Deployment Instructions
 
-The Lambda VPC Security package accepts the following configuration options:
+### Configuration
 
-| Parameter     | Type     | Description                                                                                                       | Default |
-| ------------- | -------- | ----------------------------------------------------------------------------------------------------------------- | ------- |
-| allowedVPCIDs | string[] | Optional list of VPC IDs that Lambda functions are allowed to use. If not specified, any VPC is considered valid. | []      |
+The Lambda VPC Security Package package accepts the following configuration options:
 
-Example configuration:
+| Parameter     | Type       | Description                                                                                                                                                           | Default value    |
+| ------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| allowedVPCIDs | `string[]` | Optional list of VPC IDs that Lambda functions are allowed to use.<br/>If not specified, any VPC is considered valid as long as the function is running inside a VPC. | No default value |
+
+Enable this security package in your `deployment-manifest.yml` file by adding the `lambdaVPCSecurity` field under `spec.securityPackages`. Example:
 
 ```yaml
-securityPackages:
-  lambdaVpcSecurity:
-    enabled: true
-    configuration:
-      allowedVPCIDs:
-        - vpc-0123456789abcdef0
-        - vpc-0123456789abcdef1
+# Specification for the TrustStack security-framework deployment
+spec:
+  # Configuration for the security packages to deploy
+  securityPackages:
+    # Configuration for the Lambda VPC Security package
+    lambdaVPCSecurity:
+      # Whether the Lambda VPC Security package is enabled
+      enabled: true
+      # Configuration for the Lambda VPC Security package
+      configuration:
+        # Optional list of VPC IDs that Lambda functions are allowed to use
+        # If not specified, any VPC is considered valid as long as the function
+        # is running inside a VPC
+        allowedVPCIDs:
+          - vpc-0123456789abcdef0
+          - vpc-0123456789abcdef1
 ```
 
-## Deployment Considerations
+### Deployment Considerations
 
 - Ensure that all Lambda functions have access to the resources they need through VPC endpoints or NAT gateways
 - Consider implementing this package during the early stages of your AWS environment setup

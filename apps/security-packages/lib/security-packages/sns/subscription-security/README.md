@@ -4,23 +4,19 @@ This document outlines a comprehensive approach to securing SNS subscriptions us
 
 **Table of Contents:**
 
-- [SNS Subscription Security Package](#sns-subscription-security-package)
-  - [Overview](#overview)
-  - [Controls](#controls)
-    - [Preventative Control: Service Control Policy](#preventative-control-service-control-policy)
-      - [Customization](#customization)
-      - [Security Benefits](#security-benefits)
-      - [Considerations](#considerations)
-    - [Proactive Control: CloudFormation Hook](#proactive-control-cloudformation-hook)
-    - [Detective Control: CloudTrail Monitoring](#detective-control-cloudtrail-monitoring)
-      - [Security Benefits](#security-benefits-1)
-    - [Responsive Control: Automated Remediation](#responsive-control-automated-remediation)
-      - [Key Components](#key-components)
-      - [Security Benefits](#security-benefits-2)
-      - [Implementation Considerations](#implementation-considerations)
-  - [Implementation Guide](#implementation-guide)
-    - [Step 4: Implement Responsive Controls](#step-4-implement-responsive-controls)
-  - [Conclusion](#conclusion)
+- [Overview](#overview)
+- [Controls](#controls)
+  - [Preventative Control: Service Control Policy](#preventative-control-service-control-policy)
+    - [Security Benefits](#security-benefits)
+    - [Considerations](#considerations)
+  - [Proactive Control: CloudFormation Hook](#proactive-control-cloudformation-hook)
+  - [Detective Control: CloudTrail Monitoring](#detective-control-cloudtrail-monitoring)
+    - [Security Benefits](#security-benefits-1)
+  - [Responsive Control: Automated Remediation](#responsive-control-automated-remediation)
+    - [Security Benefits](#security-benefits-2)
+- [Deployment Instructions](#deployment-instructions)
+  - [Configuration](#configuration)
+- [Conclusion](#conclusion)
 
 ## Overview
 
@@ -108,6 +104,47 @@ To complete the defense-in-depth strategy, we offer automated remediation for un
 2. **Rapid Response**: Minimizes the time window during which unauthorized subscriptions could potentially exfiltrate data.
 3. **Comprehensive Coverage**: Provides protection across all accounts in your AWS organization.
 4. **Audit Trail**: Creates detailed logs of all remediation actions for compliance and forensic purposes.
+
+## Deployment Instructions
+
+### Configuration
+
+The SNS Subscription Security Package package accepts the following configuration options:
+
+| Parameter           | Type                                                                                                                               | Description                           | Default value    | Default |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ---------------- | ------- |
+| trustedEmailDomains | `string[]`                                                                                                                         | List of trusted email domains         | No default value |         |
+| trustedHTTPDomains  | `string[]`                                                                                                                         | List of trusted HTTP/HTTPS domains    | No default value |         |
+| trustedProtocols    | `SNSSupportedProtocols[]`<br/>Supported values: `email`, `email-json`, `http`, `https`, `sqs`, `lambda`, `firehose`, `application` | List of trusted AWS service protocols | No default value |         |
+
+Enable this security package in your `deployment-manifest.yml` file by adding the `snsSubscriptionSecurity` field under `spec.securityPackages`. Example:
+
+```yaml
+# Specification for the TrustStack security framework deployment
+spec:
+  # Configuration for the security packages to deploy
+  securityPackages:
+    # Configuration for the SNS Subscription Security package
+    snsSubscriptionSecurity:
+      # Whether the SNS Subscription Security package is enabled
+      enabled: true
+      # Configuration for the SNS Subscription Security package
+      configuration:
+        # List of trusted email domains
+        trustedEmailDomains:
+          - example.com
+          - trusted-domain.org
+        # List of trusted HTTP/HTTPS domains
+        trustedHTTPDomains:
+          - api.example.com
+          - webhook.trusted-domain.org
+        # List of trusted AWS service protocols
+        trustedProtocols:
+          - firehose
+          - lambda
+          - sqs
+          - application
+```
 
 ## Conclusion
 

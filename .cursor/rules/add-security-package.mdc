@@ -7,7 +7,7 @@ alwaysApply: false
 
 This rule provides guidance on how to add a new security package to the TrustStack framework. Security packages in TrustStack implement comprehensive prevention-first security controls for specific AWS services or security concerns.
 
-Read [trust-stack.mdc](mdc:.cursor/rules/trust-stack.mdc) for context information about the TrustStack framework.
+Read [project-overview.mdc](mdc:.cursor/rules/project-overview.mdc) for context information about the TrustStack framework.
 
 ## Overview
 
@@ -70,10 +70,41 @@ Describe the detective controls that monitor for non-compliant resources.
 
 Describe the responsive controls that automatically remediate issues.
 
+## Deployment Instructions
+
+## Prerequisites
+
+Describe the prerequisites for deploying this security package. Only include a `## Prerequisites` section when relevant.
+
 ## Configuration
 
-Document the configuration options for this security package.
+Use the following paragraph as-is except for the placeholder values denoted by angled brackets. Follow below logic to fill in the placeholder values:
+- `<security-package-name>`: Replace with the name of this security package.
+- `<security package field name>`: Replace with the configuration field name for this security package.
+- `<sample-configuration>`: Replace with the sample configuration for this security package from [deployment-manifest.example.yml](mdc:deployment-manifest.example.yml). Preserve any comments.
+- Configuration fields(repeat for every of this package's configuration fields):
+  - `<field-name>` - The field name as it appears in [configuration-schema.ts](mdc:packages/schema/src/configuration-schema.ts).
+  - `<field-type>` - The field's type in TypeScript notation. If the field's type is a Zod enum, add a new line describing the supported values.
+  - `<field-description>` - The field documentation as it appears in [configuration-schema.ts](mdc:packages/schema/src/configuration-schema.ts).
+  - `<field-default-value>` - The default value for the field in TypeScript notation. Replace with "No default value" when a default value for the field is not set.
+
+<preserved-content>
+The <security-package-name> package accepts the following configuration options:
+
+| Parameter     | Type         | Description         | Default value                                                                                            | Default |
+| ------------- | ------------ | ------------------- | --------------------- |
+| <field-name>  | <field-type> | <field-description> | <field-default-value> |
+
+Enable this security package in your `deployment-manifest.yml` file by adding the `<security package field name>` field under `spec.securityPackages`. Example:
+
+```yaml
+# Specification for the TrustStack security framework deployment
+spec:
+  # Configuration for the security packages to deploy
+  securityPackages:
+    <security package field name>: <sample-configuration>
 ```
+</preserved-content>
 
 ## Step 2: Update Security Packages README
 

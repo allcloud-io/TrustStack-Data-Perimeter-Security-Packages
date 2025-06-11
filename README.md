@@ -1,28 +1,27 @@
-# TrustStack: Enabling Sensitive Workloads in the Public Cloud with Prevention-First Security and Builder Agility
+# TrustStack's Data Perimeter Accelerator
 
 TrustStack is a prevention-first cybersecurity framework that enables highly regulated organizations, government agencies, and defense units to securely run sensitive workloads in AWS commercial regions. Visit [TrustStack's documentation](https://github.com/allcloud-io/TrustStack) for more information.
 
-This project implements the Data Perimeter Accelerator component of the TrustStack framework. The Data Perimeter Accelerator generates security configurations which you can easily deploy using the AWS Landing Zone Accelerator (LZA). Reference the [How it works?](#how-it-works) section for more details.
+This project implements the Data Perimeter Accelerator component of the TrustStack framework. The Data Perimeter Accelerator generates security configurations that can be easily deployed using the AWS Landing Zone Accelerator (LZA). For more details, reference the [How it works?](#how-it-works) section.
 
 **Table of Contents:**
 
-This guide is organized to help you understand TrustStack's capabilities, implement it in your environment, and contribute to the project's development. Below table of contents should help you navigate to the relevant information for your needs.
+This guide is organized to help you understand how to implement TrustStack's **Data Perimeter Accelerator** in your environment and how to contribute to the project's development. The table of contents below should help you navigate to the relevant information for your needs.
 
-- [TrustStack: Enabling Sensitive Workloads in the Public Cloud with Prevention-First Security and Builder Agility](#truststack-enabling-sensitive-workloads-in-the-public-cloud-with-prevention-first-security-and-builder-agility)
-  - [About TrustStack](#about-truststack)
-    - [Data Perimeter Guidelines](#data-perimeter-guidelines)
-    - [Security Packages Offered By TrustStack](#security-packages-offered-by-truststack)
-  - [How it works?](#how-it-works)
-  - [User Guide](#user-guide)
-  - [Local Development Guide](#local-development-guide)
+- [About this project](#about-this-project)
+  - [Data Perimeter Guidelines](#data-perimeter-guidelines)
+  - [Security Packages Offered By TrustStack's Data Perimeter Accelerator](#security-packages-offered-by-truststacks-data-perimeter-accelerator)
+- [How it works?](#how-it-works)
+- [Deployment Guide](#deployment-guide)
+- [Development Guide](#development-guide)
 
-## About TrustStack
+## About this project
 
 ### Data Perimeter Guidelines
 
 The [Data Perimeter Guidelines](docs/data-perimeter-guidelines.md) document provides comprehensive guidance on implementing data perimeter controls in AWS environments to establish clear boundaries that protect your AWS resources and data. The security packages offered by TrustStack comply with these guidelines.
 
-### Security Packages Offered By TrustStack
+### Security Packages Offered By TrustStack's Data Perimeter Accelerator
 
 TrustStack offers a comprehensive set of security packages that protect sensitive workloads while maintaining developer agility. Each security package addresses specific security concerns. Refer to [TrustStack Security Packages](apps/security-packages/README.md) for detailed information about the security controls offered by TrustStack.
 
@@ -44,10 +43,10 @@ We recommend deploying the TrustStack framework in the same account as your Land
 
 This approach ensures that TrustStack's prevention-first security controls are consistently applied across all accounts and workloads in your AWS environment while maintaining compatibility with your existing LZA infrastructure.
 
-## User Guide
+## Deployment Guide
 
-The [User Guide](docs/user-guide.md) provides a step-by-step guide on how to deploy the TrustStack framework in your AWS organization.
+The [Deployment Guide](docs/deployment-guide.md) provides a step-by-step guide on how to deploy the TrustStack Data Perimeter Accelerator in your AWS organization.
 
-## Local Development Guide
+## Development Guide
 
-The [Local Development Guide](docs/local-development-guide.md) provides detailed instructions for setting up your local development environment.
+The [Development Guide](docs/development-guide.md) provides detailed instructions for setting up your local development environment.

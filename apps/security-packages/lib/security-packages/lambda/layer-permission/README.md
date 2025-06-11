@@ -1,5 +1,21 @@
 # Lambda Layer Permission Security Package
 
+This document outlines a comprehensive approach to securing AWS Lambda layer access by preventing overly permissive layer version permissions.
+
+**Table of Contents:**
+
+- [Overview](#overview)
+- [Security Risk](#security-risk)
+- [Implementation Details](#implementation-details)
+  - [Security Controls](#security-controls)
+    - [Proactive Controls](#proactive-controls)
+    - [Detective Controls](#detective-controls)
+    - [Responsive Controls](#responsive-controls)
+- [Deployment Instructions](#deployment-instructions)
+  - [Configuration](#configuration)
+- [Best Practices](#best-practices)
+- [Additional Considerations](#additional-considerations)
+
 ## Overview
 
 This security package addresses the risk of unauthorized access to AWS Lambda layers through overly permissive layer version permissions. AWS Lambda layers allow code sharing across functions, but improper permission management can expose sensitive code and dependencies to untrusted accounts or organizations.
@@ -55,20 +71,37 @@ Automated remediation that:
 - Updates Security Hub findings when issues are resolved
 - Provides audit trails of remediation actions
 
-## Configuration
+## Deployment Instructions
 
-To configure the Lambda Layer Permission Security package, you need to specify the following in your `deployment-manifest.yml`:
+### Configuration
+
+The Lambda Layer Permission Security Package package accepts the following configuration options:
+
+| Parameter         | Type       | Description                                                        | Default value    |
+| ----------------- | ---------- | ------------------------------------------------------------------ | ---------------- |
+| trustedAccountIDs | `string[]` | List of trusted AWS account IDs that can access Lambda layers      | No default value |
+| trustedOrgIDs     | `string[]` | List of trusted AWS Organization IDs that can access Lambda layers | No default value |
+
+Enable this security package in your `deployment-manifest.yml` file by adding the `lambdaLayerPermissionSecurity` field under `spec.securityPackages`. Example:
 
 ```yaml
-securityPackages:
-  lambdaLayerPermissionSecurity:
-    enabled: true
-    configuration:
-      trustedAccountIDs:
-        - "111122223333"
-        - "444455556666"
-      trustedOrgIDs:
-        - "o-exampleorgid"
+# Specification for the TrustStack security framework deployment
+spec:
+  # Configuration for the security packages to deploy
+  securityPackages:
+    # Configuration for the Lambda Layer Permission Security package
+    lambdaLayerPermissionSecurity:
+      # Whether the Lambda Layer Permission Security package is enabled
+      enabled: true
+      # Configuration for the Lambda Layer Permission Security package
+      configuration:
+        # List of trusted AWS account IDs that can access Lambda layers
+        trustedAccountIDs:
+          - "111122223333"
+          - "444455556666"
+        # List of trusted AWS Organization IDs that can access Lambda layers
+        trustedOrgIDs:
+          - "o-exampleorgid"
 ```
 
 ## Best Practices

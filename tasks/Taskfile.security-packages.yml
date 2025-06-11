@@ -87,3 +87,13 @@ tasks:
         pnpm generate-deployment-assets &&
         aws s3 sync dist s3://$ASSETS_BUCKET_NAME/$BUILD_HASH/security-packages --delete --exclude "common/*" &&
         aws s3 sync dist/common s3://$ASSETS_BUCKET_NAME/$BUILD_HASH/common --delete
+
+  download-from-s3:
+    desc: "Download the generated deployment artifacts from the assets bucket"
+    dir: "apps/security-packages"
+    cmds:
+      - rm -rf dist cdk.out
+      - >
+        export BUILD_HASH=${BUILD_HASH:-$(task generate:build-hash)} &&
+        export ASSETS_BUCKET_NAME=$(aws ssm get-parameter --name "/trust-stack/assets-bucket/name" --query "Parameter.Value" --output text) &&
+        aws s3 sync s3://$ASSETS_BUCKET_NAME/$BUILD_HASH trust-stack-assets --delete

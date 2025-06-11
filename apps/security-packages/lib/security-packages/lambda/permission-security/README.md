@@ -4,18 +4,17 @@ This document outlines a comprehensive approach to securing Lambda function invo
 
 **Table of Contents:**
 
-- [Lambda Permission Security Package](#lambda-permission-security-package)
-  - [Overview](#overview)
-  - [Controls](#controls)
-    - [Proactive Control: CloudFormation Hook](#proactive-control-cloudformation-hook)
-      - [Security Benefits](#security-benefits)
-    - [Detective Control: CloudTrail Monitoring](#detective-control-cloudtrail-monitoring)
-      - [Security Benefits](#security-benefits-1)
-    - [Responsive Control: Automated Remediation](#responsive-control-automated-remediation)
-      - [Security Benefits](#security-benefits-2)
-  - [Implementation Guide](#implementation-guide)
-    - [Configuration](#configuration)
-  - [Conclusion](#conclusion)
+- [Overview](#overview)
+- [Controls](#controls)
+  - [Proactive Control: CloudFormation Hook](#proactive-control-cloudformation-hook)
+    - [Security Benefits](#security-benefits)
+  - [Detective Control: CloudTrail Monitoring](#detective-control-cloudtrail-monitoring)
+    - [Security Benefits](#security-benefits-1)
+  - [Responsive Control: Automated Remediation](#responsive-control-automated-remediation)
+    - [Security Benefits](#security-benefits-2)
+- [Deployment Instructions](#deployment-instructions)
+  - [Configuration](#configuration)
+- [Conclusion](#conclusion)
 
 ## Overview
 
@@ -91,26 +90,44 @@ The responsive control works as follows:
 3. **Comprehensive Coverage**: Provides protection across all accounts in your AWS organization
 4. **Audit Trail**: Creates detailed logs of all remediation actions for compliance and forensic purposes
 
-## Implementation Guide
+## Deployment Instructions
 
 ### Configuration
 
-To configure the Lambda Permission Security package, you need to specify the following in your deployment manifest:
+The Lambda Permission Security Package package accepts the following configuration options:
+
+| Parameter                | Type       | Description                                                                                                                       | Default value    |
+| ------------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| trustedAccountIDs        | `string[]` | List of trusted AWS account IDs that can invoke Lambda functions                                                                  | No default value |
+| trustedOrgIDs            | `string[]` | List of trusted AWS Organization IDs that can invoke Lambda functions                                                             | No default value |
+| trustedServicePrincipals | `string[]` | List of trusted AWS service principals that can invoke Lambda functions.<br/>For example: "s3.amazonaws.com", "sns.amazonaws.com" | No default value |
+
+Enable this security package in your `deployment-manifest.yml` file by adding the `lambdaPermissionSecurity` field under `spec.securityPackages`. Example:
 
 ```yaml
-securityPackages:
-  lambdaPermissionSecurity:
-    enabled: true
-    configuration:
-      trustedAccountIDs:
-        - "111122223333"
-        - "444455556666"
-      trustedOrgIDs:
-        - "o-exampleorgid"
-      trustedServicePrincipals:
-        - "s3.amazonaws.com"
-        - "sns.amazonaws.com"
-        - "events.amazonaws.com"
+# Specification for the TrustStack security framework deployment
+spec:
+  # Configuration for the security packages to deploy
+  securityPackages:
+    # Configuration for the Lambda Permission Security package
+    lambdaPermissionSecurity:
+      # Whether the Lambda Permission Security package is enabled
+      enabled: true
+      # Configuration for the Lambda Permission Security package
+      configuration:
+        # List of trusted AWS account IDs that can invoke Lambda functions
+        trustedAccountIDs:
+          - "111122223333"
+          - "444455556666"
+        # List of trusted AWS Organization IDs that can invoke Lambda functions
+        trustedOrgIDs:
+          - "o-exampleorgid"
+        # List of trusted AWS service principals that can invoke Lambda functions
+        # For example: "s3.amazonaws.com", "sns.amazonaws.com"
+        trustedServicePrincipals:
+          - "s3.amazonaws.com"
+          - "sns.amazonaws.com"
+          - "events.amazonaws.com"
 ```
 
 ## Conclusion

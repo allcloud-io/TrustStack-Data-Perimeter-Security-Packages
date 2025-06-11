@@ -6,13 +6,12 @@
 
 **Table of Contents:**
 
-- [Local Development Guide](#local-development-guide)
-  - [Setup](#setup)
-    - [Create Taskfile.yml](#create-taskfileyml)
-  - [Utilities](#utilities)
-    - [CloudFormation Schema to TypeScript Types](#cloudformation-schema-to-typescript-types)
-      - [Cursor IDE Rule](#cursor-ide-rule)
-      - [Generated TypeScript Types](#generated-typescript-types)
+- [Setup](#setup)
+  - [Create Taskfile.yml](#create-taskfileyml)
+- [Utilities](#utilities)
+  - [CloudFormation Schema to TypeScript Types](#cloudformation-schema-to-typescript-types)
+    - [Cursor IDE Rule](#cursor-ide-rule)
+    - [Generated TypeScript Types](#generated-typescript-types)
 
 ## Setup
 

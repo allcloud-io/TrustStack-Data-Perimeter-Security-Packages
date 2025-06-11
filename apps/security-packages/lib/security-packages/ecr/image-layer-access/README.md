@@ -4,19 +4,18 @@ This document outlines a comprehensive approach to securing ECR image layer acce
 
 **Table of Contents:**
 
-- [ECR Image Layer Access Security Package](#ecr-image-layer-access-security-package)
-  - [Overview](#overview)
-  - [Problem Statement](#problem-statement)
-  - [Package Components](#package-components)
-    - [1. Preventative Control](#1-preventative-control)
-    - [2. Detective Control](#2-detective-control)
-    - [3. Proactive Controls](#3-proactive-controls)
-    - [4. Responsive Control](#4-responsive-control)
-  - [Deployment Instructions](#deployment-instructions)
-    - [Prerequisites](#prerequisites)
-    - [Network Perimeter Control Best Practices](#network-perimeter-control-best-practices)
-  - [Security Best Practices](#security-best-practices)
-  - [Compliance Considerations](#compliance-considerations)
+- [Overview](#overview)
+- [Problem Statement](#problem-statement)
+- [Package Components](#package-components)
+  - [1. Preventative Control](#1-preventative-control)
+  - [2. Detective Control](#2-detective-control)
+  - [3. Proactive Controls](#3-proactive-controls)
+  - [4. Responsive Control](#4-responsive-control)
+- [Deployment Instructions](#deployment-instructions)
+  - [Prerequisites](#prerequisites)
+  - [Configuration](#configuration)
+- [Security Best Practices](#security-best-practices)
+- [Compliance Considerations](#compliance-considerations)
 
 ## Overview
 
@@ -73,41 +72,76 @@ Automated remediation to address unauthorized access attempts, including:
 
 ### Prerequisites
 
-- AWS Organizations with all features enabled
-- CloudTrail enabled in all accounts
+1. AWS Organizations with all features enabled
+2. CloudTrail enabled in all accounts
+3. Verify Network Perimeter Control best practices
 
-### Network Perimeter Control Best Practices
+   1. Configure VPC Endpoints for ECR API and ECR Docker. Sample VPC endpoint policy:
 
-To implement effective network perimeter controls:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Sid": "AllowPull",
+         "Effect": "Allow",
+         "Principal": "*",
+         "Action": [
+           "ecr:GetDownloadUrlForLayer",
+           "ecr:BatchGetImage",
+           "ecr:BatchCheckLayerAvailability"
+         ],
+         "Resource": "*",
+         "Condition": {
+           "StringEquals": {
+             "aws:PrincipalOrgID": "o-xxxxxxxxxx" // Your organization ID
+           }
+         }
+       }
+     ]
+   }
+   ```
 
-1. Configure VPC Endpoints for ECR API and ECR Docker:
+   2. Use AWS PrivateLink to establish private connectivity between your VPC and ECR
+   3. Implement network access control lists (NACLs) and security groups to restrict traffic flow
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowPull",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": [
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:BatchGetImage",
-        "ecr:BatchCheckLayerAvailability"
-      ],
-      "Resource": "*",
-      "Condition": {
-        "StringEquals": {
-          "aws:PrincipalOrgID": "o-xxxxxxxxxx" // Your organization ID
-        }
-      }
-    }
-  ]
-}
+### Configuration
+
+The ECR Image Layer Access Security Package package accepts the following configuration options:
+
+| Parameter           | Type       | Description                   | Default value    |
+| ------------------- | ---------- | ----------------------------- | ---------------- |
+| allowedRoleNames    | `string[]` | List of allowed role names    | No default value |
+| allowedNetworks     | `string[]` | List of allowed networks      | No default value |
+| allowedVPCEndpoints | `string[]` | List of allowed VPC endpoints | No default value |
+
+Enable this security package in your `deployment-manifest.yml` file by adding the `ecrImageLayerAccess` field under `spec.securityPackages`. Example:
+
+```yaml
+# Specification for the TrustStack security framework deployment
+spec:
+  # Configuration for the security packages to deploy
+  securityPackages:
+    # Configuration for the ECR Image Layer Access security package
+    ecrImageLayerAccess:
+      # Whether the ECR Image Layer Access security package is enabled
+      enabled: true
+      # Configuration for the ECR Image Layer Access security package
+      configuration:
+        # List of allowed role names
+        allowedRoleNames:
+          - TrustedRole
+          - TrustedRole2
+        # List of allowed networks
+        allowedNetworks:
+          - 10.0.0.0/8
+          - 172.16.0.0/12
+          - 192.168.0.0/16
+        # List of allowed VPC endpoints
+        allowedVPCEndpoints:
+          - vpce-0123456789abcdefg
+          - vpce-0123456789abcdefh
 ```
-
-2. Use AWS PrivateLink to establish private connectivity between your VPC and ECR
-3. Implement network access control lists (NACLs) and security groups to restrict traffic flow
 
 ## Security Best Practices
 

@@ -4,16 +4,15 @@ TrustStack provides a comprehensive suite of security packages designed to prote
 
 **Table of Contents:**
 
-- [TrustStack Security Packages](#truststack-security-packages)
-  - [Security Benefits](#security-benefits)
-  - [Packages](#packages)
-    - [ECR Image Layer Access Security Package](#ecr-image-layer-access-security-package)
-    - [Lambda Layer Permission Security Package](#lambda-layer-permission-security-package)
-    - [Lambda Permission Security Package](#lambda-permission-security-package)
-    - [Lambda VPC Security Package](#lambda-vpc-security-package)
-    - [SNS Subscription Security Package](#sns-subscription-security-package)
+- [Benefits](#benefits)
+- [Packages](#packages)
+  - [ECR Image Layer Access Security Package](#ecr-image-layer-access-security-package)
+  - [Lambda Layer Permission Security Package](#lambda-layer-permission-security-package)
+  - [Lambda Permission Security Package](#lambda-permission-security-package)
+  - [Lambda VPC Security Package](#lambda-vpc-security-package)
+  - [SNS Subscription Security Package](#sns-subscription-security-package)
 
-## Security Benefits
+## Benefits
 
 TrustStack security controls provide several key benefits for organizations running sensitive workloads:
 

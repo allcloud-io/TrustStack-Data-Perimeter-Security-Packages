@@ -1,0 +1,32 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Which Cursor IDE rules are relevant to a prompt
+
+This rule provides a summary of all available Cursor IDE rules to help the AI assistant select the most relevant context for a given prompt. You must specify the Cursor IDE rules you are using.
+
+### `add-security-package.mdc`
+
+**Description**: Provides a comprehensive, step-by-step guide for creating a new security package within the TrustStack framework. It covers everything from directory structure and documentation to schema definition and CDK stack implementation.
+
+**When to use**: Apply this rule when the user's request involves creating a new security package. Look for keywords like "add security package," "create a new package," or "new security control."
+
+### `lambda-function-handlers.mdc`
+
+**Description**: Details the patterns and best practices for implementing Lambda function handlers for TrustStack's security controls (proactive, detective, and responsive). It covers structure, logging, middleware, and error handling.
+
+**When to use**: This rule is relevant when the user is creating or modifying a Lambda function handler, especially within the context of a security control. Look for keywords like "Lambda handler," "proactive control," "detective control," or "responsive control."
+
+### `shared-ssm-parameters-for-e2e-tests.mdc`
+
+**Description**: Documents the shared SSM parameters available for end-to-end tests. It lists parameter paths and shows how to reference them in CloudFormation templates and Jest tests.
+
+**When to use**: Use this rule when the user is working on end-to-end tests (`e2e-tests`). It is particularly useful for prompts related to creating test templates or writing Jest tests that require shared AWS resources.
+
+### `unit-tests-generation.mdc`
+
+**Description**: Provides detailed guidelines for writing unit tests for Lambda functions and other components using Jest. It covers mocking with ES modules, test structure, and common patterns for testing security controls.
+
+**When to use**: This rule is essential when the user's task is to write, update, or debug unit tests. Look for keywords like "unit test," "Jest," "mocking," or file paths ending in `.spec.ts`.
