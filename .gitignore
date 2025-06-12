@@ -52,4 +52,4 @@ deployment-manifest.yml
 e2e-tests-options.yml
 
 # Generated TrustStack deployment assets(when following the deployment guide)
-trust-stack-assets/
+lza-config/

@@ -63,6 +63,9 @@ catalogs:
     '@types/js-yaml':
       specifier: ^4.0.9
       version: 4.0.9
+    '@types/lodash.mergewith':
+      specifier: ^4.6.9
+      version: 4.6.9
     '@types/node':
       specifier: ^22.13.10
       version: 22.13.10
@@ -105,6 +108,9 @@ catalogs:
     js-yaml:
       specifier: ^4.1.0
       version: 4.1.0
+    lodash.mergewith:
+      specifier: ^4.6.2
+      version: 4.6.2
     prettier:
       specifier: ^3.5.3
       version: 3.5.3
@@ -352,6 +358,9 @@ importers:
       js-yaml:
         specifier: 'catalog:'
         version: 4.1.0
+      lodash.mergewith:
+        specifier: 'catalog:'
+        version: 4.6.2
       yargs:
         specifier: 'catalog:'
         version: 17.7.2
@@ -380,6 +389,9 @@ importers:
       '@types/js-yaml':
         specifier: 'catalog:'
         version: 4.0.9
+      '@types/lodash.mergewith':
+        specifier: 'catalog:'
+        version: 4.6.9
       '@types/node':
         specifier: 'catalog:'
         version: 22.13.10
@@ -1686,6 +1698,12 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
+  '@types/lodash.mergewith@4.6.9':
+    resolution: {integrity: sha512-fgkoCAOF47K7sxrQ7Mlud2TH023itugZs2bUg8h/KzT+BnZNrR2jAOmaokbLunHNnobXVWOezAeNn/lZqwxkcw==}
+
+  '@types/lodash@4.17.17':
+    resolution: {integrity: sha512-RRVJ+J3J+WmyOTqnz3PiBLA501eKwXl2noseKOrNo/6+XEHjTAxO4xHvxQB6QuNm+s4WRbn6rSiap8+EA+ykFQ==}
+
   '@types/node@22.13.10':
     resolution: {integrity: sha512-I6LPUvlRH+O6VRUqYOcMudhaIdUVWfsjnZavnsraHvpBwaEyMN29ry+0UVJhImYL16xsscu0aske3yA+uPOWfw==}
 
@@ -2542,6 +2560,9 @@ packages:
 
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
+
+  lodash.mergewith@4.6.2:
+    resolution: {integrity: sha512-GK3g5RPZWTRSeLSpgP8Xhra+pnjBC56q9FZYe1d5RN3TJ35dbkGy3YqBSMbyCrlbi+CM9Z3Jk5yTL7RCsqboyQ==}
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
@@ -4994,6 +5015,12 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
+  '@types/lodash.mergewith@4.6.9':
+    dependencies:
+      '@types/lodash': 4.17.17
+
+  '@types/lodash@4.17.17': {}
+
   '@types/node@22.13.10':
     dependencies:
       undici-types: 6.20.0
@@ -6070,6 +6097,8 @@ snapshots:
   lodash.memoize@4.1.2: {}
 
   lodash.merge@4.6.2: {}
+
+  lodash.mergewith@4.6.2: {}
 
   lru-cache@5.1.1:
     dependencies:

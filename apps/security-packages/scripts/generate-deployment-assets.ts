@@ -26,6 +26,8 @@ import {
 import { resolveErrorMessage } from "@trust-stack/utils";
 import dedent from "dedent";
 import * as esbuild from "esbuild";
+import * as yaml from "js-yaml";
+import mergeWith from "lodash.mergewith";
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
@@ -154,7 +156,8 @@ async function addCloudFormationTemplateForSecurityPackage(
   const { generatedCloudFormationTemplateFilePath } =
     buildConfiguration[securityPackage];
 
-  const securityPackageDistDir = path.join(distDirectory, securityPackage);
+  const securityPackageDistDir =
+    getSecurityPackageDistDirectoryPath(securityPackage);
 
   let generatedCloudFormationTemplate: string;
   try {
@@ -186,6 +189,27 @@ async function addCloudFormationTemplateForSecurityPackage(
   }
 
   return distFilePath;
+}
+
+function getServiceControlPolicyFilePathForSecurityPackage(
+  securityPackage: SecurityPackageSlug,
+): string {
+  return path.join(
+    getSecurityPackageDistDirectoryPath(securityPackage),
+    "preventative-controls",
+    "service-control-policy.json",
+  );
+}
+
+function getSecurityPackageDistDirectoryPath(
+  securityPackage: SecurityPackageSlug,
+): string {
+  return path.join(
+    distDirectory,
+    "trust-stack",
+    "security-packages",
+    securityPackage,
+  );
 }
 
 async function buildLambdaHandlerArchivesForSecurityPackage(
@@ -232,7 +256,11 @@ async function buildLambdaHandlerArchivesForSecurityPackage(
   });
 
   // Create dist directory if it doesn't exist
-  const securityPackageDistDir = path.join(distDirectory, securityPackage);
+  const securityPackageDistDir = path.join(
+    distDirectory,
+    "security-packages",
+    securityPackage,
+  );
   await fs.mkdir(securityPackageDistDir, { recursive: true });
 
   console.log(`Building Lambda handlers to ${securityPackageDistDir}`);
@@ -398,13 +426,13 @@ async function generateLZAOrganizationConfigFileForSecurityPackage(
   securityPackage: SecurityPackageSlug,
   description: string,
 ) {
+  const securityPackageDistDir =
+    getSecurityPackageDistDirectoryPath(securityPackage);
+
   const organizationConfigFilePath = path.join(
-    distDirectory,
-    securityPackage,
+    securityPackageDistDir,
     lzaOrganizationConfigFileName,
   );
-
-  const securityPackageDistDir = path.join(distDirectory, securityPackage);
 
   await fs.mkdir(securityPackageDistDir, { recursive: true });
 
@@ -412,7 +440,7 @@ async function generateLZAOrganizationConfigFileForSecurityPackage(
   serviceControlPolicies:
     - name: trust-stack-${securityPackage}
       description: ${description}
-      policy: ./trust-stack/${securityPackage}/preventative-controls/service-control-policy.json
+      policy: ./trust-stack/security-packages/${securityPackage}/preventative-controls/service-control-policy.json
       strategy: deny-list
       type: customerManaged
       # Uncomment and edit the following section to customize the deployment targets
@@ -440,13 +468,13 @@ async function generateLZACustomizationsConfigFileForSecurityPackage(
   securityPackage: SecurityPackageSlug,
   description: string,
 ) {
+  const securityPackageDistDir =
+    getSecurityPackageDistDirectoryPath(securityPackage);
+
   const lzaCustomizationsConfigFilePath = path.join(
-    distDirectory,
-    securityPackage,
+    securityPackageDistDir,
     lzaCustomizationsConfigFileName,
   );
-
-  const securityPackageDistDir = path.join(distDirectory, securityPackage);
 
   await fs.mkdir(securityPackageDistDir, { recursive: true });
 
@@ -455,7 +483,7 @@ async function generateLZACustomizationsConfigFileForSecurityPackage(
       cloudFormationStackSets:
         - name: trust-stack-${securityPackage}
           description: ${description}
-          template: ./trust-stack/${securityPackage}/cloudformation-template.json
+          template: ./trust-stack/security-packages/${securityPackage}/cloudformation-template.json
           capabilities:
             - "CAPABILITY_IAM"
             - "CAPABILITY_NAMED_IAM"
@@ -481,6 +509,119 @@ async function generateLZACustomizationsConfigFileForSecurityPackage(
   await fs.writeFile(lzaCustomizationsConfigFilePath, lzaCustomizationsConfig);
 
   return lzaCustomizationsConfigFilePath;
+}
+
+async function generateMergedLZAOrganizationConfig() {
+  const lzaOrganizationConfigFilePath = path.join(
+    distDirectory,
+    "organization-config.yaml",
+  );
+
+  await fs.mkdir(distDirectory, { recursive: true });
+
+  await mergeLZAConfigFiles({
+    fileName: "organization-config.yaml",
+    directoryPath: distDirectory,
+    outputPath: lzaOrganizationConfigFilePath,
+  });
+}
+
+async function generateMergedLZACustomizationsConfig() {
+  const lzaCustomizationsConfigFilePath = path.join(
+    distDirectory,
+    "customizations-config.yaml",
+  );
+
+  await fs.mkdir(distDirectory, { recursive: true });
+
+  await mergeLZAConfigFiles({
+    fileName: "customizations-config.yaml",
+    directoryPath: distDirectory,
+    outputPath: lzaCustomizationsConfigFilePath,
+  });
+}
+
+/**
+ * Recursively scans a directory for customizations-config.yml files and merges them
+ * @param directoryPath - The root directory path to scan
+ * @param outputPath - Optional output file path for the merged config
+ * @returns Promise<Record<> - The merged configuration object
+ */
+async function mergeLZAConfigFiles({
+  fileName,
+  directoryPath,
+  outputPath,
+}: {
+  fileName: string;
+  directoryPath: string;
+  outputPath: string;
+}): Promise<void> {
+  const configFiles: string[] = [];
+
+  // Recursively find all customizations-config.yml files
+  async function findConfigFiles(dir: string): Promise<void> {
+    const items = await fs.readdir(dir, { withFileTypes: true });
+
+    for (const item of items) {
+      const fullPath = path.join(dir, item.name);
+
+      if (item.isDirectory()) {
+        await findConfigFiles(fullPath);
+      } else if (item.isFile() && item.name === fileName) {
+        configFiles.push(fullPath);
+      }
+    }
+  }
+
+  try {
+    // Validate input directory exists
+    if (!(await fs.stat(directoryPath)).isDirectory()) {
+      throw new Error(`Directory does not exist: ${directoryPath}`);
+    }
+
+    if (!(await fs.stat(directoryPath)).isDirectory()) {
+      throw new Error(`Path is not a directory: ${directoryPath}`);
+    }
+
+    // Find all config files
+    await findConfigFiles(directoryPath);
+    console.log(`Found ${configFiles.length.toString()} ${fileName} files`);
+
+    // Merge all configurations using lodash.merge
+    let mergedConfig: Record<string, unknown> = {};
+
+    for (const configFile of configFiles) {
+      try {
+        const fileContent = await fs.readFile(configFile, "utf8");
+        const config = yaml.load(fileContent) as Record<string, unknown>;
+
+        mergedConfig = mergeWith(mergedConfig, config, (objValue, srcValue) => {
+          if (Array.isArray(objValue)) {
+            return objValue.concat(srcValue) as unknown[];
+          }
+
+          return undefined;
+        });
+        console.log(`Merged config from: ${configFile}`);
+      } catch (error) {
+        console.warn(`Failed to parse ${configFile}:`, error);
+        throw error;
+      }
+    }
+
+    // Write merged config to output file
+    const yamlOutput = yaml.dump(mergedConfig, {
+      indent: 2,
+      lineWidth: 120,
+      noRefs: true,
+    });
+
+    await fs.writeFile(outputPath, yamlOutput, "utf8");
+    console.log(`Merged configuration written to: ${outputPath}`);
+  } catch (error) {
+    console.error("Error merging customization configs:", error);
+    throw error;
+  }
 }
 
 async function main() {
@@ -530,11 +671,8 @@ async function main() {
     const config = securityPackages.ecrImageLayerAccess.configuration;
     const scp = generateECRImageLayerAccessSCP(config);
 
-    const scpFilePath = path.join(
-      distDirectory,
+    const scpFilePath = getServiceControlPolicyFilePathForSecurityPackage(
       ECR_IMAGE_LAYER_ACCESS_SECURITY_PACKAGE_SLUG,
-      "preventative-controls",
-      "service-control-policy.json",
     );
 
     await fs.mkdir(path.dirname(scpFilePath), { recursive: true });
@@ -657,11 +795,8 @@ async function main() {
     const config = securityPackages.lambdaVPCSecurity.configuration;
     const scp = generateLambdaVPCSecuritySCP(config);
 
-    const scpFilePath = path.join(
-      distDirectory,
+    const scpFilePath = getServiceControlPolicyFilePathForSecurityPackage(
       LAMBDA_VPC_SECURITY_PACKAGE_SLUG,
-      "preventative-controls",
-      "service-control-policy.json",
     );
 
     await fs.mkdir(path.dirname(scpFilePath), { recursive: true });
@@ -714,11 +849,8 @@ async function main() {
     const config = securityPackages.snsSubscriptionSecurity.configuration;
     const scp = generateSNSSubscriptionSecuritySCP(config);
 
-    const scpFilePath = path.join(
-      distDirectory,
+    const scpFilePath = getServiceControlPolicyFilePathForSecurityPackage(
       SNS_SUBSCRIPTION_SECURITY_PACKAGE_SLUG,
-      "preventative-controls",
-      "service-control-policy.json",
     );
 
     await fs.mkdir(path.dirname(scpFilePath), { recursive: true });
@@ -752,6 +884,9 @@ async function main() {
   } else {
     console.log("SNS Subscription Security is disabled.");
   }
+
+  await generateMergedLZAOrganizationConfig();
+  await generateMergedLZACustomizationsConfig();
 }
 
 if (require.main === module) {

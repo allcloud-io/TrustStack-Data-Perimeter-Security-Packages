@@ -23,6 +23,7 @@ export const distDirectory = "dist";
 export const commonComponentsDistDirectoryPath = path.join(
   projectDirectory,
   distDirectory,
+  "trust-stack",
   "common",
 );
 

@@ -37,6 +37,7 @@
     "constructs": "catalog:",
     "ipaddr.js": "^2.2.0",
     "js-yaml": "catalog:",
+    "lodash.mergewith": "catalog:",
     "yargs": "catalog:",
     "zod": "catalog:"
   },
@@ -49,6 +50,7 @@
     "@types/jest": "catalog:",
     "@types/js-yaml": "catalog:",
     "@types/node": "catalog:",
+    "@types/lodash.mergewith": "catalog:",
     "@types/yargs": "catalog:",
     "aws-cdk": "catalog:",
     "dedent": "catalog:",
