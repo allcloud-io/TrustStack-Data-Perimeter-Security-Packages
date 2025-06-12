@@ -126,6 +126,7 @@ async function generateLZACustomizationsConfigFileForCommonComponents() {
         - name: trust-stack-common-cloudformation-hook-execution-role
           description: CloudFormation hook execution role for TrustStack
           template: ./trust-stack/common/cloudformation-hook-execution-role.template.json
+          terminationProtection: true
         # Uncomment and edit the following section to customize the deployment targets and regions
         # regions:
         #   - <REGION_1>
@@ -484,6 +485,7 @@ async function generateLZACustomizationsConfigFileForSecurityPackage(
         - name: trust-stack-${securityPackage}
           description: ${description}
           template: ./trust-stack/security-packages/${securityPackage}/cloudformation-template.json
+          terminationProtection: true
           capabilities:
             - "CAPABILITY_IAM"
             - "CAPABILITY_NAMED_IAM"
