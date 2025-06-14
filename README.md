@@ -2,11 +2,11 @@
 
 TrustStack is a prevention-first cybersecurity framework that enables highly regulated organizations, government agencies, and defense units to securely run sensitive workloads in AWS commercial regions. Visit [TrustStack's documentation](https://github.com/allcloud-io/TrustStack) for more information.
 
-This project implements service-specific guidance as part of the TrustStack framework. The service-specific guidance generates security configurations that can be easily deployed using the AWS Landing Zone Accelerator (LZA). For more details, reference the [How it works?](#how-it-works) section.
+TrustStack's Data Perimeter Acceelrator generates security configurations that can be easily deployed using the AWS Landing Zone Accelerator (LZA). These security configurations address [service-specific guidance as part of the TrustStack framework](https://github.com/aws-samples/data-perimeter-policy-examples/tree/main/service_specific_guidance). For more details, reference the [How it works?](#how-it-works) section.
 
 **Table of Contents:**
 
-This guide is organized to help you understand how to implement TrustStack's **service-specific guidance** in your environment and how to contribute to the project's development. The table of contents below should help you navigate to the relevant information for your needs.
+This guide is organized to help you understand how to implement TrustStack's [**service-specific guidance**](https://github.com/aws-samples/data-perimeter-policy-examples/tree/main/service_specific_guidance) in your environment and how to contribute to the project's development. The table of contents below should help you navigate to the relevant information for your needs.
 
 - [About this project](#about-this-project)
   - [Data Perimeter Guidelines](#data-perimeter-guidelines)
