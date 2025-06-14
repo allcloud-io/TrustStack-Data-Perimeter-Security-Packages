@@ -249,7 +249,7 @@ expect(mockSecurityHubClient.batchImportFindings).toHaveBeenCalledWith({
 To run your unit tests, navigate to the project directory and run the appropriate test command:
 
 ```bash
-cd apps/security-packages  # Navigate to the specific package directory
+cd apps/security-packages  # Navigate to the specific project directory
 pnpm test:chatbot         # Run tests with verbose output
 ```
 
@@ -261,7 +261,7 @@ The test command uses the following configuration:
 
 When requested to run a specific test suite file, navigate to the project directory and run the appropriate test command:
 ```bash
-cd apps/security-packages  # Navigate to the specific package directory
+cd apps/security-packages  # Navigate to the specific project directory
 pnpm test:chatbot -- --testPathPattern <path of the test suite file relative to the project directory>         # Run tests with verbose output
 ```
 

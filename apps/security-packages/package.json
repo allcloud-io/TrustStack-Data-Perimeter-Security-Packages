@@ -12,6 +12,7 @@
     "test:chatbot": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --coverageReporters=text",
     "test:debug": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.debug.js",
     "test:e2e": "POWERTOOLS_DEV=true jest --config jest.e2e.config.js --silent",
+    "test:e2e:chatbot": "jest --config jest.e2e.config.js",
     "test:debug:e2e": "jest --config jest.e2e.config.debug.js",
     "cdk": "cdk",
     "lint": "eslint .",

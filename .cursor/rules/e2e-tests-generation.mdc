@@ -1,0 +1,382 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# End-to-End Tests Generation for TrustStack
+
+This rule provides guidelines for generating end-to-end tests for security packages in the TrustStack project.
+
+## Introduction
+
+End-to-end tests for TrustStack security packages validate the complete security control workflow from violation detection through automated remediation. These tests ensure that:
+
+1. **Detective Controls** properly detect security violations and create Security Hub findings
+2. **Responsive Controls** automatically remediate violations by removing non-compliant resources or preventing unauthorized access to resources
+3. **Compliant configurations** are not flagged as violations
+4. The entire security control chain works correctly in a real AWS environment
+
+Before writing e2e tests, you must first read the contents of the security package's directory structure to understand:
+- The security controls implemented (preventative, proactive, detective, responsive)
+- The AWS resources and APIs involved
+- The configuration parameters and approved/unapproved scenarios
+- The expected behavior for compliant and non-compliant cases
+
+## Test Structure
+
+### File Organization
+
+Each test file should:
+1. Be named with the `.e2e-spec.ts` extension (matching the `testMatch` pattern in jest.e2e.config.js)
+2. Be placed in the `tests/e2e` directory
+3. Import necessary test utilities and type definitions
+
+### Basic Test Structure
+
+```typescript
+// AWS SDK imports for the services being tested
+import { ServiceName } from "@aws-sdk/client-service-name";
+import {
+  type AwsSecurityFinding,
+  SecurityHub,
+} from "@aws-sdk/client-securityhub";
+// Jest testing framework imports
+import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
+// Test utilities
+import { getSSMParameterValue, waitFor } from "./utils";
+
+// Initialize AWS service clients
+const serviceClient = new ServiceName({});
+const securityHub = new SecurityHub({});
+
+// Helper function to wait for detective control to detect violations
+async function waitForDetectiveControlToDetectViolation({
+  resourceARN,
+  statementID,
+}: {
+  resourceARN: string;
+  statementID: string;
+}): Promise<AwsSecurityFinding | undefined> {
+  return waitFor({
+    timeout: 5 * 60_000, // 5 minutes
+    interval: 10_000, // 10 seconds
+    condition: async () => {
+      const findings = await securityHub.getFindings({
+        Filters: {
+          GeneratorId: [
+            {
+              Value: "YourSecurityPackageDetectiveControl",
+              Comparison: "EQUALS",
+            },
+          ],
+          ResourceId: [
+            {
+              Value: resourceARN,
+              Comparison: "EQUALS",
+            },
+          ],
+        },
+      });
+
+      return findings.Findings?.find((finding) =>
+        finding.Resources?.some(
+          (resource) => resource.Details?.Other?.StatementId === statementID,
+        ),
+      );
+    },
+  });
+}
+
+// Helper function to wait for responsive control to remediate violations
+async function waitForResponsiveControlToRemediateViolation(
+  findingID: string,
+): Promise<AwsSecurityFinding | undefined> {
+  return waitFor({
+    timeout: 2 * 60_000, // 2 minutes
+    interval: 5_000, // 5 seconds
+    condition: async () => {
+      const updatedFindings = await securityHub.getFindings({
+        Filters: {
+          Id: [
+            {
+              Value: findingID,
+              Comparison: "EQUALS",
+            },
+          ],
+        },
+      });
+
+      const resolvedFinding = updatedFindings.Findings?.[0];
+      return resolvedFinding?.Workflow?.Status === "RESOLVED"
+        ? resolvedFinding
+        : undefined;
+    },
+  });
+}
+
+// Helper function to verify remediation was successful
+async function verifyViolationWasRemediated({
+  resourceName,
+  statementID,
+}: {
+  resourceName: string;
+  statementID: string;
+}): Promise<void> {
+  // Implementation specific to the service and violation type
+  // This should verify that the non-compliant resource/permission was removed
+}
+
+// Helper function to read shared SSM parameters
+async function readSharedSSMParameters() {
+  // Read all necessary SSM parameters for the test
+  const resourceARN = await getSSMParameterValue(
+    "/trust-stack/e2e-tests/security-packages/your-package/resource-arn",
+  );
+  const trustedAccountID = await getSSMParameterValue(
+    "/trust-stack/e2e-tests/trusted-account-id",
+  );
+  const trustedOrgID = await getSSMParameterValue(
+    "/trust-stack/e2e-tests/trusted-org-id",
+  );
+  const untrustedAccountID = await getSSMParameterValue(
+    "/trust-stack/e2e-tests/untrusted-account-id",
+  );
+  const untrustedOrgID = await getSSMParameterValue(
+    "/trust-stack/e2e-tests/untrusted-org-id",
+  );
+
+  return {
+    resourceARN,
+    trustedAccountID,
+    trustedOrgID,
+    untrustedAccountID,
+    untrustedOrgID,
+  };
+}
+
+// Helper function to clean up test resources
+async function cleanUpTestResources({
+  // ...function properties
+}: {
+  // ...function properties types
+}): Promise<void> {
+  // Implementation to clean up any resources created during tests
+  // This should remove all test-created permissions/configurations
+}
+
+// Set Jest timeout for long-running e2e tests
+jest.setTimeout(1 * 60 * 60 * 1_000); // 1 hour
+
+describe("Your Security Package - E2E Tests", () => {
+  // Test variables
+  let resourceARN: string;
+  let resourceName: string;
+  let trustedAccountID: string;
+  let trustedOrgID: string;
+  let untrustedAccountID: string;
+  let untrustedOrgID: string;
+
+  beforeAll(async () => {
+    // Initialize test parameters
+    ({
+      resourceARN,
+      trustedAccountID,
+      trustedOrgID,
+      untrustedAccountID,
+      untrustedOrgID,
+    } = await readSharedSSMParameters());
+
+    // Extract resource name from ARN if needed
+    // Implementation specific to the resource type
+  });
+
+  describe("Compliant configurations", () => {
+    afterAll(async () => {
+      await cleanUpTestResources({
+        // ...pass function properties
+      });
+    });
+
+    // Test cases for compliant configurations
+    it("should allow trusted configurations", async () => {
+      // Test implementation
+    });
+  });
+
+  describe("Non-compliant configurations", () => {
+    afterAll(async () => {
+      await cleanUpTestResources({
+        // ...pass function properties
+      });
+    });
+
+    // Test cases for non-compliant configurations
+    it("should detect and remediate violations", async () => {
+      // Test implementation
+    });
+  });
+});
+
+## Common Test Cases for Security Controls
+
+### Compliant Configuration Tests
+
+These tests verify that legitimate, trusted configurations are not flagged as violations.
+
+### Non-Compliant Configuration Tests
+
+These tests verify that violations are detected and automatically remediated.
+
+### Test Flow Pattern
+
+Each non-compliant test should follow this pattern:
+
+1. **Setup**: Create a non-compliant resource/permission
+2. **Detection**: Wait for detective control to create a Security Hub finding
+3. **Verification**: Verify the finding contains correct details and severity
+4. **Remediation**: Wait for responsive control to resolve the finding
+5. **Validation**: Verify the violation was actually remediated (resource/permission removed)
+
+## Assertions
+
+### Security Hub Finding Assertions
+
+```typescript
+// Verify finding was created
+expect(finding).toBeDefined();
+expect(finding?.Title).toBe("Expected Finding Title");
+expect(finding?.Description).toContain("expected violation description");
+expect(finding?.Severity?.Label).toBe("HIGH"); // or appropriate severity
+
+// Verify finding details
+expect(finding?.Resources?.[0]?.Id).toBe(expectedResourceARN);
+expect(finding?.Resources?.[0]?.Details?.Other?.FieldName).toBe(fieldValue);
+```
+
+### Remediation Assertions
+
+```typescript
+// Verify finding was resolved
+expect(resolvedFinding).toBeDefined();
+expect(resolvedFinding?.Workflow?.Status).toBe("RESOLVED");
+
+// Verify actual remediation occurred
+await verifyViolationWasRemediated({
+  // ...pass function properties
+});
+```
+
+### Compliant Configuration Assertions
+
+```typescript
+// Verify no finding was created for compliant configurations
+expect(finding).toBeUndefined();
+
+// Verify the compliant resource/permission still exists
+const policy = await serviceClient.getResourcePolicy({
+  ResourceName: resourceName,
+});
+expect(policy).toBeDefined();
+// ...assertions to verify the compliant configuration remains intact
+```
+
+## Running Tests
+
+To run your end-to-end tests, navigate to the project directory and run the appropriate test command:
+
+```bash
+cd apps/security-packages  # Navigate to the specific project directory
+pnpm test:e2e:chatbot         # Run end-to-end tests with verbose output
+```
+
+The test command uses the following configuration:
+- Matches files with `.e2e-spec.ts` extension
+- Uses SWC for fast TypeScript compilation
+
+When requested to run a specific test suite file, navigate to the project directory and run the appropriate test command:
+```bash
+cd apps/security-packages  # Navigate to the specific project directory
+pnpm test:e2e:chatbot -- --testPathPattern <path of the test suite file relative to the project directory>         # Run tests with verbose output
+```
+
+## Example: Complete Test File
+
+Refer to the [lambda-layer-permission.e2e-spec.ts](mdc:apps/security-packages/tests/e2e/lambda-layer-permission.e2e-spec.ts) file for a complete implementation example that demonstrates:
+
+- Proper test structure and organization
+- SSM parameter reading for test configuration
+- Helper functions for waiting and verification
+- Comprehensive test cases for both compliant and non-compliant scenarios
+- Proper cleanup and resource management
+- Detailed assertions for Security Hub findings and remediation
+
+## Test Generation Process
+
+When creating e2e tests for a new security package:
+
+1. **Analyze the Security Package**: 
+   - Read the security package's directory structure
+   - Understand the AWS services and APIs involved
+   - Identify the detective and responsive control implementations
+   - Review the configuration parameters and validation logic
+
+2. **Identify Test Scenarios**:
+   - List all compliant configurations that should be allowed
+   - List all non-compliant configurations that should be detected and remediated
+   - Consider edge cases and boundary conditions
+
+3. **Set Up Test Infrastructure**:
+   - Ensure necessary SSM parameters exist for test resources
+   - Create helper functions specific to the AWS service being tested
+   - Implement cleanup functions to avoid resource leaks
+
+4. **Write Test Cases**:
+   - Start with compliant scenarios to ensure they don't trigger false positives
+   - Implement non-compliant scenarios following the detection → remediation → validation pattern
+   - Add comprehensive assertions for each step
+
+5. **Test and Validate**:
+   - Run tests in a real AWS environment
+   - Verify timing assumptions (detection and remediation timeouts)
+   - Ensure cleanup functions work correctly
+
+## Reference test files
+
+Reference test files:
+- [lambda-layer-permission.e2e-spec.ts](mdc:apps/security-packages/tests/e2e/lambda-layer-permission.e2e-spec.ts)
+
+## Test Troubleshooting
+
+### Common Issues and Solutions
+
+1. **Timeouts**: 
+   - Detective controls may take time to process CloudTrail events
+   - Increase timeout values if tests fail due to timing
+   - Check CloudTrail delivery delays in your test environment
+
+2. **Resource Cleanup**:
+   - Always implement proper cleanup in `afterAll` hooks
+   - Handle cases where resources may not exist (e.g., already remediated)
+   - Use try-catch blocks to prevent cleanup failures from breaking tests
+
+3. **SSM Parameter Issues**:
+   - Verify all required SSM parameters exist in the test environment
+   - Check parameter names match exactly (case-sensitive)
+   - Ensure test execution role has SSM read permissions
+
+4. **Security Hub Findings**:
+   - Findings may take time to appear in Security Hub
+   - Use appropriate GeneratorId filters to find your specific findings
+   - Check finding status and workflow state for remediation verification
+
+5. **AWS Service Limits**:
+   - Be aware of service limits (e.g., Lambda layer permissions per layer)
+   - Implement proper cleanup to avoid hitting limits during test runs
+   - Consider using unique identifiers to avoid conflicts between test runs
+
+### Debugging Tips
+
+- Write detailed logs in test helper functions
+- Use AWS CloudTrail to verify API calls are being made
+- Check Security Hub console to manually verify findings
+- Use AWS CLI to manually verify resource states during test development
