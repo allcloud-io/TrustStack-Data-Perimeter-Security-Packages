@@ -1,4 +1,4 @@
-# Data Perimeter Accelerator: Guidelines and Considerations
+# Data Perimeter Guidelines: General Guidance and Considerations
 
 **Table of Contents:**
 
@@ -9,7 +9,9 @@
 
 ## Introduction
 
-Data perimeter controls help organizations establish boundaries around their AWS resources to ensure proper access control. This document summarizes key considerations for implementing data perimeter controls in AWS environments.
+Data perimeter controls help organizations establish boundaries around their AWS resources to ensure proper access control. This document provides general guidance on implementing data perimeter controls in AWS environments.
+
+**Important Note**: This document focuses on general data perimeter guidance. For service-specific considerations and additional controls that certain AWS services require to meet data perimeter control objectives, refer to the [TrustStack Security Packages](../apps/security-packages/README.md).
 
 ## Policy Types for Data Perimeter Objectives
 
@@ -37,7 +39,7 @@ Certain AWS services require additional considerations to meet data perimeter co
 
 4. **Responsive controls** - security controls designed to remediate deviations from the data perimeter baseline. Customers should implement these controls alongside the detective controls, in accordance with their risk mitigation strategy.
 
-For each consideration, we provide security packages customers may want to use to better protect their AWS resources and data. Each security package consist of a set of security contorls you can deploy in your AWS organization. Please refer to [TrustStack Security Packages](../apps/security-packages/README.md) for detailed information about the security packages offered by TrustStack.
+For each service-specific consideration, TrustStack provides security packages that organizations can use to better protect their AWS resources and data. Each security package consists of a set of security controls you can deploy in your AWS organization. Please refer to [TrustStack Security Packages](../apps/security-packages/README.md) for detailed information about the service-specific security packages offered by TrustStack.
 
 ## Best Practices for Data Perimeter Implementation
 

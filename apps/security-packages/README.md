@@ -1,6 +1,8 @@
 # TrustStack Security Packages
 
-TrustStack provides a comprehensive suite of security packages designed to protect sensitive workloads in AWS environments. Each package provides a set of controls that implement multiple layers of defense, including preventative, proactive, detective, and responsive controls. Each security package addresses specific security concerns while maintaining developer agility through guardrails-aware implementations of CDK constructs.
+TrustStack provides a suite of service-specific security packages designed to address specific service-related security concerns for sensitive workloads in AWS environments. Each package provides a set of controls that implement multiple layers of defense, including preventative, proactive, detective, and responsive controls. Each security package addresses service-specific considerations for data perimeter implementation while maintaining developer agility through guardrails-aware implementations of CDK constructs.
+
+**Important Note**: These security packages focus on service-specific considerations and controls. They are designed to complement foundational data perimeter policies that organizations should implement based on their specific requirements and the general guidance provided in the [Data Perimeter Guidelines](../../docs/data-perimeter-guidelines.md).
 
 **Table of Contents:**
 
@@ -14,16 +16,16 @@ TrustStack provides a comprehensive suite of security packages designed to prote
 
 ## Benefits
 
-TrustStack security controls provide several key benefits for organizations running sensitive workloads:
+TrustStack service-specific security controls provide several key benefits for organizations running sensitive workloads:
 
-1. **Defense in Depth**: Implements multiple layers of security controls (preventative, proactive, detective, and responsive) to create a comprehensive security posture.
+1. **Defense in Depth**: Implements multiple layers of security controls (preventative, proactive, detective, and responsive) to create a comprehensive security posture for specific AWS services.
 2. **Prevention-First Approach**: Focuses on preventing security incidents before they occur, rather than just detecting them after the fact.
 3. **Reduced Attack Surface**: Systematically eliminates potential vulnerabilities and exposure points across your AWS environment.
 4. **Compliance Enablement**: Helps meet regulatory requirements for highly regulated industries, government agencies, and defense organizations.
 5. **Automated Enforcement**: Enforces security policies automatically through guardrails and preventative controls, reducing human error.
 6. **Developer Agility**: Maintains builder productivity through guardrails-aware CDK constructs that enforce security without impeding innovation.
-7. **Operational Visibility**: Provides comprehensive monitoring and alerting capabilities to quickly identify and respond to potential security issues.
-8. **Data Protection**: Implements strong data perimeter controls to prevent unauthorized access to sensitive information.
+7. **Operational Visibility**: Provides monitoring and alerting capabilities to quickly identify and respond to potential security issues.
+8. **Data Protection**: Implements data perimeter controls to prevent unauthorized access to sensitive information.
 
 ## Packages
 

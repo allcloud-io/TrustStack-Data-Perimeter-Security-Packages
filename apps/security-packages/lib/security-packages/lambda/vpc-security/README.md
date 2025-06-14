@@ -18,7 +18,7 @@ This document outlines a comprehensive approach to securing AWS Lambda functions
 
 AWS Lambda allows associating AWS Lambda functions with either an AWS managed network or a customer managed VPC. Running Lambda functions outside of a VPC can create security risks by potentially exposing functions to unauthorized network access or allowing Lambda functions to exfiltrate data to untrusted networks.
 
-This security package helps implement the AWS data perimeter by ensuring Lambda functions are deployed only within approved customer-managed VPCs with proper network controls.
+This security package helps implement AWS data perimeter controls by ensuring Lambda functions are deployed only within approved customer-managed VPCs with proper network controls.
 
 ## Security Controls
 
