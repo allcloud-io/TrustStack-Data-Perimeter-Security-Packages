@@ -124,6 +124,7 @@ async function generateLZACustomizationsConfigFileForCommonComponents() {
     customizations:
       cloudFormationStackSets:
         - name: trust-stack-common-cloudformation-hook-execution-role
+          runOrder: 1
           description: CloudFormation hook execution role for TrustStack
           template: ./trust-stack/common/cloudformation-hook-execution-role.template.json
           terminationProtection: true
@@ -483,6 +484,7 @@ async function generateLZACustomizationsConfigFileForSecurityPackage(
     customizations:
       cloudFormationStackSets:
         - name: trust-stack-${securityPackage}
+          runOrder: 2
           description: ${description}
           template: ./trust-stack/security-packages/${securityPackage}/cloudformation-template.json
           terminationProtection: true
