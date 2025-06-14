@@ -14,16 +14,13 @@ import {
   WorkflowStatus,
 } from "@aws-sdk/client-securityhub";
 import middy from "@middy/core";
-import {
-  getValidatedPackageConfig,
-  resolveErrorMessage,
-} from "@trust-stack/utils";
+import { resolveErrorMessage } from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type {
   LambdaFunctionCreateEventDetail,
   LambdaFunctionUpdateConfigurationEventDetail,
 } from "../../../../../../../types/cloudtrail-events";
-import { SECURITY_PACKAGE_NAME, SECURITY_PACKAGE_SLUG } from "../shared";
+import { SECURITY_PACKAGE_NAME } from "../shared";
 
 const lambda = new Lambda();
 const securityHub = new SecurityHub();
@@ -75,9 +72,6 @@ async function lambdaHandler(
   const region = event.detail.awsRegion;
 
   try {
-    const config = await getValidatedPackageConfig(SECURITY_PACKAGE_SLUG);
-    logger.info("Configuration retrieved successfully");
-
     // Get the function ARN or name from the event
     let functionARN = event.detail.responseElements?.functionArn;
     let functionName = event.detail.requestParameters.functionName;
@@ -148,29 +142,6 @@ async function lambdaHandler(
 
       logger.info(
         "Security Hub finding created for non-compliant Lambda function",
-      );
-    } else if (
-      config.allowedVPCIDs &&
-      Array.isArray(config.allowedVPCIDs) &&
-      config.allowedVPCIDs.length > 0 &&
-      !config.allowedVPCIDs.includes(functionConfig.VpcConfig.VpcId)
-    ) {
-      // If we have a list of allowed VPC IDs and this VPC is not in the list
-      logger.warn("Lambda function is in an unauthorized VPC", {
-        functionName,
-        vpcID: functionConfig.VpcConfig.VpcId,
-      });
-
-      await importOrUpdateSecurityHubFinding({
-        functionName,
-        functionARN,
-        accountID,
-        region,
-        note: `Lambda function is configured to run in an unauthorized VPC: ${functionConfig.VpcConfig.VpcId}`,
-      });
-
-      logger.info(
-        "Security Hub finding created for Lambda function in unauthorized VPC",
       );
     } else {
       logger.info("Lambda function has a valid VPC configuration", {

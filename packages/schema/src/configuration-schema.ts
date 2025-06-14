@@ -70,20 +70,6 @@ export type LambdaPermissionSecurityConfig = z.infer<
   typeof LambdaPermissionSecurityConfig
 >;
 
-/**
- * Configuration for the Lambda VPC security package
- */
-export const LambdaVPCSecurityConfig = z.object({
-  /**
-   * Optional list of VPC IDs that Lambda functions are allowed to use
-   * If not specified, any VPC is considered valid as long as the function
-   * is running inside a VPC
-   */
-  allowedVPCIDs: z.array(z.string()).optional(),
-});
-
-export type LambdaVPCSecurityConfig = z.infer<typeof LambdaVPCSecurityConfig>;
-
 const SNSSupportedProtocols = z.enum([
   "email",
   "email-json",
@@ -200,15 +186,9 @@ export const ConfigurationSchema = z.object({
           .optional()
           .describe("Configuration for the Lambda Permission Security package"),
         lambdaVPCSecurity: z
-          .union([
-            z.object({
-              enabled: z.literal(true),
-              configuration: LambdaVPCSecurityConfig,
-            }),
-            z.object({
-              enabled: z.literal(false),
-            }),
-          ])
+          .object({
+            enabled: z.boolean(),
+          })
           .optional()
           .describe("Configuration for the Lambda VPC Security package"),
         snsSubscriptionSecurity: z

@@ -7,8 +7,6 @@ import {
   type GetFindingsCommandOutput,
 } from "@aws-sdk/client-securityhub";
 import { beforeAll, describe, jest } from "@jest/globals";
-import type { LambdaVPCSecurityConfig } from "@trust-stack/schema";
-import * as utils from "@trust-stack/utils";
 import type { Context, EventBridgeEvent } from "aws-lambda";
 import type {
   LambdaFunctionCreateEventDetail,
@@ -80,15 +78,6 @@ jest.unstable_mockModule("@aws-sdk/client-securityhub", () => ({
   WorkflowStatus: {
     NEW: "NEW",
   },
-}));
-
-jest.unstable_mockModule("@trust-stack/utils", () => ({
-  ...utils,
-  getValidatedPackageConfig: jest
-    .fn<() => Promise<LambdaVPCSecurityConfig>>()
-    .mockResolvedValue({
-      allowedVPCIDs: ["vpc-12345678"],
-    }),
 }));
 
 // Variables for dynamically imported modules
@@ -506,7 +495,7 @@ describe("Lambda VPC Security Detective Control Handler", () => {
     ).not.toHaveBeenCalled();
   });
 
-  it.skip("should create finding for Lambda function in non-approved VPC", async () => {
+  it("should not create finding for Lambda function with VPC configuration", async () => {
     const functionName = "test-function";
     const functionArn = `arn:aws:lambda:${mockRegion}:${mockAccountID}:function:${functionName}`;
     const event = createLambdaUpdateFunctionConfigurationAPIEvent(functionName);
@@ -527,7 +516,7 @@ describe("Lambda VPC Security Detective Control Handler", () => {
       TracingConfig: { Mode: "PassThrough" },
       RevisionId: "abcdef-12345-67890",
       VpcConfig: {
-        VpcId: "vpc-87654321", // Not in the allowed list
+        VpcId: "vpc-12345678",
         SubnetIds: ["subnet-12345"],
         SecurityGroupIds: ["sg-12345"],
       },
@@ -538,61 +527,7 @@ describe("Lambda VPC Security Detective Control Handler", () => {
     expect(
       mockLambdaClientInstance.getFunctionConfiguration,
     ).toHaveBeenCalledWith({
-      FunctionName: functionArn,
-    });
-
-    expect(
-      mockSecurityHubClientInstance.batchImportFindings,
-    ).toHaveBeenCalledWith({
-      Findings: [
-        expect.objectContaining({
-          SchemaVersion: "2018-10-08",
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          Id: expect.any(String),
-          ProductArn: `arn:aws:securityhub:${mockRegion}:${mockAccountID}:product/${mockAccountID}/default`,
-          Title: "Lambda function without proper VPC configuration",
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          Description: expect.stringContaining(
-            "Lambda function is configured to run in an unauthorized VPC",
-          ),
-        }),
-      ],
-    });
-  });
-
-  it("should not create finding for Lambda function with approved VPC configuration", async () => {
-    const functionName = "test-function";
-    const functionArn = `arn:aws:lambda:${mockRegion}:${mockAccountID}:function:${functionName}`;
-    const event = createLambdaCreateFunctionAPIEvent(functionName, functionArn);
-
-    mockLambdaClientInstance.getFunctionConfiguration.mockResolvedValueOnce({
       FunctionName: functionName,
-      FunctionArn: functionArn,
-      Runtime: "nodejs18.x",
-      Role: "arn:aws:iam::123456789012:role/test-role",
-      Handler: "index.handler",
-      CodeSize: 1024,
-      Description: "Test function",
-      Timeout: 3,
-      MemorySize: 128,
-      LastModified: "2022-12-01T00:00:00.000+0000",
-      CodeSha256: "abcdef1234567890",
-      Version: "$LATEST",
-      TracingConfig: { Mode: "PassThrough" },
-      RevisionId: "abcdef-12345-67890",
-      VpcConfig: {
-        VpcId: "vpc-12345678", // In the allowed list
-        SubnetIds: ["subnet-12345"],
-        SecurityGroupIds: ["sg-12345"],
-      },
-    });
-
-    await handler(event, mockContext);
-
-    expect(
-      mockLambdaClientInstance.getFunctionConfiguration,
-    ).toHaveBeenCalledWith({
-      FunctionName: functionArn,
     });
 
     expect(

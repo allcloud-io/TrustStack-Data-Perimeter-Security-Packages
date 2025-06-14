@@ -81,7 +81,6 @@ if (securityPackages.lambdaPermissionSecurity?.enabled) {
 if (securityPackages.lambdaVPCSecurity?.enabled) {
   new Lambda_VPCSecurityStack(app, "LambdaVPCSecurity", {
     securityPackagesDir: securityPackagesDir,
-    config: securityPackages.lambdaVPCSecurity.configuration,
     tags: {
       "TrustStack:SecurityPackage": "LambdaVPCSecurity",
     },

@@ -7,11 +7,6 @@ Parameters:
     Description: ARN of IAM role for Lambda execution
     Default: "/trust-stack/e2e-tests/lambda-role-arn"
 
-  UnapprovedVPCID:
-    Type: AWS::SSM::Parameter::Value<String>
-    Description: ID of an unapproved VPC
-    Default: "/trust-stack/e2e-tests/unauthorized-lambda-vpc-id"
-
   SubnetID:
     Type: AWS::SSM::Parameter::Value<String>
     Description: ID of a subnet
@@ -128,37 +123,6 @@ Resources:
       Tags:
         - Key: Purpose
           Value: SecurityComplianceTest
-
-  # Non-compliant Lambda function with an unapproved VPC
-  UnapprovedVPCLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: "unapproved-vpc-lambda-function"
-      Runtime: "nodejs18.x"
-      Handler: "index.handler"
-      Role: !Ref LambdaRoleARN
-      Code:
-        ZipFile: |
-          exports.handler = async (event) => {
-            console.log('Event:', JSON.stringify(event, null, 2));
-            return {
-              statusCode: 200,
-              body: JSON.stringify('Hello from Lambda!'),
-            };
-          };
-      Description: "A non-compliant Lambda function in an unapproved VPC"
-      Timeout: 30
-      MemorySize: 256
-      VpcConfig:
-        SecurityGroupIds:
-          - !Ref SecurityGroupID
-        SubnetIds:
-          - !Ref SubnetID
-      Tags:
-        - Key: Purpose
-          Value: SecurityComplianceTest
-        - Key: VpcID
-          Value: !Ref UnapprovedVPCID
 
 Outputs:
   NoVPCLambdaFunctionARN:

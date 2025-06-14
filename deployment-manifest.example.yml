@@ -74,14 +74,6 @@ spec:
     lambdaVPCSecurity:
       # Whether the Lambda VPC Security package is enabled
       enabled: true
-      # Configuration for the Lambda VPC Security package
-      configuration:
-        # Optional list of VPC IDs that Lambda functions are allowed to use
-        # If not specified, any VPC is considered valid as long as the function
-        # is running inside a VPC
-        allowedVPCIDs:
-          - vpc-0123456789abcdef0
-          - vpc-0123456789abcdef1
 
     # Configuration for the SNS Subscription Security package
     snsSubscriptionSecurity:

@@ -148,7 +148,8 @@ describe("Lambda Permission Security Responsive Control Handler", () => {
     const testEvent = createBaseEvent();
     const lambdaARN = testEvent.detail.findings[0].Resources[0].Id;
     const principal =
-      testEvent.detail.findings[0].UserDefinedFields["TrustStack/Principal"];
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      testEvent.detail.findings[0].UserDefinedFields!["TrustStack/Principal"];
 
     mockLambdaClient.getPolicy.mockResolvedValueOnce({
       Policy: JSON.stringify({
@@ -315,8 +316,11 @@ describe("Lambda Permission Security Responsive Control Handler", () => {
     // Arrange
     const principal = "arn:aws:iam::123456789012:role/test-role";
     const testEvent = createBaseEvent();
-    testEvent.detail.findings[0].UserDefinedFields["TrustStack/Principal"] =
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    testEvent.detail.findings[0].UserDefinedFields!["TrustStack/Principal"] =
       principal;
+
     const lambdaARN = testEvent.detail.findings[0].Resources[0].Id;
 
     mockLambdaClient.getPolicy.mockResolvedValueOnce({
@@ -369,7 +373,8 @@ describe("Lambda Permission Security Responsive Control Handler", () => {
     const testEvent = createBaseEvent();
     const lambdaARN = testEvent.detail.findings[0].Resources[0].Id;
     const principal =
-      testEvent.detail.findings[0].UserDefinedFields["TrustStack/Principal"];
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      testEvent.detail.findings[0].UserDefinedFields!["TrustStack/Principal"];
 
     mockLambdaClient.getPolicy.mockResolvedValueOnce({
       Policy: JSON.stringify({
@@ -418,7 +423,8 @@ describe("Lambda Permission Security Responsive Control Handler", () => {
     const testEvent = createBaseEvent();
     const lambdaARN = testEvent.detail.findings[0].Resources[0].Id;
     const principal =
-      testEvent.detail.findings[0].UserDefinedFields["TrustStack/Principal"];
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      testEvent.detail.findings[0].UserDefinedFields!["TrustStack/Principal"];
 
     mockLambdaClient.getPolicy.mockResolvedValueOnce({
       Policy: JSON.stringify({

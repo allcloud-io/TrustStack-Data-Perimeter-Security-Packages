@@ -88,36 +88,6 @@ Resources:
         - Key: Purpose
           Value: SecurityCompliance
 
-  # Compliant Lambda function in an approved VPC
-  CompliantApprovedVPCLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: "compliant-approved-vpc-lambda-function"
-      Runtime: "nodejs18.x"
-      Handler: "index.handler"
-      Role: !Ref LambdaRoleARN
-      Code:
-        ZipFile: |
-          exports.handler = async (event) => {
-            console.log('Event:', JSON.stringify(event, null, 2));
-            return {
-              statusCode: 200,
-              body: JSON.stringify('Hello from Lambda!'),
-            };
-          };
-      Description: "A compliant Lambda function in an approved VPC"
-      Timeout: 30
-      MemorySize: 256
-      VpcConfig:
-        SecurityGroupIds:
-          - !Ref SecurityGroupID
-        SubnetIds:
-          - !Ref SubnetID1
-          - !Ref SubnetID2
-      Tags:
-        - Key: Purpose
-          Value: SecurityCompliance
-
 Outputs:
   CompliantLambdaFunctionARN:
     Description: ARN of the compliant Lambda function
@@ -126,7 +96,3 @@ Outputs:
   CompliantMultiSGLambdaFunctionARN:
     Description: ARN of the compliant Lambda function with multiple security groups
     Value: !GetAtt CompliantMultiSGLambdaFunction.Arn
-
-  CompliantApprovedVPCLambdaFunctionARN:
-    Description: ARN of the compliant Lambda function in an approved VPC
-    Value: !GetAtt CompliantApprovedVPCLambdaFunction.Arn

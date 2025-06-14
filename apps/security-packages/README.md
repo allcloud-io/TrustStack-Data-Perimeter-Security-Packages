@@ -67,14 +67,13 @@ For detailed implementation details, see the [Lambda Permission Security Package
 
 ### Lambda VPC Security Package
 
-The Lambda VPC Security package addresses the risk of AWS Lambda functions operating outside of customer-managed VPCs, which can expose functions to unauthorized network access or enable data exfiltration to untrusted networks. This package helps implement AWS data perimeter controls by ensuring Lambda functions are deployed only within approved VPCs with proper network configurations.
+The Lambda VPC Security package addresses the risk of AWS Lambda functions operating outside of customer-managed VPCs, which can expose functions to unauthorized network access or enable data exfiltration to untrusted networks. This package helps implement AWS data perimeter controls by ensuring Lambda functions are deployed only within customer-managed VPCs.
 
 The package implements a comprehensive set of controls:
 
 1. **Preventative Controls**: Service Control Policies (SCPs) that restrict Lambda function creation without VPC configurations using the `lambda:VpcIds` condition key
 2. **Proactive Controls**: A CloudFormation hook that validate AWS::Lambda::Function resources specify proper VPC configurations during deployment
 3. **Detective Controls**: CloudTrail monitoring to identify Lambda functions created without VPC configurations and create Security Hub findings for non-compliant resources
-4. **Responsive Controls**: Automated remediation to update non-compliant Lambda functions to use approved VPC configurations
 
 For detailed implementation details, see the [Lambda VPC Security Package documentation](lib/security-packages/lambda/vpc-security/README.md).
 

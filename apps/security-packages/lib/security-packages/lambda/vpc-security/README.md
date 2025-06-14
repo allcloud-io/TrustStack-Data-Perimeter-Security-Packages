@@ -9,7 +9,6 @@ This document outlines a comprehensive approach to securing AWS Lambda functions
   - [Preventative Controls](#preventative-controls)
   - [Proactive Controls](#proactive-controls)
   - [Detective Controls](#detective-controls)
-  - [Responsive Controls](#responsive-controls)
 - [Deployment Instructions](#deployment-instructions)
   - [Configuration](#configuration)
   - [Deployment Considerations](#deployment-considerations)
@@ -24,10 +23,7 @@ This security package helps implement AWS data perimeter controls by ensuring La
 
 ### Preventative Controls
 
-The preventative control uses Service Control Policies (SCPs) to:
-
-- Deny Lambda function creation without VPC configurations using the `lambda:VpcIds` condition key
-- Optionally restrict Lambda functions to specific approved VPCs
+The preventative control uses Service Control Policies (SCPs) to deny Lambda function creation without VPC configurations using the `lambda:VpcIds` condition key.
 
 Example SCP:
 
@@ -56,7 +52,6 @@ The proactive control uses CloudFormation Hooks to:
 
 - Validate that AWS::Lambda::Function resources specify the VpcConfig property during deployment
 - Ensure Lambda functions specify both subnet IDs and security group IDs in their VPC configuration
-- Optionally validate that VPC configurations use only approved VPCs
 
 ### Detective Controls
 
@@ -64,25 +59,10 @@ The detective control monitors CloudTrail for Lambda function creation and updat
 
 - Identifies Lambda functions created without VPC configurations
 - Creates Security Hub findings for non-compliant resources
-- Uses the AWS Config rule `lambda-inside-vpc` for additional coverage
-
-### Responsive Controls
-
-The responsive control automatically remediates non-compliant Lambda functions:
-
-- Processes Security Hub findings for Lambda functions without VPC configurations
-- Automatically updates Lambda functions to use an approved VPC configuration
-- Updates Security Hub findings with remediation status
 
 ## Deployment Instructions
 
 ### Configuration
-
-The Lambda VPC Security Package package accepts the following configuration options:
-
-| Parameter     | Type       | Description                                                                                                                                                           | Default value    |
-| ------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| allowedVPCIDs | `string[]` | Optional list of VPC IDs that Lambda functions are allowed to use.<br/>If not specified, any VPC is considered valid as long as the function is running inside a VPC. | No default value |
 
 Enable this security package in your `deployment-manifest.yml` file by adding the `lambdaVPCSecurity` field under `spec.securityPackages`. Example:
 
@@ -95,14 +75,6 @@ spec:
     lambdaVPCSecurity:
       # Whether the Lambda VPC Security package is enabled
       enabled: true
-      # Configuration for the Lambda VPC Security package
-      configuration:
-        # Optional list of VPC IDs that Lambda functions are allowed to use
-        # If not specified, any VPC is considered valid as long as the function
-        # is running inside a VPC
-        allowedVPCIDs:
-          - vpc-0123456789abcdef0
-          - vpc-0123456789abcdef1
 ```
 
 ### Deployment Considerations

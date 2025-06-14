@@ -1,8 +1,5 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
-import { DescribeSubnetsCommandOutput } from "@aws-sdk/client-ec2";
 import { jest } from "@jest/globals";
-import type { LambdaVPCSecurityConfig } from "@trust-stack/schema";
-import * as utils from "@trust-stack/utils";
 import { Context } from "aws-lambda";
 import { produce } from "immer";
 import type { CloudFormationHookEvent } from "../../../../../../../types/cfn-hooks";
@@ -20,29 +17,12 @@ const mockLoggerInstance = {
   warn: jest.fn(),
 };
 
-const mockGetValidatedPackageConfig =
-  jest.fn<(...args: unknown[]) => Promise<LambdaVPCSecurityConfig>>();
-
-const mockEC2ClientInstance = {
-  describeSubnets:
-    jest.fn<() => Promise<Omit<DescribeSubnetsCommandOutput, "$metadata">>>(),
-};
-
 // Setup mocks before imports
 jest.unstable_mockModule("@aws-lambda-powertools/logger", () => ({
   Logger: jest.fn().mockImplementation(() => mockLoggerInstance),
   injectLambdaContext: jest.fn().mockImplementation(() => {
     return jest.fn().mockImplementation((handler) => handler);
   }),
-}));
-
-jest.unstable_mockModule("@trust-stack/utils", () => ({
-  ...utils,
-  getValidatedPackageConfig: mockGetValidatedPackageConfig,
-}));
-
-jest.unstable_mockModule("@aws-sdk/client-ec2", () => ({
-  EC2: jest.fn().mockImplementation(() => mockEC2ClientInstance),
 }));
 
 const mockAccountID = "123456789012";
@@ -133,16 +113,12 @@ describe("CloudFormation Hook Handler for Lambda VPC Security", () => {
   });
 
   it("should return SUCCESS for Lambda function with VPC config", async () => {
-    mockGetValidatedPackageConfig.mockResolvedValueOnce({});
-
     const result = await handler(event, mockContext);
     expect(result.hookStatus).toBe("SUCCESS");
     expect(result.message).toBe("Lambda function has valid VPC configuration");
   });
 
   it("should return FAILURE for Lambda function without VPC config", async () => {
-    mockGetValidatedPackageConfig.mockResolvedValueOnce({});
-
     const eventWithoutVPCConfig = produce(event, (draft) => {
       // @ts-expect-error - We're modifying a constant object
       draft.requestData.targetModel.resourceProperties.VpcConfig = undefined;
@@ -152,48 +128,6 @@ describe("CloudFormation Hook Handler for Lambda VPC Security", () => {
     expect(result.hookStatus).toBe("FAILURE");
     expect(result.message).toBe(
       "Lambda function must have a VpcConfig property",
-    );
-  });
-
-  it("should return SUCCESS for Lambda function provisioned in an allowed VPC", async () => {
-    mockGetValidatedPackageConfig.mockResolvedValueOnce({
-      allowedVPCIDs: ["vpc-0017a480bbff7f00d"],
-    });
-
-    mockEC2ClientInstance.describeSubnets.mockResolvedValueOnce({
-      Subnets: [
-        {
-          VpcId: "vpc-0017a480bbff7f00d",
-        },
-      ],
-    });
-
-    const result = await handler(event, mockContext);
-    expect(result.hookStatus).toBe("SUCCESS");
-    expect(result.message).toBe("Lambda function has valid VPC configuration");
-  });
-
-  it("should return FAILURE for Lambda function provisioned in a non-allowed VPC", async () => {
-    mockGetValidatedPackageConfig.mockResolvedValueOnce({
-      allowedVPCIDs: ["vpc-0017a480bbff7f00d"],
-    });
-
-    mockEC2ClientInstance.describeSubnets.mockResolvedValueOnce({
-      // Only one subnet in the allowed VPC
-      Subnets: [
-        {
-          VpcId: "vpc-0017a480bbff7f00d",
-        },
-        {
-          VpcId: "vpc-016bdce095fdc2484",
-        },
-      ],
-    });
-
-    const result = await handler(event, mockContext);
-    expect(result.hookStatus).toBe("FAILURE");
-    expect(result.message).toBe(
-      "Lambda function is not allowed to be created in VPCs: vpc-016bdce095fdc2484. Allowed VPCs: vpc-0017a480bbff7f00d.",
     );
   });
 });

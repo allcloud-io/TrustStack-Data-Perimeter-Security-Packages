@@ -1,17 +1,10 @@
 import { Logger } from "@aws-lambda-powertools/logger";
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware";
-import { EC2 } from "@aws-sdk/client-ec2";
 import middy from "@middy/core";
-import type { LambdaVPCSecurityConfig } from "@trust-stack/schema";
-import {
-  getValidatedPackageConfig,
-  resolveErrorMessage,
-} from "@trust-stack/utils";
+import { resolveErrorMessage } from "@trust-stack/utils";
 import type { CloudFormationHookEvent } from "../../../../../../../types/cfn-hooks";
 import type { AWS_Lambda_Function } from "../../../../../../../types/cfn-resources/aws-lambda-function";
-import { SECURITY_PACKAGE_NAME, SECURITY_PACKAGE_SLUG } from "../shared";
-
-const ec2 = new EC2();
+import { SECURITY_PACKAGE_NAME } from "../shared";
 
 const logger = new Logger({
   serviceName: `${SECURITY_PACKAGE_NAME}ProactiveControl`,
@@ -26,7 +19,7 @@ export const handler = middy(lambdaHandler).use(injectLambdaContext(logger));
  * This hook ensures that AWS::Lambda::Function resources are created with a VpcConfig
  * property to enforce Lambda functions to run within a VPC.
  */
-async function lambdaHandler(event: CloudFormationHookEvent) {
+function lambdaHandler(event: CloudFormationHookEvent) {
   logger.appendKeys({ event });
   logger.info("Received CloudFormation hook event");
 
@@ -47,24 +40,19 @@ async function lambdaHandler(event: CloudFormationHookEvent) {
     resourceProperties,
   });
 
+  if (event.requestData.targetType !== "AWS::Lambda::Function") {
+    logger.info("Resource is not a Lambda function, skipping validation");
+    return {
+      hookStatus: "SUCCESS",
+      message: "Resource is not a Lambda function",
+      clientRequestToken,
+    };
+  }
+
   try {
-    const config = await getValidatedPackageConfig(SECURITY_PACKAGE_SLUG);
-    logger.info("Configuration retrieved successfully", { config });
-
-    // Only validate Lambda function resources
-    if (event.requestData.targetType !== "AWS::Lambda::Function") {
-      logger.info("Resource is not a Lambda function, skipping validation");
-      return {
-        hookStatus: "SUCCESS",
-        message: "Resource is not a Lambda function",
-        clientRequestToken,
-      };
-    }
-
     // Validate the Lambda function has VpcConfig
-    const validationResult = await validateLambdaVPCConfig(
+    const validationResult = validateLambdaVPCConfig(
       resourceProperties as AWS_Lambda_Function.FunctionResourceType,
-      config,
     );
 
     if (!validationResult.isValid) {
@@ -107,10 +95,9 @@ async function lambdaHandler(event: CloudFormationHookEvent) {
 /**
  * Validates that a Lambda function has the required VPC configuration
  */
-async function validateLambdaVPCConfig(
+function validateLambdaVPCConfig(
   properties: AWS_Lambda_Function.FunctionResourceType,
-  config: LambdaVPCSecurityConfig,
-): Promise<{ isValid: boolean; reason?: string }> {
+): { isValid: boolean; reason?: string } {
   const excludeTag = properties.Tags?.find(
     (tag) => tag.Key === "ts:exclude",
   )?.Value;
@@ -156,53 +143,5 @@ async function validateLambdaVPCConfig(
     };
   }
 
-  const { allowedVPCIDs } = config;
-
-  // If allowedVPCIDs is specified in the configuration, check that the VPC is allowed
-  if (
-    allowedVPCIDs &&
-    Array.isArray(allowedVPCIDs) &&
-    allowedVPCIDs.length > 0
-  ) {
-    const vpcIDs = await getVpcIDsForSubnets(properties.VpcConfig.SubnetIds);
-
-    const nonAllowedVPCIDs = vpcIDs.filter(
-      (vpcID) => !allowedVPCIDs.includes(vpcID),
-    );
-
-    if (nonAllowedVPCIDs.length > 0) {
-      return {
-        isValid: false,
-        reason:
-          "Lambda function is not allowed to be created in VPCs: " +
-          `${nonAllowedVPCIDs.join(", ")}. ` +
-          `Allowed VPCs: ${allowedVPCIDs.join(", ")}.`,
-      };
-    }
-  }
-
   return { isValid: true };
-}
-
-/**
- * Given an array of subnet IDs, return the unique VPC IDs those subnets belong to.
- */
-async function getVpcIDsForSubnets(subnetIDs: string[]): Promise<string[]> {
-  if (subnetIDs.length === 0) {
-    return [];
-  }
-
-  const resp = await ec2.describeSubnets({ SubnetIds: subnetIDs });
-
-  // Extract VpcId (guarding for undefined just in case)
-  const vpcIDs =
-    resp.Subnets?.map((s) => s.VpcId)
-      .filter((v): v is string => !!v)
-      // Dedupe
-      .reduce<string[]>((acc, vpc) => {
-        if (!acc.includes(vpc)) acc.push(vpc);
-        return acc;
-      }, []) ?? [];
-
-  return vpcIDs;
 }

@@ -3,7 +3,6 @@ import {
   ECRImageLayerAccessPackageConfig,
   LambdaLayerPermissionSecurityConfig,
   LambdaPermissionSecurityConfig,
-  LambdaVPCSecurityConfig,
   SNSSubscriptionSecurityPackageConfig,
   type SecurityPackageSlug,
 } from "@trust-stack/schema";
@@ -18,7 +17,6 @@ export type SharedSSMParameterName =
   | "/trust-stack/ecr/image-layer-access/config"
   | "/trust-stack/lambda/layer-permission-security/config"
   | "/trust-stack/lambda/permission-security/config"
-  | "/trust-stack/lambda/vpc-security/config"
   | "/trust-stack/sns/subscription-security/config";
 
 /**
@@ -38,9 +36,6 @@ export async function getValidatedPackageConfig(
   securityPackage: "lambda-permission-security",
 ): Promise<LambdaPermissionSecurityConfig>;
 export async function getValidatedPackageConfig(
-  securityPackage: "lambda-vpc-security",
-): Promise<LambdaVPCSecurityConfig>;
-export async function getValidatedPackageConfig(
   securityPackage: "sns-subscription-security",
 ): Promise<SNSSubscriptionSecurityPackageConfig>;
 export async function getValidatedPackageConfig(
@@ -49,7 +44,6 @@ export async function getValidatedPackageConfig(
   | ECRImageLayerAccessPackageConfig
   | LambdaLayerPermissionSecurityConfig
   | LambdaPermissionSecurityConfig
-  | LambdaVPCSecurityConfig
   | SNSSubscriptionSecurityPackageConfig
 > {
   let parameterName: string;
@@ -67,10 +61,6 @@ export async function getValidatedPackageConfig(
     case "lambda-permission-security":
       parameterName = "/trust-stack/lambda/permission-security/config";
       schema = LambdaPermissionSecurityConfig;
-      break;
-    case "lambda-vpc-security":
-      parameterName = "/trust-stack/lambda/vpc-security/config";
-      schema = LambdaVPCSecurityConfig;
       break;
     case "sns-subscription-security":
       parameterName = "/trust-stack/sns/subscription-security/config";
