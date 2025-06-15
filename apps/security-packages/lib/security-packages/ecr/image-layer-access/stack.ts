@@ -70,7 +70,7 @@ export class ECR_ImageLayerAccessStack extends cdk.Stack {
           "access is authorized",
         code: lambda.Code.fromBucketV2(
           this.assetsBucket,
-          `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/detective-control/lambda.zip`,
+          `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/detective-control/lambda.zip`,
         ),
         initialPolicy: [
           new iam.PolicyStatement({
@@ -113,7 +113,7 @@ export class ECR_ImageLayerAccessStack extends cdk.Stack {
           "attempts by attaching a deny-all policy for affected users.",
         code: lambda.Code.fromBucketV2(
           this.assetsBucket,
-          `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/responsive-control/lambda.zip`,
+          `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/responsive-control/lambda.zip`,
         ),
         initialPolicy: [
           new iam.PolicyStatement({

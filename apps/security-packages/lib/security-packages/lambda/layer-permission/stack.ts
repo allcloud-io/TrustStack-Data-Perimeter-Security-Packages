@@ -88,7 +88,7 @@ export class Lambda_LayerPermissionSecurityStack extends cdk.Stack {
       failureMode: "FAIL",
       code: lambda.Code.fromBucketV2(
         this.assetsBucket,
-        `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/proactive-control/lambda.zip`,
+        `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/proactive-control/lambda.zip`,
       ),
       initialPolicy: [
         new iam.PolicyStatement({
@@ -112,7 +112,7 @@ export class Lambda_LayerPermissionSecurityStack extends cdk.Stack {
           "Monitor CloudTrail events for layer permission changes and validate compliance",
         code: lambda.Code.fromBucketV2(
           this.assetsBucket,
-          `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/detective-control/lambda.zip`,
+          `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/detective-control/lambda.zip`,
         ),
         initialPolicy: [
           new iam.PolicyStatement({
@@ -155,7 +155,7 @@ export class Lambda_LayerPermissionSecurityStack extends cdk.Stack {
         description: "Automatically remediate non-compliant layer permissions",
         code: lambda.Code.fromBucketV2(
           this.assetsBucket,
-          `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/responsive-control/lambda.zip`,
+          `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/responsive-control/lambda.zip`,
         ),
         timeout: cdk.Duration.minutes(1),
         initialPolicy: [

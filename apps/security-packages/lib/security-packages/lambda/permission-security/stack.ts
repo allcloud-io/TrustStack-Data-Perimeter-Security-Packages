@@ -88,7 +88,7 @@ export class Lambda_PermissionSecurityStack extends cdk.Stack {
       failureMode: "FAIL",
       code: lambda.Code.fromBucketV2(
         this.assetsBucket,
-        `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/proactive-control/lambda.zip`,
+        `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/proactive-control/lambda.zip`,
       ),
       initialPolicy: [
         new iam.PolicyStatement({
@@ -111,7 +111,7 @@ export class Lambda_PermissionSecurityStack extends cdk.Stack {
           "Lambda permission principals",
         code: lambda.Code.fromBucketV2(
           this.assetsBucket,
-          `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/detective-control/lambda.zip`,
+          `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/detective-control/lambda.zip`,
         ),
         initialPolicy: [
           new iam.PolicyStatement({
@@ -163,7 +163,7 @@ export class Lambda_PermissionSecurityStack extends cdk.Stack {
           "Remove Lambda permissions that bypass preventative and detective controls",
         code: lambda.Code.fromBucketV2(
           this.assetsBucket,
-          `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/responsive-control/lambda.zip`,
+          `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/responsive-control/lambda.zip`,
         ),
         timeout: cdk.Duration.minutes(1),
         initialPolicy: [

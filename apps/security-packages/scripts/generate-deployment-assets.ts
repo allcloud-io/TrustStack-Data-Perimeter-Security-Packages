@@ -258,11 +258,9 @@ async function buildLambdaHandlerArchivesForSecurityPackage(
   });
 
   // Create dist directory if it doesn't exist
-  const securityPackageDistDir = path.join(
-    distDirectory,
-    "security-packages",
-    securityPackage,
-  );
+  const securityPackageDistDir =
+    getSecurityPackageDistDirectoryPath(securityPackage);
+
   await fs.mkdir(securityPackageDistDir, { recursive: true });
 
   console.log(`Building Lambda handlers to ${securityPackageDistDir}`);

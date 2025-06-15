@@ -88,7 +88,7 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
       failureMode: "FAIL",
       code: lambda.Code.fromBucketV2(
         this.assetsBucket,
-        `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/proactive-control/lambda.zip`,
+        `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/proactive-control/lambda.zip`,
       ),
       initialPolicy: [
         new iam.PolicyStatement({
@@ -111,7 +111,7 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
           "SNS subscription endpoints and protocols",
         code: lambda.Code.fromBucketV2(
           this.assetsBucket,
-          `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/detective-control/lambda.zip`,
+          `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/detective-control/lambda.zip`,
         ),
         initialPolicy: [
           new iam.PolicyStatement({
@@ -159,7 +159,7 @@ export class SNS_SubscriptionSecurityStack extends cdk.Stack {
           "Cancel any subscriptions that bypass preventative and detective controls",
         code: lambda.Code.fromBucketV2(
           this.assetsBucket,
-          `${BUILD_HASH}/security-packages/${SECURITY_PACKAGE_SLUG}/responsive-control/lambda.zip`,
+          `${BUILD_HASH}/trust-stack/security-packages/${SECURITY_PACKAGE_SLUG}/responsive-control/lambda.zip`,
         ),
         timeout: cdk.Duration.minutes(1),
         initialPolicy: [
