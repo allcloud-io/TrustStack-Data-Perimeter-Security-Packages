@@ -38,6 +38,7 @@ new CloudFormationHookExecutionRoleStack(
   app,
   "CloudFormationHookExecutionRole",
   {
+    stackName: "TrustStack-CloudFormationHookExecutionRole",
     env: {
       account: deploymentAccountID,
     },
@@ -46,6 +47,7 @@ new CloudFormationHookExecutionRoleStack(
 
 if (securityPackages.ecrImageLayerAccess?.enabled) {
   new ECR_ImageLayerAccessStack(app, "ECRImageLayerAccess", {
+    stackName: "TrustStack-ECRImageLayerAccess",
     securityPackagesDir: securityPackagesDir,
     config: securityPackages.ecrImageLayerAccess.configuration,
     tags: {
@@ -59,6 +61,7 @@ if (securityPackages.lambdaLayerPermissionSecurity?.enabled) {
     app,
     "LambdaLayerPermissionSecurity",
     {
+      stackName: "TrustStack-LambdaLayerPermissionSecurity",
       securityPackagesDir: securityPackagesDir,
       config: securityPackages.lambdaLayerPermissionSecurity.configuration,
       tags: {
@@ -70,6 +73,7 @@ if (securityPackages.lambdaLayerPermissionSecurity?.enabled) {
 
 if (securityPackages.lambdaPermissionSecurity?.enabled) {
   new Lambda_PermissionSecurityStack(app, "LambdaPermissionSecurity", {
+    stackName: "TrustStack-LambdaPermissionSecurity",
     securityPackagesDir: securityPackagesDir,
     config: securityPackages.lambdaPermissionSecurity.configuration ?? {},
     tags: {
@@ -80,6 +84,7 @@ if (securityPackages.lambdaPermissionSecurity?.enabled) {
 
 if (securityPackages.lambdaVPCSecurity?.enabled) {
   new Lambda_VPCSecurityStack(app, "LambdaVPCSecurity", {
+    stackName: "TrustStack-LambdaVPCSecurity",
     securityPackagesDir: securityPackagesDir,
     tags: {
       "TrustStack:SecurityPackage": "LambdaVPCSecurity",
@@ -89,6 +94,7 @@ if (securityPackages.lambdaVPCSecurity?.enabled) {
 
 if (securityPackages.snsSubscriptionSecurity?.enabled) {
   new SNS_SubscriptionSecurityStack(app, "SNSSubscriptionSecurity", {
+    stackName: "TrustStack-SNSSubscriptionSecurity",
     securityPackagesDir: securityPackagesDir,
     config: securityPackages.snsSubscriptionSecurity.configuration,
     tags: {

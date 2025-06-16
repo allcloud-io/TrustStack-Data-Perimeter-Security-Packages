@@ -638,10 +638,13 @@ See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.md
 Implement a Lambda handler for responsive controls in `responsive-control/handler.ts`:
 See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.mdc) for more information.
 
-## Step 7: Implement Tests
+## Step 7: Implement Unit Tests
 
 Create test files for each Lambda handler.
-See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.mdc) for more information.
+
+See [lambda-function-handlers.mdc](mdc:.cursor/rules/lambda-function-handlers.mdc) and [unit-tests-generation.mdc](mdc:.cursor/rules/unit-tests-generation.mdc) for more information.
+
+Run the tests continually until all the tests pass. Make any required updates to the Lambda handler implementations.
 
 ## Step 8: Update the Export File
 
@@ -821,13 +824,18 @@ The Cursor IDE rule at `.cursor/rules/project-overview.mdc` provides an overview
 
 Add a link to the `README.md` file `.cursor/rules/project-overview.mdc` in the list where the other security packages' `README.md` files are linked. The order at which the `README.md` links appear in the least must be based on the alphabetical order of the security package's name as appears in its `README.md` file's main header(e.g, "ECR Image Layer Access Security Package").
 
-## Step 14: Testing the New Security Package
+## Step 14: Implement End-to-End Tests
 
-1. Add unit tests for your Lambda handlers using Jest
-2. Run tests locally: `pnpm test`
-3. Enable the package in your deployment manifest
-4. Test package generation: `pnpm generate-deployment-assets`
-5. Verify the generated assets in the dist directory
+Create an end-to-end test file for the security package.
+
+See [e2e-tests-generation.mdc](mdc:.cursor/rules/e2e-tests-generation.mdc) for more information.
+
+## Step 15: Guide The Prompter On How To Continue From Here
+
+Instruct the prompter to:
+1. Run all tests locally
+2. Enable the package in your deployment manifest
+3. Test assets generation and verify the generated assets in the `dist` directory
 
 ## Reference Implementations
 

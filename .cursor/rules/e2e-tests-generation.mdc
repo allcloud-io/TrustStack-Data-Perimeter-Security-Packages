@@ -344,6 +344,7 @@ When creating e2e tests for a new security package:
 
 Reference test files:
 - [lambda-layer-permission.e2e-spec.ts](mdc:apps/security-packages/tests/e2e/lambda-layer-permission.e2e-spec.ts)
+- [lambda-vpc-security.e2e-spec.ts](mdc:apps/security-packages/tests/e2e/lambda-vpc-security.e2e-spec.ts)
 
 ## Test Troubleshooting
 

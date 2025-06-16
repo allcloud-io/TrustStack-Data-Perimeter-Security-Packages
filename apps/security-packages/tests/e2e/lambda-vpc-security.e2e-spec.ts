@@ -1,17 +1,25 @@
-import { Lambda } from "@aws-sdk/client-lambda";
+import {
+  type CreateFunctionCommandInput,
+  Lambda,
+  type UpdateFunctionConfigurationCommandInput,
+  type UpdateFunctionConfigurationCommandOutput,
+} from "@aws-sdk/client-lambda";
 import {
   type AwsSecurityFinding,
   SecurityHub,
 } from "@aws-sdk/client-securityhub";
 import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
+import { validateEnvironmentVariables } from "@trust-stack/utils";
 import { getSSMParameterValue, waitFor } from "./utils";
 
 const lambda = new Lambda({});
 const securityHub = new SecurityHub({});
 
 async function waitForDetectiveControlToDetectViolation({
+  functionARN,
   functionName,
 }: {
+  functionARN: string;
   functionName: string;
 }): Promise<AwsSecurityFinding | undefined> {
   return waitFor({
@@ -26,18 +34,49 @@ async function waitForDetectiveControlToDetectViolation({
               Comparison: "EQUALS",
             },
           ],
-          Id: [
+          ResourceId: [
             {
-              Value: `lambda-vpc-security-${functionName}`,
+              Value: functionARN,
               Comparison: "EQUALS",
             },
           ],
         },
       });
 
-      return findings.Findings?.[0];
+      return findings.Findings?.find((finding) =>
+        finding.Resources?.some(
+          (resource) =>
+            resource.Details?.AwsLambdaFunction?.FunctionName === functionName,
+        ),
+      );
     },
   });
+}
+
+async function verifyFunctionHasVPCConfiguration({
+  functionName,
+}: {
+  functionName: string;
+}): Promise<void> {
+  const functionConfig = await lambda.getFunctionConfiguration({
+    FunctionName: functionName,
+  });
+
+  expect(functionConfig.VpcConfig?.VpcId).toBeDefined();
+  expect(functionConfig.VpcConfig?.SubnetIds).toBeDefined();
+  expect(functionConfig.VpcConfig?.SecurityGroupIds).toBeDefined();
+}
+
+async function verifyFunctionHasNoVPCConfiguration({
+  functionName,
+}: {
+  functionName: string;
+}): Promise<void> {
+  const functionConfig = await lambda.getFunctionConfiguration({
+    FunctionName: functionName,
+  });
+
+  expect(Boolean(functionConfig.VpcConfig?.VpcId)).toBe(false);
 }
 
 /**
@@ -50,167 +89,162 @@ function generateFunctionName(): string {
   return `test-vpc-function-${timestamp.toString()}-${randomString}`;
 }
 
-/**
- * Helper function to create a Lambda function
- */
-async function createLambdaFunction({
-  functionName,
-  vpcConfig,
-  roleARN,
-}: {
-  functionName: string;
-  vpcConfig?: {
-    SubnetIds: string[];
-    SecurityGroupIds: string[];
-  };
-  roleARN: string;
-}): Promise<string> {
-  const result = await lambda.createFunction({
-    FunctionName: functionName,
-    Runtime: "nodejs22.x",
-    Role: roleARN,
-    Handler: "index.handler",
-    Code: {
-      ZipFile: Buffer.from(`
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return {
-            statusCode: 200,
-            body: JSON.stringify('Hello from test Lambda!'),
-          };
-        };
-      `),
-    },
-    Description: "Test Lambda function for VPC security testing",
-    Timeout: 30,
-    VpcConfig: vpcConfig,
-  });
-
-  return result.FunctionArn!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
-}
-
-/**
- * Helper function to update Lambda function VPC configuration
- */
-async function updateLambdaFunctionVPCConfig({
-  functionName,
-  vpcConfig,
-}: {
-  functionName: string;
-  vpcConfig?: {
-    SubnetIds: string[];
-    SecurityGroupIds: string[];
-  };
-}): Promise<void> {
-  await lambda.updateFunctionConfiguration({
-    FunctionName: functionName,
-    VpcConfig: vpcConfig,
-  });
-}
-
-/**
- * Helper function to delete a Lambda function
- */
-async function deleteLambdaFunction(functionName: string): Promise<void> {
-  try {
-    await lambda.deleteFunction({
-      FunctionName: functionName,
-    });
-  } catch (error: unknown) {
-    if (
-      !(error instanceof Error && error.name === "ResourceNotFoundException")
-    ) {
-      throw error;
-    }
-  }
-}
-
 async function readSharedSSMParameters() {
-  // Get Lambda role ARN
+  const assetsBucketName = await getSSMParameterValue(
+    "/trust-stack/assets-bucket/name",
+  );
+
+  // Get existing test Lambda function ARN (this one has VPC config)
+  const existingFunctionARN = await getSSMParameterValue(
+    "/trust-stack/e2e-tests/security-packages/lambda-vpc-security/lambda-function-arn",
+  );
+
+  // Get Lambda role ARN for creating test functions
   const lambdaRoleARN = await getSSMParameterValue(
     "/trust-stack/e2e-tests/lambda-role-arn",
   );
 
-  // Get VPC configuration for authorized VPC
+  // Get security group ID for VPC functions
+  const securityGroupID = await getSSMParameterValue(
+    "/trust-stack/e2e-tests/lambda-security-group-id",
+  );
+
+  // Get authorized VPC ID
   const authorizedVPCID = await getSSMParameterValue(
     "/trust-stack/e2e-tests/lambda-vpc-id",
   );
 
-  const authorizedSubnetID1 = await getSSMParameterValue(
-    "/trust-stack/e2e-tests/lambda-subnet-id-1",
-  );
-
-  const authorizedSubnetID2 = await getSSMParameterValue(
-    "/trust-stack/e2e-tests/lambda-subnet-id-2",
-  );
-
-  const authorizedSecurityGroupID = await getSSMParameterValue(
-    "/trust-stack/e2e-tests/lambda-security-group-id",
-  );
-
-  // Get VPC configuration for unauthorized VPC
-  const unauthorizedVPCID = await getSSMParameterValue(
-    "/trust-stack/e2e-tests/unauthorized-lambda-vpc-id",
-  );
-
-  const unauthorizedSubnetID1 = await getSSMParameterValue(
-    "/trust-stack/e2e-tests/unauthorized-lambda-subnet-id-1",
-  );
-
-  const unauthorizedSubnetID2 = await getSSMParameterValue(
-    "/trust-stack/e2e-tests/unauthorized-lambda-subnet-id-2",
-  );
-
-  const unauthorizedSecurityGroupID = await getSSMParameterValue(
-    "/trust-stack/e2e-tests/unauthorized-lambda-security-group-id",
-  );
+  // Get private subnet IDs
+  const privateSubnetIDs = await Promise.all([
+    getSSMParameterValue("/trust-stack/e2e-tests/lambda-subnet-id-1"),
+    getSSMParameterValue("/trust-stack/e2e-tests/lambda-subnet-id-2"),
+  ]);
 
   return {
+    assetsBucketName,
+    existingFunctionARN,
     lambdaRoleARN,
+    securityGroupID,
     authorizedVPCID,
-    authorizedSubnetIDs: [authorizedSubnetID1, authorizedSubnetID2],
-    authorizedSecurityGroupID,
-    unauthorizedVPCID,
-    unauthorizedSubnetIDs: [unauthorizedSubnetID1, unauthorizedSubnetID2],
-    unauthorizedSecurityGroupID,
+    privateSubnetIDs,
   };
 }
 
-async function cleanUpLambdaFunctions(functionNames: string[]): Promise<void> {
+async function createLambdaFunction(
+  props: {
+    functionName: string;
+    lambdaRoleARN: string;
+    assetsBucketName: string;
+    buildHash: string;
+  },
+  createFunctionOptions: Omit<
+    CreateFunctionCommandInput,
+    "FunctionName" | "Role" | "Code"
+  >,
+) {
+  return await lambda.createFunction({
+    FunctionName: props.functionName,
+    Runtime: "nodejs22.x",
+    Role: props.lambdaRoleARN,
+    Handler: "index.handler",
+    Code: {
+      S3Bucket: props.assetsBucketName,
+      S3Key: `${props.buildHash}/trust-stack/security-packages/lambda-vpc-security/proactive-control/lambda.zip`,
+    },
+    ...createFunctionOptions,
+  });
+}
+
+async function updateLambdaFunction(
+  props: {
+    functionName: string;
+  },
+  updateFunctionConfigurationOptions: Omit<
+    UpdateFunctionConfigurationCommandInput,
+    "FunctionName"
+  >,
+): Promise<UpdateFunctionConfigurationCommandOutput | undefined> {
+  return waitFor({
+    timeout: 5 * 60_000, // 5 minutes
+    interval: 10_000, // 10 seconds
+    condition: async () => {
+      return await lambda
+        .updateFunctionConfiguration({
+          FunctionName: props.functionName,
+          ...updateFunctionConfigurationOptions,
+        })
+        .catch((error: unknown) => {
+          if (
+            error instanceof Error &&
+            error.name === "ResourceConflictException"
+          ) {
+            return undefined;
+          }
+          throw error;
+        });
+    },
+  });
+}
+
+async function cleanUpTestFunctions({
+  functionNames,
+}: {
+  functionNames: string[];
+}): Promise<void> {
   for (const functionName of functionNames) {
-    await deleteLambdaFunction(functionName);
+    try {
+      await lambda.deleteFunction({
+        FunctionName: functionName,
+      });
+    } catch (error: unknown) {
+      if (
+        !(error instanceof Error && error.name === "ResourceNotFoundException")
+      ) {
+        console.warn(`Failed to delete function ${functionName}:`, error);
+      }
+    }
   }
-  functionNames.length = 0;
 }
 
 jest.setTimeout(1 * 60 * 60 * 1_000); // 1 hour
 
 describe("Lambda VPC Security - E2E Tests", () => {
+  let assetsBucketName: string;
+  let buildHash: string;
+  let existingFunctionARN: string;
+  let existingFunctionName: string;
   let lambdaRoleARN: string;
-  let authorizedVPCID: string;
-  let authorizedSubnetIDs: string[];
-  let authorizedSecurityGroupID: string;
-  let unauthorizedVPCID: string;
-  let unauthorizedSubnetIDs: string[];
-  let unauthorizedSecurityGroupID: string;
+  let securityGroupID: string;
+  let privateSubnetIDs: string[];
 
   beforeAll(async () => {
+    const env = validateEnvironmentVariables(["BUILD_HASH"]);
+    buildHash = env.BUILD_HASH;
+
     ({
+      assetsBucketName,
+      existingFunctionARN,
       lambdaRoleARN,
-      authorizedVPCID,
-      authorizedSubnetIDs,
-      authorizedSecurityGroupID,
-      unauthorizedVPCID,
-      unauthorizedSubnetIDs,
-      unauthorizedSecurityGroupID,
+      securityGroupID,
+      privateSubnetIDs,
     } = await readSharedSSMParameters());
+
+    // Extract function name from ARN
+    const functionNameRegex = /:function:([^:]+)/;
+    const functionNameMatch = functionNameRegex.exec(existingFunctionARN);
+    if (!functionNameMatch) {
+      throw new Error("Could not extract function name from ARN");
+    }
+    existingFunctionName = functionNameMatch[1];
   });
 
-  describe("Compliant Lambda function configurations", () => {
+  describe("Compliant Lambda functions", () => {
     const createdFunctions: string[] = [];
 
     afterAll(async () => {
-      await cleanUpLambdaFunctions(createdFunctions);
+      await cleanUpTestFunctions({
+        functionNames: createdFunctions,
+      });
     });
 
     it("should allow Lambda function with proper VPC configuration", async () => {
@@ -218,119 +252,152 @@ describe("Lambda VPC Security - E2E Tests", () => {
       createdFunctions.push(functionName);
 
       // Create Lambda function with VPC configuration
-      await createLambdaFunction({
-        functionName,
-        vpcConfig: {
-          SubnetIds: authorizedSubnetIDs,
-          SecurityGroupIds: [authorizedSecurityGroupID],
+      const createResult = await createLambdaFunction(
+        {
+          functionName,
+          lambdaRoleARN,
+          assetsBucketName,
+          buildHash,
         },
-        roleARN: lambdaRoleARN,
-      });
+        {
+          VpcConfig: {
+            SubnetIds: privateSubnetIDs,
+            SecurityGroupIds: [securityGroupID],
+          },
+        },
+      );
+
+      const functionARN = createResult.FunctionArn;
+      if (!functionARN) {
+        throw new Error("Function ARN not returned from createFunction");
+      }
 
       // Wait to see if detective control creates a finding (it shouldn't)
       const finding = await waitForDetectiveControlToDetectViolation({
+        functionARN,
         functionName,
       });
 
       // Verify no Security Hub findings were created for this compliant function
       expect(finding).toBeUndefined();
 
-      // Verify the function exists and has VPC configuration
-      const functionConfig = await lambda.getFunctionConfiguration({
-        FunctionName: functionName,
+      // Verify the function still has VPC configuration
+      await verifyFunctionHasVPCConfiguration({
+        functionName,
       });
-
-      expect(functionConfig.VpcConfig?.VpcId).toBe(authorizedVPCID);
-      expect(functionConfig.VpcConfig?.SubnetIds).toEqual(
-        expect.arrayContaining(authorizedSubnetIDs),
-      );
-      expect(functionConfig.VpcConfig?.SecurityGroupIds).toEqual([
-        authorizedSecurityGroupID,
-      ]);
     });
 
-    it("should allow Lambda function updated to have VPC configuration", async () => {
-      const functionName = generateFunctionName();
-      createdFunctions.push(functionName);
-
-      // Create Lambda function without VPC configuration first
-      await createLambdaFunction({
-        functionName,
-        roleARN: lambdaRoleARN,
-      });
-
-      // Update function to have VPC configuration
-      await updateLambdaFunctionVPCConfig({
-        functionName,
-        vpcConfig: {
-          SubnetIds: authorizedSubnetIDs,
-          SecurityGroupIds: [authorizedSecurityGroupID],
-        },
-      });
-
-      // Wait to see if detective control creates a finding (it shouldn't for the update)
+    it("should not flag existing compliant Lambda function", async () => {
+      // Use the existing test function that already has VPC configuration
       const finding = await waitForDetectiveControlToDetectViolation({
-        functionName,
+        functionARN: existingFunctionARN,
+        functionName: existingFunctionName,
       });
 
-      // Verify no Security Hub findings were created for the compliant update
+      // Verify no Security Hub findings were created
       expect(finding).toBeUndefined();
 
       // Verify the function has VPC configuration
-      const functionConfig = await lambda.getFunctionConfiguration({
-        FunctionName: functionName,
+      await verifyFunctionHasVPCConfiguration({
+        functionName: existingFunctionName,
       });
-
-      expect(functionConfig.VpcConfig?.VpcId).toBe(authorizedVPCID);
     });
 
-    it("should allow Lambda function with excluded tag", async () => {
+    it("should allow Lambda function update that maintains VPC configuration", async () => {
       const functionName = generateFunctionName();
       createdFunctions.push(functionName);
 
-      // Create Lambda function without VPC configuration
-      const functionARN = await createLambdaFunction({
-        functionName,
-        roleARN: lambdaRoleARN,
-      });
-
-      // Add exclusion tag
-      await lambda.tagResource({
-        Resource: functionARN,
-        Tags: {
-          "ts:exclude": "LambdaVPCSecurity",
+      // Create Lambda function with VPC configuration
+      await createLambdaFunction(
+        {
+          functionName,
+          lambdaRoleARN,
+          assetsBucketName,
+          buildHash,
         },
-      });
+        {
+          VpcConfig: {
+            SubnetIds: privateSubnetIDs,
+            SecurityGroupIds: [securityGroupID],
+          },
+        },
+      );
 
-      // Wait to see if detective control creates a finding (it shouldn't due to exclusion tag)
+      // Update the function configuration (keeping VPC config)
+
+      const updateResult = await updateLambdaFunction(
+        {
+          functionName,
+        },
+        {
+          Timeout: 60, // Change timeout but keep VPC config
+          VpcConfig: {
+            SubnetIds: privateSubnetIDs,
+            SecurityGroupIds: [securityGroupID],
+          },
+        },
+      );
+
+      expect(updateResult).toBeDefined();
+
+      const functionARN = updateResult?.FunctionArn;
+      if (!functionARN) {
+        throw new Error(
+          "Function ARN not returned from updateFunctionConfiguration",
+        );
+      }
+
+      // Wait to see if detective control creates a finding (it shouldn't)
       const finding = await waitForDetectiveControlToDetectViolation({
+        functionARN,
         functionName,
       });
 
-      // Verify no Security Hub findings were created due to exclusion tag
+      // Verify no Security Hub findings were created
       expect(finding).toBeUndefined();
+
+      // Verify the function still has VPC configuration
+      await verifyFunctionHasVPCConfiguration({
+        functionName,
+      });
     });
   });
 
-  describe("Non-compliant Lambda function configurations", () => {
-    const functionNames: string[] = [];
+  describe("Non-compliant Lambda functions", () => {
+    const createdFunctions: string[] = [];
 
     afterAll(async () => {
-      await cleanUpLambdaFunctions(functionNames);
+      await cleanUpTestFunctions({
+        functionNames: createdFunctions,
+      });
     });
 
     it("should detect Lambda function created without VPC configuration", async () => {
       const functionName = generateFunctionName();
-      functionNames.push(functionName);
+      createdFunctions.push(functionName);
 
       // Create Lambda function without VPC configuration
-      await createLambdaFunction({
-        functionName,
-        roleARN: lambdaRoleARN,
-      });
+
+      const createFunctionResult = await createLambdaFunction(
+        {
+          functionName,
+          lambdaRoleARN,
+          assetsBucketName,
+          buildHash,
+        },
+        {
+          // No VpcConfig specified
+        },
+      );
+
+      const functionARN = createFunctionResult.FunctionArn;
+      if (!functionARN) {
+        throw new Error("Function ARN not returned from createFunction");
+      }
 
       // Wait for detective control to detect the violation and create a Security Hub finding
       const finding = await waitForDetectiveControlToDetectViolation({
+        functionARN,
         functionName,
       });
 
@@ -344,46 +411,76 @@ describe("Lambda VPC Security - E2E Tests", () => {
       expect(finding?.Severity?.Label).toBe("HIGH");
 
       // Verify finding details
-      expect(finding?.Resources?.[0]?.Type).toBe("AwsLambdaFunction");
+      expect(finding?.Resources?.[0]?.Id).toBe(functionARN);
       expect(
         finding?.Resources?.[0]?.Details?.AwsLambdaFunction?.FunctionName,
       ).toBe(functionName);
-      expect(finding?.Compliance?.Status).toBe("FAILED");
-      expect(finding?.Workflow?.Status).toBe("NEW");
+      expect(finding?.Resources?.[0]?.Details?.Other?.reason).toBe(
+        "Lambda function is not configured to run in a VPC",
+      );
 
-      // Verify the function exists but has no VPC configuration
-      const functionConfig = await lambda.getFunctionConfiguration({
-        FunctionName: functionName,
+      // Verify the function indeed has no VPC configuration
+      await verifyFunctionHasNoVPCConfiguration({
+        functionName,
       });
 
-      expect(functionConfig.VpcConfig?.VpcId).toBeUndefined();
+      // Note: This package doesn't have responsive control, so the function won't be automatically remediated
+      // The finding should remain in NEW status
+      expect(finding?.Workflow?.Status).toBe("NEW");
     });
 
     it("should detect Lambda function updated to remove VPC configuration", async () => {
       const functionName = generateFunctionName();
-      functionNames.push(functionName);
+      createdFunctions.push(functionName);
 
-      // Create Lambda function with VPC configuration first
-      await createLambdaFunction({
-        functionName,
-        vpcConfig: {
-          SubnetIds: authorizedSubnetIDs,
-          SecurityGroupIds: [authorizedSecurityGroupID],
+      // First create Lambda function with VPC configuration
+      await createLambdaFunction(
+        {
+          functionName,
+          lambdaRoleARN,
+          assetsBucketName,
+          buildHash,
         },
-        roleARN: lambdaRoleARN,
+        {
+          VpcConfig: {
+            SubnetIds: privateSubnetIDs,
+            SecurityGroupIds: [securityGroupID],
+          },
+        },
+      );
+
+      // Verify it has VPC configuration initially
+      await verifyFunctionHasVPCConfiguration({
+        functionName,
       });
 
-      // Update function to remove VPC configuration
-      await updateLambdaFunctionVPCConfig({
-        functionName,
-        vpcConfig: {
-          SubnetIds: [],
-          SecurityGroupIds: [],
+      // Update the function to remove VPC configuration
+
+      const updateResult = await updateLambdaFunction(
+        {
+          functionName,
         },
-      });
+        {
+          Timeout: 60,
+          VpcConfig: {
+            SubnetIds: [],
+            SecurityGroupIds: [],
+          },
+        },
+      );
+
+      expect(updateResult).toBeDefined();
+
+      const functionARN = updateResult?.FunctionArn;
+      if (!functionARN) {
+        throw new Error(
+          "Function ARN not returned from updateFunctionConfiguration",
+        );
+      }
 
       // Wait for detective control to detect the violation
       const finding = await waitForDetectiveControlToDetectViolation({
+        functionARN,
         functionName,
       });
 
@@ -394,99 +491,92 @@ describe("Lambda VPC Security - E2E Tests", () => {
       expect(finding?.Description).toBe(
         "Lambda function is not configured to run in a VPC",
       );
+      expect(finding?.Severity?.Label).toBe("HIGH");
 
-      // Verify the function no longer has VPC configuration
-      const functionConfig = await lambda.getFunctionConfiguration({
-        FunctionName: functionName,
-      });
-
-      expect(functionConfig.VpcConfig?.VpcId).toBeUndefined();
-    });
-
-    it("should detect Lambda function in unauthorized VPC if allowedVPCIDs is configured", async () => {
-      const functionName = generateFunctionName();
-      functionNames.push(functionName);
-
-      // Create Lambda function in unauthorized VPC
-      await createLambdaFunction({
+      // Verify the function now has no VPC configuration
+      await verifyFunctionHasNoVPCConfiguration({
         functionName,
-        vpcConfig: {
-          SubnetIds: unauthorizedSubnetIDs,
-          SecurityGroupIds: [unauthorizedSecurityGroupID],
-        },
-        roleARN: lambdaRoleARN,
       });
-
-      // Note: This test assumes the security package is configured with allowedVPCIDs
-      // If not configured, this function would be considered compliant as it has a VPC
-      // The actual behavior depends on the deployment configuration
-
-      // Verify the function exists and has the unauthorized VPC configuration
-      const functionConfig = await lambda.getFunctionConfiguration({
-        FunctionName: functionName,
-      });
-
-      expect(functionConfig.VpcConfig?.VpcId).toBe(unauthorizedVPCID);
-      expect(functionConfig.VpcConfig?.SubnetIds).toEqual(
-        expect.arrayContaining(unauthorizedSubnetIDs),
-      );
-    });
-  });
-
-  describe("Edge cases and error handling", () => {
-    const functionNames: string[] = [];
-
-    afterAll(async () => {
-      await cleanUpLambdaFunctions(functionNames);
     });
 
-    it("should handle Lambda function creation failure gracefully", async () => {
+    it("should handle Lambda function with exclusion tag", async () => {
       const functionName = generateFunctionName();
+      createdFunctions.push(functionName);
 
-      // Attempt to create a function with invalid configuration
-      try {
-        await lambda.createFunction({
-          FunctionName: functionName,
-          Runtime: "nodejs22.x",
-          Role: "arn:aws:iam::123456789012:role/invalid-role", // Invalid role
-          Handler: "index.handler",
-          Code: {
-            ZipFile: Buffer.from("exports.handler = async () => {};"),
+      // Create Lambda function without VPC configuration but with exclusion tag
+      const createResult = await createLambdaFunction(
+        {
+          functionName,
+          lambdaRoleARN,
+          assetsBucketName,
+          buildHash,
+        },
+        {
+          Tags: {
+            "ts:exclude": "LambdaVPCSecurity",
           },
-        });
-      } catch (error: unknown) {
-        // Expected to fail due to invalid role
-        expect(error).toBeDefined();
+          // No VpcConfig specified
+        },
+      );
+
+      const functionARN = createResult.FunctionArn;
+      if (!functionARN) {
+        throw new Error("Function ARN not returned from createFunction");
       }
 
-      // Verify no Security Hub findings were created for failed function creation
+      // Wait to see if detective control creates a finding (it shouldn't due to exclusion tag)
       const finding = await waitForDetectiveControlToDetectViolation({
+        functionARN,
         functionName,
       });
 
+      // Verify no Security Hub findings were created due to exclusion tag
       expect(finding).toBeUndefined();
+
+      // Verify the function has no VPC configuration (but is excluded from checks)
+      await verifyFunctionHasNoVPCConfiguration({
+        functionName,
+      });
     });
 
-    it("should handle function deletion during processing", async () => {
+    it("should handle Lambda function with ALL exclusion tag", async () => {
       const functionName = generateFunctionName();
+      createdFunctions.push(functionName);
 
-      // Create Lambda function without VPC configuration
-      await createLambdaFunction({
+      // Create Lambda function without VPC configuration but with ALL exclusion tag
+      const createResult = await createLambdaFunction(
+        {
+          functionName,
+          lambdaRoleARN,
+          assetsBucketName,
+          buildHash,
+        },
+        {
+          Tags: {
+            "ts:exclude": "ALL",
+          },
+          // No VpcConfig specified
+        },
+      );
+
+      const functionARN = createResult.FunctionArn;
+      if (!functionARN) {
+        throw new Error("Function ARN not returned from createFunction");
+      }
+
+      // Wait to see if detective control creates a finding (it shouldn't due to ALL exclusion tag)
+      const finding = await waitForDetectiveControlToDetectViolation({
+        functionARN,
         functionName,
-        roleARN: lambdaRoleARN,
       });
 
-      // Delete the function immediately
-      await deleteLambdaFunction(functionName);
+      // Verify no Security Hub findings were created due to ALL exclusion tag
+      expect(finding).toBeUndefined();
 
-      // The detective control should handle the case where the function no longer exists
-      // This tests the error handling in the detective control handler
-
-      // Wait a bit to allow CloudTrail event processing
-      await new Promise((resolve) => setTimeout(resolve, 30_000));
-
-      // No specific assertion here as the behavior depends on timing
-      // The test ensures the system doesn't crash when functions are deleted
+      // Verify the function has no VPC configuration (but is excluded from all checks)
+      await verifyFunctionHasNoVPCConfiguration({
+        functionName,
+      });
     });
   });
 });

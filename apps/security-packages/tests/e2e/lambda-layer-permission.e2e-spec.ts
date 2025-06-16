@@ -74,9 +74,11 @@ async function waitForResponsiveControlToRemediateViolation(
 
 async function verifyPermissionWasRemoved({
   layerName,
+  layerVersionNumber,
   statementID,
 }: {
   layerName: string;
+  layerVersionNumber: number;
   statementID: string;
 }): Promise<void> {
   let policyString: string | undefined;
@@ -84,7 +86,7 @@ async function verifyPermissionWasRemoved({
   try {
     const getLayerVersionPolicyResult = await lambda.getLayerVersionPolicy({
       LayerName: layerName,
-      VersionNumber: 1,
+      VersionNumber: layerVersionNumber,
     });
     policyString = getLayerVersionPolicyResult.Policy;
   } catch (error: unknown) {
@@ -169,9 +171,11 @@ async function readSharedSSMParameters() {
 
 async function cleanUpPermissions({
   layerName,
+  layerVersionNumber,
   statementIDs,
 }: {
   layerName: string;
+  layerVersionNumber: number;
   statementIDs: string[];
 }): Promise<void> {
   let policyString: string | undefined;
@@ -179,7 +183,7 @@ async function cleanUpPermissions({
   try {
     const getLayerVersionPolicyResult = await lambda.getLayerVersionPolicy({
       LayerName: layerName,
-      VersionNumber: 1,
+      VersionNumber: layerVersionNumber,
     });
     policyString = getLayerVersionPolicyResult.Policy;
   } catch (error: unknown) {
@@ -202,7 +206,7 @@ async function cleanUpPermissions({
     if (statement.Sid.startsWith("test-statement-")) {
       await lambda.removeLayerVersionPermission({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
         StatementId: statement.Sid,
       });
     }
@@ -216,6 +220,7 @@ jest.setTimeout(1 * 60 * 60 * 1_000);
 
 describe("Lambda Layer Permission - E2E Tests", () => {
   let layerVersionARN: string;
+  let layerVersionNumber: number;
   let layerName: string;
   let trustedAccountID: string;
   let trustedOrgID: string;
@@ -232,14 +237,21 @@ describe("Lambda Layer Permission - E2E Tests", () => {
     } = await readSharedSSMParameters());
 
     const layerNameRegex =
-      /^arn:aws:lambda:eu-west-1:463470966597:layer:(?<layerName>.+):\d+$/;
+      /^arn:aws:lambda:.*:.*:layer:(?<layerName>.+):(?<layerVersionNumber>\d+)$/;
 
     if (!layerNameRegex.test(layerVersionARN)) {
       throw new Error("Invalid layer ARN");
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain
-    layerName = layerNameRegex.exec(layerVersionARN)?.groups?.layerName!;
+    const match = layerNameRegex.exec(layerVersionARN);
+    if (!match) {
+      throw new Error("Invalid layer ARN");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    layerName = match.groups!.layerName;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    layerVersionNumber = parseInt(match.groups!.layerVersionNumber);
   });
 
   describe("Compliant layer permissions", () => {
@@ -248,6 +260,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
     afterAll(async () => {
       await cleanUpPermissions({
         layerName,
+        layerVersionNumber,
         statementIDs: createdStatements,
       });
     });
@@ -259,7 +272,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
       // Add layer permission to trusted account
       await lambda.addLayerVersionPermission({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
         StatementId: statementID,
         Action: "lambda:GetLayerVersion",
         Principal: trustedAccountID,
@@ -276,7 +289,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
       // Verify the permission still exists (wasn't removed by responsive control)
       const policy = await lambda.getLayerVersionPolicy({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
       });
 
       if (!policy.Policy) {
@@ -301,7 +314,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
       // Add layer permission with wildcard and trusted organization
       await lambda.addLayerVersionPermission({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
         StatementId: statementID,
         Action: "lambda:GetLayerVersion",
         Principal: "*",
@@ -319,7 +332,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
       // Verify the permission exists with correct organization condition
       const policy = await lambda.getLayerVersionPolicy({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
       });
 
       if (!policy.Policy) {
@@ -346,7 +359,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
       // Add layer permission to trusted root account
       await lambda.addLayerVersionPermission({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
         StatementId: statementID,
         Action: "lambda:GetLayerVersion",
         Principal: trustedRootARN,
@@ -363,7 +376,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
       // Verify the permission exists
       const policy = await lambda.getLayerVersionPolicy({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
       });
 
       if (!policy.Policy) {
@@ -386,6 +399,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
     afterAll(async () => {
       await cleanUpPermissions({
         layerName,
+        layerVersionNumber,
         statementIDs,
       });
     });
@@ -397,7 +411,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
       // Add layer permission to untrusted account
       await lambda.addLayerVersionPermission({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
         StatementId: statementID,
         Action: "lambda:GetLayerVersion",
         Principal: untrustedAccountID,
@@ -424,6 +438,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
 
       await verifyPermissionWasRemoved({
         layerName,
+        layerVersionNumber,
         statementID,
       });
     });
@@ -435,7 +450,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
       // Add wildcard permission without organization
       await lambda.addLayerVersionPermission({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
         StatementId: statementID,
         Action: "lambda:GetLayerVersion",
         Principal: "*",
@@ -460,6 +475,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
 
       await verifyPermissionWasRemoved({
         layerName,
+        layerVersionNumber,
         statementID,
       });
     });
@@ -471,7 +487,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
       // Add permission with untrusted organization
       await lambda.addLayerVersionPermission({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
         StatementId: statementID,
         Action: "lambda:GetLayerVersion",
         Principal: "*",
@@ -496,6 +512,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
 
       await verifyPermissionWasRemoved({
         layerName,
+        layerVersionNumber,
         statementID,
       });
     });
@@ -509,7 +526,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
       // Add permission to untrusted root account
       await lambda.addLayerVersionPermission({
         LayerName: layerName,
-        VersionNumber: 1,
+        VersionNumber: layerVersionNumber,
         StatementId: statementID,
         Action: "lambda:GetLayerVersion",
         Principal: untrustedRootARN,
@@ -533,6 +550,7 @@ describe("Lambda Layer Permission - E2E Tests", () => {
 
       await verifyPermissionWasRemoved({
         layerName,
+        layerVersionNumber,
         statementID,
       });
     });

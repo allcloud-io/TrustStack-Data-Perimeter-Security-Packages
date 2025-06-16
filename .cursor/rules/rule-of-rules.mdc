@@ -19,6 +19,12 @@ This rule provides a summary of all available Cursor IDE rules to help the AI as
 
 **When to use**: This rule is relevant when the user is creating or modifying a Lambda function handler, especially within the context of a security control. Look for keywords like "Lambda handler," "proactive control," "detective control," or "responsive control."
 
+### `e2e-tests-generation.mdc`
+
+**Description**: Provides comprehensive guidelines for writing end-to-end tests for TrustStack security packages. It covers test structure, common test cases for security controls, assertions, helper functions, and troubleshooting. Includes complete examples and emphasizes the importance of reading security package directory structure before writing tests.
+
+**When to use**: Use this rule when the user needs to create, update, or debug end-to-end tests for security packages. Look for keywords like "e2e test," "end-to-end test," "security package test," or file paths ending in `.e2e-spec.ts`. Essential when implementing comprehensive testing for detective and responsive controls.
+
 ### `shared-ssm-parameters-for-e2e-tests.mdc`
 
 **Description**: Documents the shared SSM parameters available for end-to-end tests. It lists parameter paths and shows how to reference them in CloudFormation templates and Jest tests.

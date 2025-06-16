@@ -124,6 +124,7 @@ export class E2ETestingResourcesStack extends cdk.Stack {
   private createECRRepository() {
     new ecr.Repository(this, "ECRRepository", {
       repositoryName: "truststack-e2e-test-repository",
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
   }
 

@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: *.e2e-spec.ts
 alwaysApply: false
 ---
 # Shared SSM Parameters for E2E Tests

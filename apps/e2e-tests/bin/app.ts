@@ -22,8 +22,12 @@ const options = parseManifestFile(
 
 const app = new cdk.App();
 
-new MockHTTPAPIStack(app, "MockHTTPAPI");
+new MockHTTPAPIStack(app, "MockHTTPAPI", {
+  stackName: "TrustStack-MockHTTPAPI",
+});
+
 new E2ETestingResourcesStack(app, "E2ETestingResources", {
+  stackName: "TrustStack-E2ETestingResources",
   awsOrganizationID,
   ...options,
 });
