@@ -1,4 +1,4 @@
-# TrustStack Data Perimeter Security Packages Engine
+# TrustStack Data Perimeter Security Packages
 
 TrustStack is a prevention-first cybersecurity framework that enables highly regulated organizations, government agencies, and defense units to securely run sensitive workloads in AWS commercial regions. Visit [TrustStack's documentation](https://github.com/allcloud-io/TrustStack) for more information.
 
